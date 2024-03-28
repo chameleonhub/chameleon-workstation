@@ -27,3 +27,4 @@ release
 
 # sometimes this folder is created here when syncing in dev
 /taxonomies/
+!/.env

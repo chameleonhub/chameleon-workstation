@@ -1,13 +1,19 @@
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "com.electron.bahis",
+  "appId": "com.dls.bahisdev",
+  "productName": "BAHIS Dev",
+  "executableName": "bahisdev",
   "asar": true,
   "directories": {
-    "output": "release/${version}"
+    "output": "release/${version}",
+    "buildResources": "public"
   },
   "files": [
     "dist-electron",
     "dist"
+  ],
+  "extraFiles": [
+    "node_modules/better-sqlite3/build/Release/better_sqlite3.node"
   ],
   "win": {
     "target": [
@@ -18,6 +24,7 @@
         ]
       }
     ],
+    "icon": "./public/icon.png",
     "artifactName": "${productName}_${version}.${ext}"
   },
   "nsis": {
@@ -27,6 +34,7 @@
     "allowToChangeInstallationDirectory": true,
     "createDesktopShortcut": "always",
     "menuCategory": "bahis",
-    "deleteAppDataOnUninstall": false
+    "deleteAppDataOnUninstall": false,
+    "shortcutName": "BAHIS Dev ${version}"
   },
 }
