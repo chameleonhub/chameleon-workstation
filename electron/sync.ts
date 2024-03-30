@@ -251,6 +251,7 @@ export const postFormCloudSubmissions = async (db) => {
         const selectedFile = new Blob([form.xml], { type: 'text/xml' });
         const formData = new FormData();
         formData.append('xml_submission_file', selectedFile, '@/submission.xml');
+        console.log(form.xml);
         await axios
             .post(BAHIS_KOBOTOOLBOX_KC_API_URL + 'submissions', formData, axios_config)
             .then((response) => {

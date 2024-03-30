@@ -551,6 +551,11 @@ const readAppVersion = async (event) => {
     });
 };
 
+const getUserData = async () => {
+    const fetchedUsername = db.prepare('SELECT username from users limit 1').get() as usernameObject;
+    return fetchedUsername.username;
+};
+
 // subscribes the listeners to channels
 //original
 ipcMain.on('fetch-username', fetchUsername);
@@ -572,3 +577,4 @@ ipcMain.handle('read-taxonomy-data', readTaxonomy);
 ipcMain.handle('read-administrative-region-data', readAdministrativeRegions);
 ipcMain.handle('read-user-administrative-region', readUserAdministrativeRegion);
 ipcMain.handle('read-app-version', readAppVersion);
+ipcMain.handle('get-user-data', getUserData);
