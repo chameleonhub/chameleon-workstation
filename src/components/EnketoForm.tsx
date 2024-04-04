@@ -139,9 +139,13 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
 
         try {
             const loadErrors = form.init();
-            log.info('Enketo form initialized successfully');
-            log.warn('Load errors:');
-            log.warn(loadErrors);
+            if (loadErrors.length) {
+                log.warn('Load errors:');
+                log.warn(loadErrors);
+                throw new Error('Error initializing Enketo form');
+            } else {
+                log.info('Enketo form initialized successfully');
+            }
         } catch (error) {
             log.error('Error initializing Enketo form:');
             log.error(error);
