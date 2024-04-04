@@ -52,8 +52,10 @@ export const SignIn = () => {
 
     useEffect(() => {
         ipcRenderer.invoke('get-user-data').then((res) => {
-            log.info(res);
-            setUserName(res);
+            if (res) {
+                setUserName(res);
+                navigate('/menu/0');
+            }
         });
     });
 
@@ -194,6 +196,10 @@ export const SignIn = () => {
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
+                        backgroundColor: 'primary.light',
+                        px: '1.5rem',
+                        py: '2rem',
+                        borderRadius: '0.5rem',
                     }}
                 >
                     <Avatar variant="square" src="/icon.png" sx={{ width: 50, height: 50, margin: 1 }} />

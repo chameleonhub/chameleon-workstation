@@ -553,7 +553,11 @@ const readAppVersion = async (event) => {
 
 const getUserData = async () => {
     const fetchedUsername = db.prepare('SELECT username from users limit 1').get() as usernameObject;
-    return fetchedUsername.username;
+    if (fetchedUsername) {
+        return fetchedUsername.username;
+    } else {
+        return false;
+    }
 };
 
 // subscribes the listeners to channels
