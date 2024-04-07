@@ -15,8 +15,6 @@ interface EnketoFormProps {
 
 export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, instanceID, editable }) => {
     const formEl = useRef<HTMLDivElement>(null);
-    // const [formEnketoXML, setFormEnketoXML] = useState<string>('');
-    // const [formEnketoHTML, setFormEnketoHTML] = useState<string>('');
     const [form, setForm] = useState<Form | null>(null);
 
     const navigate = useNavigate();
@@ -37,9 +35,8 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
                 }
             })
             .catch((error) => {
-                // log.error('Error adding form draft to local database:');
-                // log.error(error);
-                console.log(error);
+                log.error('Error adding form draft to local database:');
+                log.error(error);
             });
     };
 
@@ -55,14 +52,13 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
                 }
             })
             .catch((error) => {
-                // log.error('Error deleting form draft from local database:');
-                // log.error(error);
-                console.log(error);
+                log.error('Error deleting form draft from local database:');
+                log.error(error);
             });
     };
 
     const convertToReadOnly = (formHTML: string) => {
-        // log.info('Converting all fields to read-only');
+        log.info('Converting all fields to read-only');
         const parser = new DOMParser();
         const serializer = new XMLSerializer();
 
@@ -84,7 +80,7 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
         }
 
         const formHTMLReadyOnly = serializer.serializeToString(doc);
-        // log.info('All fields converted to read-only');
+        log.info('All fields converted to read-only');
         return formHTMLReadyOnly;
     };
 
@@ -95,7 +91,7 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
         // checking whether or not the form should be editable
         // and converting the form to read-only if necessary
 
-        // log.info('Transforming form ODK XML to enketo XML and HTML');
+        log.info('Transforming form ODK XML to enketo XML and HTML');
         transform({
             xform: formODKXML,
             media: {},
@@ -136,12 +132,11 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
                 const loadErrors = frm.init();
                 loadErrors.length && console.warn(loadErrors);
 
-                // log.info('Form HTML and XML generated successfully');
+                log.info('Form HTML and XML generated successfully');
             })
             .catch((error) => {
-                // log.error('Error transforming form ODK XML to enketo XML and HTML:');
-                // log.error(error);
-                console.log(error);
+                log.error('Error transforming form ODK XML to enketo XML and HTML:');
+                log.error(error);
             });
     }, [formODKXML]);
 
@@ -150,7 +145,7 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
             form.validate()
                 .then((valid) => {
                     if (valid) {
-                        // log.info('Enketo form validation successful');
+                        log.info('Enketo form validation successful');
                         const data = form.getDataStr();
                         if (data) {
                             createOrUpdateDraft(data);
@@ -161,9 +156,8 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
                     }
                 })
                 .catch((error) => {
-                    // log.error('Error validating Enketo form:');
-                    // log.error(error);
-                    console.log(error);
+                    log.error('Error validating Enketo form:');
+                    log.error(error);
                 });
         }
     };
