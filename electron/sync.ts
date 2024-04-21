@@ -304,16 +304,18 @@ export const getTaxonomies = async (db) => {
         axios
             .get(BAHIS_TAXONOMY_CSV_ENDPOINT(taxonomy.csv_file_stub))
             .then((response) => {
+                const uPath = app.getPath('userData');
+
                 try {
-                    if (!existsSync(`${app.getAppPath()}/taxonomies/`)) {
+                    if (!existsSync(`${uPath}/taxonomies/`)) {
                         log.info('Creating taxonomies directory');
-                        mkdirSync(`${app.getAppPath()}/taxonomies/`);
+                        mkdirSync(`${uPath}/taxonomies/`);
                     }
-                    if (existsSync(`${app.getAppPath()}/${taxonomy.csv_file_stub}`)) {
+                    if (existsSync(`${uPath}/${taxonomy.csv_file_stub}`)) {
                         log.info('Deleting old taxonomy');
-                        rmSync(`${app.getAppPath()}/${taxonomy.csv_file_stub}`);
+                        rmSync(`${uPath}/${taxonomy.csv_file_stub}`);
                     }
-                    writeFileSync(`${app.getAppPath()}/${taxonomy.csv_file_stub}`, response.data, 'utf-8');
+                    writeFileSync(`${uPath}/${taxonomy.csv_file_stub}`, response.data, 'utf-8');
                 } catch (error) {
                     log.error('GET Taxonomy CSV FAILED while saving with:');
                     log.error(error);

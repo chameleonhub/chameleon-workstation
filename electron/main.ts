@@ -28,6 +28,7 @@ const BAHIS2_SERVER_URL = import.meta.env.VITE_BAHIS2_SERVER_URL || 'http://loca
 
 // default environment variables, i.e. for local development
 export const MODE = import.meta.env.MODE || 'development';
+process.env.NODE_ENV = MODE;
 
 // set environment variables based on mode
 switch (MODE) {
@@ -493,7 +494,7 @@ const readTaxonomy = async (event, taxonomySlug: string) => {
 
     const query = `SELECT csv_file FROM taxonomy where slug = '${taxonomySlug}'`;
     const response = db.prepare(query).get();
-    const filePath = response.csv_file;
+    const filePath = `${app.getPath('userData')}/${response.csv_file}`;
 
     log.info(`Reading taxonomy CSV at ${filePath}`);
     const data: object[] = [];

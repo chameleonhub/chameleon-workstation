@@ -1,4 +1,4 @@
-import { RouterProvider, createBrowserRouter } from 'react-router-dom';
+import { RouterProvider, createHashRouter } from 'react-router-dom';
 
 import { ErrorPage } from './components/ErrorPage';
 import { Form } from './components/Form';
@@ -10,7 +10,7 @@ import { Menu } from './components/Menu';
 import { SignIn } from './components/SignIn';
 
 export const App = () => {
-    const router = createBrowserRouter([
+    const router = createHashRouter([
         {
             path: '/',
             element: <Layout hasHeader={false} />,

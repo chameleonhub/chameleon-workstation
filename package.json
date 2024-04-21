@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
+    "build:dev": "tsc && vite build --mode development && electron-builder",
     "lint": "yarn lint-electron && yarn lint-react",
     "lint-electron": "eslint electron --ext ts,tsx --report-unused-disable-directives",
     "lint-react": "eslint src --ext ts,tsx --report-unused-disable-directives",
