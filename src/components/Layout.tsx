@@ -1,10 +1,11 @@
 import { Container } from '@mui/material';
 import React, { useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { log } from '../helpers/log';
 import { Footer } from './Footer';
 import { Header } from './Header';
 import { SystemAlerts } from './SystemAlerts';
+import { ipcRenderer } from 'electron';
 
 const getLastSyncTime = async (override?: string | undefined) => {
     log.info(' setLastSyncTime (client) ');
@@ -21,10 +22,21 @@ export interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ hasHeader }) => {
+    const navigate = useNavigate();
+
     const [lastSyncTime, setLastSyncTime] = React.useState<string>();
 
     useEffect(() => {
         getLastSyncTime().then((time) => setLastSyncTime(time));
+        ipcRenderer.invoke('get-user-data').then((res) => {
+            if (res) {
+                navigate('/menu/0');
+            }
+        });
+        ipcRenderer.on('log', (evt, msg) => {
+            console.log(evt.ports);
+            console.log(msg);
+        });
     }, []);
 
     return (

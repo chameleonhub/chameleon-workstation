@@ -54,7 +54,6 @@ export const SignIn = () => {
         ipcRenderer.invoke('get-user-data').then((res) => {
             if (res) {
                 setUserName(res);
-                navigate('/menu/0');
             }
         });
     });
