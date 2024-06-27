@@ -1,15 +1,37 @@
-import axios from 'axios';
 import { app } from 'electron';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import { DOMParser } from 'xmldom';
 import xpath from 'xpath';
 import { log } from './log';
+import { auth } from '../conf/axios.ts';
+import { mainWindow } from './main.ts';
+import Xml2Js from 'xml2js';
+
+const parser = new Xml2Js.Parser();
 
 export const APP_VERSION = app.getVersion();
 export const BAHIS_SERVER_URL = import.meta.env.VITE_BAHIS_SERVER_URL || 'http://localhost:3001';
 const BAHIS_KOBOTOOLBOX_KF_API_URL = import.meta.env.VITE_BAHIS_KOBOTOOLBOX_KF_API_URL || 'http://kf.localhost:80/api/v2/';
 const BAHIS_KOBOTOOLBOX_KC_API_URL = import.meta.env.VITE_BAHIS_KOBOTOOLBOX_KC_API_URL || 'http://kc.localhost:80/api/v1/';
 log.info(`BAHIS_SERVER_URL=${BAHIS_SERVER_URL} (BAHIS 3)`);
+
+interface xForm {
+    formID: string;
+    name: string;
+    descriptionText: string;
+    downloadUrl: string;
+}
+
+interface Form {
+    uid: string;
+    name: string;
+    description: string;
+    xml_url: string;
+}
+
+interface FormListObj {
+    xforms: { xform: xForm[] };
+}
 
 const _url = (url, time?) => {
     let conjunction = '?';
@@ -24,17 +46,40 @@ const _url = (url, time?) => {
     }
 };
 
+function _simplifyFormObj(formObj) {
+    for (const prop in formObj) {
+        if (
+            Object.prototype.hasOwnProperty.call(formObj, prop) &&
+            Object.prototype.toString.call(formObj[prop]) === '[object Array]'
+        ) {
+            formObj[prop] = formObj[prop][0].toString();
+        }
+    }
+
+    return formObj;
+}
+
+function _xmlToJson(xml) {
+    return new Promise((resolve, reject) => {
+        parser.parseString(xml, (error, data) => {
+            if (error) {
+                log.info('error parsing xml and converting to JSON');
+                reject(error);
+            } else {
+                resolve(data);
+            }
+        });
+    });
+}
+
 export const getModules = async (db) => {
     log.info(`GET Module Definitions`);
 
     const BAHIS_MODULE_DEFINITION_ENDPOINT = `${BAHIS_SERVER_URL}/api/desk/modules`;
     const api_url = _url(BAHIS_MODULE_DEFINITION_ENDPOINT);
     log.info(`API URL: ${api_url}`);
-    // FIXME this API endpoint needs to take care of the user's role
-    // FIXME this API endpoint needs to take care of auth
 
-    axios
-        .get(api_url)
+    auth.get(api_url)
         .then((response) => {
             if (response.data) {
                 log.info('Modules received from server');
@@ -77,10 +122,8 @@ export const getWorkflows = async (db) => {
     const BAHIS_WORKFLOW_DEFINITION_ENDPOINT = `${BAHIS_SERVER_URL}/api/desk/workflows`;
     const api_url = _url(BAHIS_WORKFLOW_DEFINITION_ENDPOINT);
     log.info(`API URL: ${api_url}`);
-    // FIXME this API endpoint needs to take care of auth
 
-    axios
-        .get(api_url)
+    auth.get(api_url)
         .then((response) => {
             if (response.data) {
                 log.info('Workflows received from server');
@@ -117,42 +160,61 @@ export const getForms = async (db) => {
     log.info(`GET KoboToolbox Form Definitions`);
 
     log.info(`KOBOTOOLBOX KF API URL: ${BAHIS_KOBOTOOLBOX_KF_API_URL}`);
-    const axios_config = {
-        headers: {
-            Authorization: `Token ${import.meta.env.VITE_BAHIS_KOBOTOOLBOX_API_TOKEN}`,
-        },
-    };
 
+    const kcUrl = new URL(BAHIS_KOBOTOOLBOX_KC_API_URL);
+    const formListUrl = kcUrl.origin + '/formList';
     log.info('GET Form UIDs from KoboToolbox');
-    const formList = await axios
-        .get(BAHIS_KOBOTOOLBOX_KF_API_URL + 'assets', axios_config)
+    console.log('### form list url ####', formListUrl);
+
+    const formList: Form[] = await auth
+        // .get(BAHIS_KOBOTOOLBOX_KF_API_URL + 'assets')
+        // .get(BAHIS_KOBOTOOLBOX_KC_API_URL + 'forms')
+        .get(formListUrl)
         .then((response) => {
-            const formList = response.data.results
-                .filter((asset) => asset.has_deployment)
-                .map((asset) => ({
-                    uid: asset.uid,
-                    name: asset.name,
-                    description: asset.settings.description,
-                    xml_url: asset.downloads
-                        .filter((download) => download.format === 'xml')
-                        .map((download) => download.url)[0],
-                }));
-            log.info(`GET Form UIDs SUCCESS`);
-            return formList;
+            return new Promise((resolve, reject) => {
+                // first convert to JSON to make it easier to work with
+                _xmlToJson(response.data)
+                    .then((formListObj: FormListObj) => {
+                        if (formListObj.xforms && formListObj.xforms.xform) {
+                            const forms = formListObj.xforms.xform.map((form) => {
+                                // Convert arrays property values to strings, knowing that each xml node only
+                                form = _simplifyFormObj(form);
+
+                                return {
+                                    uid: form.formID,
+                                    name: form.name,
+                                    description: form.descriptionText,
+                                    xml_url: form.downloadUrl,
+                                };
+                            });
+                            log.info(`GET Form UIDs SUCCESS`);
+                            resolve(forms);
+                        } else {
+                            reject('Form not found');
+                        }
+                    })
+                    .catch(reject);
+            });
+        })
+        .then((forms) => {
+            console.log(forms);
+            return forms;
         })
         .catch((error) => {
             log.error('GET KoboToolbox Form Definitions FAILED with:');
             log.error(error);
+            console.error(error);
         });
 
     const upsertQuery = db.prepare(
         'INSERT INTO form (uid, name, description, xml) VALUES (?, ?, ?, ?) ON CONFLICT(uid) DO UPDATE SET xml = excluded.xml;',
     );
+    mainWindow?.webContents.send('log', formList);
+
     for (const form of formList) {
         log.info(`GET form ${form.uid} from KoboToolbox`);
         log.debug(form.xml_url);
-        axios
-            .get(form.xml_url, axios_config)
+        auth.get(form.xml_url)
             .then((response) => {
                 const deployment = response.data;
                 upsertQuery.run([form.uid, form.name, form.description, deployment]);
@@ -170,11 +232,6 @@ export const getFormCloudSubmissions = async (db) => {
     log.info(`GET KoboToolbox Form Submissions`);
 
     log.info(`KOBOTOOLBOX KF API URL: ${BAHIS_KOBOTOOLBOX_KF_API_URL}`);
-    const axios_config = {
-        headers: {
-            Authorization: `Token ${import.meta.env.VITE_BAHIS_KOBOTOOLBOX_API_TOKEN}`,
-        },
-    };
 
     log.info('Using Form UIDs from local database');
     const formList = db.prepare('SELECT uid FROM form').all();
@@ -186,8 +243,8 @@ export const getFormCloudSubmissions = async (db) => {
 
     for (const form of formList) {
         log.info(`GET form ${form.uid} submissions from KoboToolbox`);
-        await axios
-            .get(BAHIS_KOBOTOOLBOX_KF_API_URL + 'assets/' + form.uid + '/data/?format=xml', axios_config)
+        await auth
+            .get(BAHIS_KOBOTOOLBOX_KF_API_URL + 'assets/' + form.uid + '/data/?format=xml')
             // FIXME add something like ?query={"_submission_time": {"$gt": "2019-09-01T01:02:03"}}' based on last sync time
             .then((response) => {
                 const doc = new DOMParser().parseFromString(response.data, 'text/xml');
@@ -236,7 +293,6 @@ export const postFormCloudSubmissions = async (db) => {
     log.info(`KOBOTOOLBOX KC API URL: ${BAHIS_KOBOTOOLBOX_KC_API_URL}`);
     const axios_config = {
         headers: {
-            Authorization: `Token ${import.meta.env.VITE_BAHIS_KOBOTOOLBOX_API_TOKEN}`, // FIXME is this token needed?
             'Content-Type': 'multipart/form-data',
         },
     };
@@ -252,7 +308,7 @@ export const postFormCloudSubmissions = async (db) => {
         const formData = new FormData();
         formData.append('xml_submission_file', selectedFile, '@/submission.xml');
 
-        await axios
+        await auth
             .post(BAHIS_KOBOTOOLBOX_KC_API_URL + 'submissions', formData, axios_config)
             .then((response) => {
                 // check response is in the 201 (created) or 202 (accepted)
@@ -279,10 +335,9 @@ export const getTaxonomies = async (db) => {
     const BAHIS_TAXONOMY_DEFINITION_ENDPOINT = `${BAHIS_SERVER_URL}/api/taxonomy/taxonomies`;
     const api_url = _url(BAHIS_TAXONOMY_DEFINITION_ENDPOINT);
     log.info(`API URL: ${api_url}`);
-    // FIXME this API endpoint needs to take care of auth
 
     log.info('GET Taxonomy List from server');
-    const taxonomyList = await axios
+    const taxonomyList = await auth
         .get(api_url)
         .then((response) => {
             log.info('GET Taxonomy List SUCCESS');
@@ -300,9 +355,7 @@ export const getTaxonomies = async (db) => {
 
     for (const taxonomy of taxonomyList) {
         log.info(`GET Taxonomy CSV ${taxonomy.slug} from server`);
-        // FIXME this API endpoint needs to take care of auth
-        axios
-            .get(BAHIS_TAXONOMY_CSV_ENDPOINT(taxonomy.csv_file_stub))
+        auth.get(BAHIS_TAXONOMY_CSV_ENDPOINT(taxonomy.csv_file_stub))
             .then((response) => {
                 const uPath = app.getPath('userData');
 
@@ -336,10 +389,8 @@ export const getAdministrativeRegions = async (db) => {
     const BAHIS_ADMINISTRATIVE_REGION_LEVELS_ENDPOINT = `${BAHIS_SERVER_URL}/api/taxonomy/administrative-region-levels`;
     const api_levels_url = _url(BAHIS_ADMINISTRATIVE_REGION_LEVELS_ENDPOINT);
     log.info(`API URL: ${api_levels_url}`);
-    // FIXME this API endpoint needs to take care of auth
 
-    axios
-        .get(api_levels_url)
+    auth.get(api_levels_url)
         .then((response) => {
             if (response.data) {
                 log.info('Administrative Region Levels received from server');
@@ -368,10 +419,8 @@ export const getAdministrativeRegions = async (db) => {
         `${BAHIS_SERVER_URL}/api/taxonomy/administrative-regions-catchment/?id=${administrativeRegionID}`;
     const api_url = _url(BAHIS_ADMINISTRATIVE_REGIONS_ENDPOINT(administrativeRegionID));
     log.info(`API URL: ${api_url}`);
-    // FIXME this API endpoint needs to take care of auth
 
-    axios
-        .get(api_url)
+    auth.get(api_url)
         .then((response) => {
             if (response.data) {
                 log.info('Administrative Regions received from server');

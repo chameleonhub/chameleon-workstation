@@ -89,7 +89,7 @@ log.info(`BAHIS_SERVER_URL=${BAHIS_SERVER_URL} (BAHIS 3)`);
 // Initialise local DB
 let db = createOrReadLocalDatabase(MODE);
 
-let mainWindow: BrowserWindow | null;
+export let mainWindow: BrowserWindow | null;
 
 const createWindow = () => {
     log.info('created window');
@@ -131,6 +131,15 @@ const autoUpdateBahis = () => {
         log.info('Not checking for updates in dev mode');
     }
 };
+
+export async function getToken() {
+    const token = await db.prepare('SELECT token from users limit 1').get();
+    if (token) {
+        return token.token;
+    } else {
+        return false;
+    }
+}
 
 /** adds window on app if window null */
 app.whenReady().then(() => {
@@ -270,7 +279,8 @@ const signIn = async (event, userData) => {
     log.info(`Attempting electron-side signIn for ${userData.username}`);
     log.debug(event);
 
-    const SIGN_IN_ENDPOINT = `${BAHIS2_SERVER_URL}/bhmodule/app-user-verify/`;
+    //change login to bahis3
+    const SIGN_IN_ENDPOINT = `${BAHIS_SERVER_URL}/api/auth/`;
     const current_user = db.prepare('SELECT * from users limit 1').get();
 
     if (current_user) {
@@ -303,11 +313,11 @@ const signIn = async (event, userData) => {
         return await axios
             .post(SIGN_IN_ENDPOINT, data, {
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'multipart/form-data',
                 },
             })
             .then((response) => {
-                if (response.status === 200 && response.data.user_name === userData.username) {
+                if (response.status === 200 && response.data.user.username === userData.username) {
                     log.info('BAHIS server sign in received a 200 response');
 
                     createUserInLocalDatabase(response.data, userData, db);
@@ -320,6 +330,7 @@ const signIn = async (event, userData) => {
                 }
             })
             .catch((error) => {
+                console.error(error.message);
                 log.error('Sign In Error');
                 log.error(error);
                 return 'error';
@@ -566,7 +577,7 @@ const getUserData = async () => {
 ipcMain.on('fetch-username', fetchUsername);
 
 // refactored & new
-ipcMain.handle('sign-in', signIn); // still uses BAHIS 2 for Auth
+ipcMain.handle('sign-in', signIn);
 ipcMain.handle('request-app-data-sync', getAppData); // still both BAHIS 2 and BAHIS 3
 ipcMain.handle('request-user-data-sync', postGetUserData); // still both BAHIS 2 and BAHIS 3
 ipcMain.handle('refresh-database', refreshDatabase); // still both BAHIS 2 and BAHIS 3 tables

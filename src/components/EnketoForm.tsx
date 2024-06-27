@@ -41,9 +41,7 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
     };
 
     const deleteDraft = (uuid) => {
-        const query = `DELETE
-                       FROM formlocaldraft
-                       WHERE uuid = '${uuid}';`;
+        const query = `DELETE FROM formlocaldraft WHERE uuid = '${uuid}';`;
         ipcRenderer
             .invoke('post-local-db', query)
             .then((response) => {
