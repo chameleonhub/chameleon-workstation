@@ -2866,7 +2866,7 @@ body {
   -moz-flex-wrap: nowrap;
   flex-wrap: nowrap;
   position: relative;
-  min-height: 100%; }
+}
 
 .paper {
   border-radius: 7px;

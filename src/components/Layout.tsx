@@ -31,7 +31,12 @@ export const Layout: React.FC<LayoutProps> = ({ hasHeader }) => {
         <>
             {hasHeader && <Header />}
             <SystemAlerts />
-            <Container sx={{ marginTop: 5 }}>
+            <Container
+                sx={{
+                    height: '90%',
+                    my: '1rem',
+                }}
+            >
                 <Outlet />
             </Container>
             <Footer lastSyncTime={lastSyncTime} />

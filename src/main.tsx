@@ -6,6 +6,8 @@ import { theme } from './theme.ts';
 import { register } from './services/serviceWorker.ts';
 import { ThemeProvider } from '@mui/material';
 
+import './App.css';
+
 const rootElement = document.getElementById('root') as HTMLElement;
 createRoot(rootElement).render(
     <React.StrictMode>

@@ -78,7 +78,7 @@ export const Header = () => {
     );
 
     return (
-        <AppBar position="static">
+        <AppBar position="sticky">
             {isWaitingForDataSync && <Toast />}
             <Toolbar sx={{ justifyContent: 'space-between' }}>
                 <Button color="inherit" onClick={onHomeHandler} startIcon={<HomeIcon />}>

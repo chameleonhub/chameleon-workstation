@@ -9,6 +9,7 @@ import {
     DialogContentText,
     DialogTitle,
     TextField,
+    Typography,
 } from '@mui/material';
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -26,6 +27,7 @@ export const SignIn = () => {
     const [openChangeUserDialog, setOpenChangeUserDialog] = React.useState<boolean>(false);
     const [isSignedIn, setIsSignedIn] = React.useState<boolean>(false);
     const [userData, setUserData] = React.useState<userData>();
+    const [userName, setUserName] = React.useState<string>('');
 
     const navigate = useNavigate();
 
@@ -47,6 +49,15 @@ export const SignIn = () => {
                 });
         }
     }, [navigate, isSignedIn]);
+
+    useEffect(() => {
+        ipcRenderer.invoke('get-user-data').then((res) => {
+            if (res) {
+                setUserName(res);
+                navigate('/menu/0');
+            }
+        });
+    });
 
     const handleChangeUserConfirmation = async (answer) => {
         if (answer === 'delete') {
@@ -164,41 +175,61 @@ export const SignIn = () => {
 
     return (
         <>
+            <Box>
+                <Typography color="text.secondary" gutterBottom>
+                    Last Logged in as:
+                    <Typography variant="button" color="primary" gutterBottom>
+                        {userName}
+                    </Typography>
+                </Typography>
+            </Box>
             <Box
                 sx={{
-                    marginTop: 8,
+                    height: '80%',
                     display: 'flex',
-                    flexDirection: 'column',
+                    justifyContent: 'center',
                     alignItems: 'center',
                 }}
             >
-                <Avatar variant="square" src="/icon.png" sx={{ width: 50, height: 50, margin: 1 }} />
-                <Box component="form" noValidate onSubmit={onSubmit} sx={{ marginTop: 1 }}>
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        id="username"
-                        label="Username"
-                        name="username"
-                        autoComplete="username"
-                        autoFocus
-                    />
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        name="password"
-                        label="Password"
-                        type="password"
-                        id="password"
-                        autoComplete="current-password"
-                    />
-                    <Button type="submit" fullWidth variant="contained" sx={{ marginTop: 3, marginBottom: 2 }}>
-                        Sign In
-                    </Button>
+                <Box
+                    sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        backgroundColor: 'primary.light',
+                        px: '1.5rem',
+                        py: '2rem',
+                        borderRadius: '0.5rem',
+                    }}
+                >
+                    <Avatar variant="square" src="/icon.png" sx={{ width: 50, height: 50, margin: 1 }} />
+                    <Box component="form" noValidate onSubmit={onSubmit} sx={{ marginTop: 1 }}>
+                        <TextField
+                            margin="normal"
+                            required
+                            fullWidth
+                            id="username"
+                            label="Username"
+                            name="username"
+                            autoComplete="username"
+                            autoFocus
+                        />
+                        <TextField
+                            margin="normal"
+                            required
+                            fullWidth
+                            name="password"
+                            label="Password"
+                            type="password"
+                            id="password"
+                            autoComplete="current-password"
+                        />
+                        <Button type="submit" fullWidth variant="contained" sx={{ marginTop: 3, marginBottom: 2 }}>
+                            Sign In
+                        </Button>
+                    </Box>
+                    {alertContent && signInAlert(alertContent)}
                 </Box>
-                {alertContent && signInAlert(alertContent)}
             </Box>
             <ChangeUserDialog open={openChangeUserDialog} handleClick={(event) => handleChangeUserConfirmation(event)} />
         </>
