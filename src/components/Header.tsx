@@ -25,20 +25,17 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { log } from '../helpers/log';
 import { ipcRenderer } from 'electron';
-
-const getDraftCount = async () => {
-    log.info('GET local draft Count');
-    return ipcRenderer.invoke('get-local-db', 'select count(*) as count from formlocaldraft').then((response) => {
-        return response[0].count;
-    });
-};
+import { useSelector } from 'react-redux';
+import { fetchDraftCount, selectDraftCount } from '../stores/featues/draftCounterSlice.ts';
+import { useAppDispatch } from '../stores/store.ts';
 
 export const Header = () => {
-    const [draftCount, setDraftCount] = useState<number>(0);
     const [isWaitingForDataSync, setWaitingForDataSync] = useState(false);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [userName, setUserName] = useState<string>('');
     const [open, setOpen] = useState(false);
+    const dispatch = useAppDispatch();
+    const draftCount = useSelector(selectDraftCount);
 
     const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
@@ -63,24 +60,17 @@ export const Header = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const timer = setTimeout(
-            () =>
-                getDraftCount().then((unsyncCount) => {
-                    setDraftCount(unsyncCount);
-                    log.info(`Draft count: ${unsyncCount}`);
-                }),
-            1000,
-        );
-        return () => clearTimeout(timer);
-    }, [isWaitingForDataSync]);
-
-    useEffect(() => {
         ipcRenderer.invoke('get-user-data').then((res) => {
             if (res) {
                 setUserName(res);
             }
         });
-    });
+        dispatch(fetchDraftCount());
+    }, []);
+
+    useEffect(() => {
+        dispatch(fetchDraftCount());
+    }, [isWaitingForDataSync]);
 
     const handleClose = () => {
         setWaitingForDataSync(false);

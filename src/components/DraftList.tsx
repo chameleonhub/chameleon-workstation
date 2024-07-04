@@ -5,10 +5,13 @@ import { useEffect, useState } from 'react';
 import { log } from '../helpers/log';
 import { ipcRenderer } from 'electron';
 import { useNavigate } from 'react-router-dom';
+import { fetchDraftCount } from '../stores/featues/draftCounterSlice.ts';
+import { useAppDispatch } from '../stores/store.ts';
 
 const readDraftTableData = async () => {
     log.info(`reading data from formlocaldraft table...`);
-    const query = `SELECT * FROM formlocaldraft`;
+    const query = `SELECT *
+                   FROM formlocaldraft`;
     return ipcRenderer
         .invoke('get-local-db', query)
         .then((response) => {
@@ -65,6 +68,7 @@ const parseSubmissionsAsRows = async (submissions) => {
 
 export const DraftList = () => {
     const [rows, setRows] = useState<Row[]>();
+    const dispatch = useAppDispatch();
 
     const deleteDraft = (uuid) => {
         const query = `DELETE FROM formlocaldraft WHERE uuid = '${uuid}';`;
@@ -78,6 +82,9 @@ export const DraftList = () => {
             .catch((error) => {
                 log.error('Error deleting form draft from local database:');
                 log.error(error);
+            })
+            .finally(() => {
+                dispatch(fetchDraftCount());
             });
     };
 

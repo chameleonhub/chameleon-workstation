@@ -6,14 +6,19 @@ import { theme } from './theme.ts';
 import { register } from './services/serviceWorker.ts';
 import { ThemeProvider } from '@mui/material';
 
+import { store } from './stores/store';
+import { Provider } from 'react-redux';
+
 import './App.css';
 
 const rootElement = document.getElementById('root') as HTMLElement;
 createRoot(rootElement).render(
     <React.StrictMode>
-        <ThemeProvider theme={theme}>
-            <App />
-        </ThemeProvider>
+        <Provider store={store}>
+            <ThemeProvider theme={theme}>
+                <App />
+            </ThemeProvider>
+        </Provider>
     </React.StrictMode>,
 );
 

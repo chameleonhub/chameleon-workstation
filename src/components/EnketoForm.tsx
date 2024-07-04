@@ -5,6 +5,8 @@ import { transform } from 'enketo-transformer/web';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { log } from '../helpers/log';
+import { fetchDraftCount } from '../stores/featues/draftCounterSlice.ts';
+import { useAppDispatch } from '../stores/store.ts';
 
 interface EnketoFormProps {
     formUID: string; // The unique identifier for the form
@@ -16,6 +18,7 @@ interface EnketoFormProps {
 export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, instanceID, editable }) => {
     const formEl = useRef<HTMLDivElement>(null);
     const [form, setForm] = useState<Form | null>(null);
+    const dispatch = useAppDispatch();
 
     const navigate = useNavigate();
 
@@ -24,8 +27,8 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
         const doc = parser.parseFromString(data, 'application/xml');
         const uuid = doc.getElementsByTagName('instanceID')[0].textContent;
         const query = `INSERT INTO formlocaldraft (uuid, form_uid, xml)
-                                VALUES ('${uuid}', '${formUID}', '${data}') ON CONFLICT (uuid) DO
-                                UPDATE SET xml = excluded.xml;`;
+                       VALUES ('${uuid}', '${formUID}', '${data}')
+                       ON CONFLICT (uuid) DO UPDATE SET xml = excluded.xml;`;
 
         ipcRenderer
             .invoke('post-local-db', query)
@@ -37,6 +40,9 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
             .catch((error) => {
                 log.error('Error adding form draft to local database:');
                 log.error(error);
+            })
+            .finally(() => {
+                dispatch(fetchDraftCount());
             });
     };
 
@@ -52,6 +58,9 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
             .catch((error) => {
                 log.error('Error deleting form draft from local database:');
                 log.error(error);
+            })
+            .finally(() => {
+                dispatch(fetchDraftCount());
             });
     };
 
