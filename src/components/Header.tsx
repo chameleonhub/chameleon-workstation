@@ -2,7 +2,25 @@ import PreviewIcon from '@mui/icons-material/Preview';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import HomeIcon from '@mui/icons-material/Home';
 import SyncIcon from '@mui/icons-material/Sync';
-import { Alert, AppBar, Badge, Box, Button, CircularProgress, Snackbar, Toolbar } from '@mui/material';
+import AccountCircle from '@mui/icons-material/AccountCircle';
+import {
+    Alert,
+    AppBar,
+    Badge,
+    Box,
+    Button,
+    CircularProgress,
+    Snackbar,
+    Toolbar,
+    Menu,
+    MenuItem,
+    IconButton,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    DialogContentText,
+} from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { log } from '../helpers/log';
@@ -18,6 +36,29 @@ const getDraftCount = async () => {
 export const Header = () => {
     const [draftCount, setDraftCount] = useState<number>(0);
     const [isWaitingForDataSync, setWaitingForDataSync] = useState(false);
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [userName, setUserName] = useState<string>('');
+    const [open, setOpen] = useState(false);
+
+    const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    const handleMenuClose = () => {
+        setAnchorEl(null);
+    };
+    const handleLogoutDialog = () => {
+        setAnchorEl(null);
+        setOpen(true);
+    };
+    const handleLogout = () => {
+        setAnchorEl(null);
+        setOpen(false);
+        navigate('/');
+    };
+    const handleProfile = () => {
+        setAnchorEl(null);
+    };
 
     const navigate = useNavigate();
 
@@ -32,6 +73,14 @@ export const Header = () => {
         );
         return () => clearTimeout(timer);
     }, [isWaitingForDataSync]);
+
+    useEffect(() => {
+        ipcRenderer.invoke('get-user-data').then((res) => {
+            if (res) {
+                setUserName(res);
+            }
+        });
+    });
 
     const handleClose = () => {
         setWaitingForDataSync(false);
@@ -101,10 +150,56 @@ export const Header = () => {
                         Submit Drafts
                     </Button>
                 </Box>
-                <Button color="inherit" onClick={onBackHandler} startIcon={<ArrowBackIcon />}>
-                    Back
-                </Button>
+                <Box sx={{ display: 'flex' }}>
+                    <Button color="inherit" onClick={onBackHandler} startIcon={<ArrowBackIcon />}>
+                        Back
+                    </Button>
+                    <div>
+                        <Box sx={{ cursor: 'pointer' }} onClick={handleMenu}>
+                            <IconButton
+                                aria-label="account of current user"
+                                aria-controls="menu-appbar"
+                                aria-haspopup="true"
+                                color="inherit"
+                            >
+                                <AccountCircle />
+                            </IconButton>
+                            {userName}
+                        </Box>
+
+                        <Menu
+                            id="menu-profile"
+                            anchorEl={anchorEl}
+                            anchorOrigin={{
+                                vertical: 'bottom',
+                                horizontal: 'right',
+                            }}
+                            keepMounted
+                            transformOrigin={{
+                                vertical: 'top',
+                                horizontal: 'right',
+                            }}
+                            open={Boolean(anchorEl)}
+                            onClose={handleMenuClose}
+                        >
+                            <MenuItem onClick={handleProfile}>Profile</MenuItem>
+                            <MenuItem onClick={handleLogoutDialog}>Logout</MenuItem>
+                        </Menu>
+                    </div>
+                </Box>
             </Toolbar>
+            <Dialog open={open} aria-labelledby="alert-dialog-title" aria-describedby="alert-dialog-description">
+                <DialogTitle id="alert-dialog-title">{'Are you sure?'}</DialogTitle>
+                <DialogContent>
+                    <DialogContentText id="alert-dialog-description">Do you want to logout?</DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleLogout}>Yes</Button>
+                    <Button onClick={() => setOpen(false)} autoFocus>
+                        No
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </AppBar>
     );
 };
