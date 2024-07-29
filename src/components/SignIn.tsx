@@ -53,7 +53,7 @@ export const SignIn = () => {
     useEffect(() => {
         ipcRenderer.invoke('get-user-data').then((res) => {
             if (res) {
-                setUserName(res);
+                setUserName(res.username);
             }
         });
     });

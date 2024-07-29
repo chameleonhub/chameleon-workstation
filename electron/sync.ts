@@ -166,6 +166,8 @@ export const getForms = async (db) => {
     log.info('GET Form UIDs from KoboToolbox');
     console.log('### form list url ####', formListUrl);
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
     const formList: Form[] = await auth
         // .get(BAHIS_KOBOTOOLBOX_KF_API_URL + 'assets')
         // .get(BAHIS_KOBOTOOLBOX_KC_API_URL + 'forms')
@@ -173,8 +175,9 @@ export const getForms = async (db) => {
         .then((response) => {
             return new Promise((resolve, reject) => {
                 // first convert to JSON to make it easier to work with
-                _xmlToJson(response.data)
-                    .then((formListObj: FormListObj) => {
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-expect-error
+                _xmlToJson(response.data).then((formListObj: FormListObj) => {
                         if (formListObj.xforms && formListObj.xforms.xform) {
                             const forms = formListObj.xforms.xform.map((form) => {
                                 // Convert arrays property values to strings, knowing that each xml node only

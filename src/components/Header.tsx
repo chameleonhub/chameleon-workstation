@@ -20,8 +20,14 @@ import {
     DialogContent,
     DialogActions,
     DialogContentText,
+    TableContainer,
+    Paper,
+    Table,
+    TableBody,
+    TableRow,
+    TableCell,
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { Fragment, ReactElement, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { log } from '../helpers/log';
 import { ipcRenderer } from 'electron';
@@ -29,13 +35,73 @@ import { useSelector } from 'react-redux';
 import { fetchDraftCount, selectDraftCount } from '../stores/featues/draftCounterSlice.ts';
 import { useAppDispatch } from '../stores/store.ts';
 
+interface User {
+    username?: string;
+    name?: string;
+    upazila?: string;
+}
+
 export const Header = () => {
     const [isWaitingForDataSync, setWaitingForDataSync] = useState(false);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-    const [userName, setUserName] = useState<string>('');
+    const [dialogEl, setDialogEl] = useState<ReactElement[]>([]);
+    const [user, setUser] = useState<User>({});
     const [open, setOpen] = useState(false);
     const dispatch = useAppDispatch();
     const draftCount = useSelector(selectDraftCount);
+
+    const handleLogout = () => {
+        setAnchorEl(null);
+        setOpen(false);
+        navigate('/');
+    };
+    const logoutEl: ReactElement[] = [
+        <Fragment key={123}>
+            <DialogTitle id="alert-dialog-title">{'Are you sure?'}</DialogTitle>
+            <DialogContent>
+                <DialogContentText id="alert-dialog-description">Do you want to logout?</DialogContentText>
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={handleLogout}>Yes</Button>
+                <Button onClick={() => setOpen(false)} autoFocus>
+                    No
+                </Button>
+            </DialogActions>
+        </Fragment>,
+    ];
+
+    const profileEl: ReactElement[] = [
+        <Fragment key={321}>
+            <DialogTitle id="alert-dialog-title">{'Profile'}</DialogTitle>
+            <DialogContent>
+                <DialogContentText id="alert-dialog-description">
+                    <TableContainer component={Paper}>
+                        <Table sx={{ minWidth: 300 }}>
+                            <TableBody>
+                                <TableRow>
+                                    <TableCell>Name</TableCell>
+                                    <TableCell>{user.name}</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Username</TableCell>
+                                    <TableCell>{user.username}</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Upazila</TableCell>
+                                    <TableCell>{user.upazila}</TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={() => setOpen(false)} autoFocus>
+                    Ok
+                </Button>
+            </DialogActions>
+        </Fragment>,
+    ];
 
     const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
@@ -45,16 +111,14 @@ export const Header = () => {
         setAnchorEl(null);
     };
     const handleLogoutDialog = () => {
+        setDialogEl(logoutEl);
         setAnchorEl(null);
         setOpen(true);
     };
-    const handleLogout = () => {
-        setAnchorEl(null);
-        setOpen(false);
-        navigate('/');
-    };
     const handleProfile = () => {
+        setDialogEl(profileEl);
         setAnchorEl(null);
+        setOpen(true);
     };
 
     const navigate = useNavigate();
@@ -62,7 +126,7 @@ export const Header = () => {
     useEffect(() => {
         ipcRenderer.invoke('get-user-data').then((res) => {
             if (res) {
-                setUserName(res);
+                setUser(res);
             }
         });
         dispatch(fetchDraftCount());
@@ -154,7 +218,7 @@ export const Header = () => {
                             >
                                 <AccountCircle />
                             </IconButton>
-                            {userName}
+                            {user.username}
                         </Box>
 
                         <Menu
@@ -179,16 +243,7 @@ export const Header = () => {
                 </Box>
             </Toolbar>
             <Dialog open={open} aria-labelledby="alert-dialog-title" aria-describedby="alert-dialog-description">
-                <DialogTitle id="alert-dialog-title">{'Are you sure?'}</DialogTitle>
-                <DialogContent>
-                    <DialogContentText id="alert-dialog-description">Do you want to logout?</DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleLogout}>Yes</Button>
-                    <Button onClick={() => setOpen(false)} autoFocus>
-                        No
-                    </Button>
-                </DialogActions>
+                {dialogEl}
             </Dialog>
         </AppBar>
     );

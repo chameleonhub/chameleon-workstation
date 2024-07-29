@@ -564,9 +564,9 @@ const readAppVersion = async (event) => {
 };
 
 const getUserData = async () => {
-    const fetchedUsername = db.prepare('SELECT username from users limit 1').get() as usernameObject;
-    if (fetchedUsername) {
-        return fetchedUsername.username;
+    const currentUser = db.prepare('SELECT * from users limit 1').get() as usernameObject;
+    if (currentUser) {
+        return currentUser;
     } else {
         return false;
     }
