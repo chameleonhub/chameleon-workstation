@@ -56,7 +56,7 @@ export const Header = () => {
         navigate('/');
     };
     const logoutEl: ReactElement[] = [
-        <Fragment key={123}>
+        <Fragment key="logoutFragKey">
             <DialogTitle id="alert-dialog-title">{'Are you sure?'}</DialogTitle>
             <DialogContent>
                 <DialogContentText id="alert-dialog-description">Do you want to logout?</DialogContentText>
@@ -71,7 +71,7 @@ export const Header = () => {
     ];
 
     const profileEl: ReactElement[] = [
-        <Fragment key={321}>
+        <Fragment key="profileFragKey">
             <DialogTitle id="alert-dialog-title">{'Profile'}</DialogTitle>
             <DialogContent>
                 <DialogContentText id="alert-dialog-description">

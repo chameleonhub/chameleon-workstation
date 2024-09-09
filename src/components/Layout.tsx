@@ -30,7 +30,11 @@ export const Layout: React.FC<LayoutProps> = ({ hasHeader }) => {
         getLastSyncTime().then((time) => setLastSyncTime(time));
         ipcRenderer.invoke('get-user-data').then((res) => {
             if (res) {
-                navigate('/menu/0');
+                const diffInDays = (Date.now() - Date.parse(res.last_login)) / (1000 * 3600 * 24);
+                console.log(diffInDays, Date.now(), Date.parse(res.last_login), res.last_login);
+                if (diffInDays <= 7) {
+                    navigate('/menu/0');
+                }
             }
         });
         ipcRenderer.on('log', (evt, msg) => {

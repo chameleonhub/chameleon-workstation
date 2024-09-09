@@ -170,7 +170,8 @@ const intialiseUserTable = (db) => {
         password TEXT NOT NULL,\
         name TEXT,\
         upazila INTEGER,\
-        token Text NOT NULL\
+        token Text NOT NULL,\
+        last_login DATETIME DEFAULT CURRENT_TIMESTAMP \
     );',
     ).run();
 };

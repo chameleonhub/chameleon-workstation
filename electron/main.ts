@@ -284,6 +284,11 @@ const signIn = async (event, userData) => {
     const current_user = db.prepare('SELECT * from users limit 1').get();
 
     if (current_user) {
+        db.prepare(
+            `UPDATE users
+             SET last_login = CURRENT_TIMESTAMP
+             WHERE username = ?;`,
+        ).run(current_user.username);
         log.info(`User exists in the current database - ${current_user.username}`);
     }
 
