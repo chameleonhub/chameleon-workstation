@@ -10,22 +10,22 @@ import {
     Box,
     Button,
     CircularProgress,
-    Snackbar,
-    Toolbar,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
+    IconButton,
     Menu,
     MenuItem,
-    IconButton,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    DialogContentText,
-    TableContainer,
     Paper,
+    Snackbar,
     Table,
     TableBody,
-    TableRow,
     TableCell,
+    TableContainer,
+    TableRow,
+    Toolbar,
 } from '@mui/material';
 import { Fragment, ReactElement, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -34,12 +34,7 @@ import { ipcRenderer } from 'electron';
 import { useSelector } from 'react-redux';
 import { fetchDraftCount, selectDraftCount } from '../stores/featues/draftCounterSlice.ts';
 import { useAppDispatch } from '../stores/store.ts';
-
-interface User {
-    username?: string;
-    name?: string;
-    upazila?: string;
-}
+import { User } from '../app.model.ts';
 
 export const Header = () => {
     const [isWaitingForDataSync, setWaitingForDataSync] = useState(false);

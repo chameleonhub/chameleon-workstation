@@ -1,6 +1,6 @@
 import axios from 'axios';
 import csv from 'csv-parser';
-import { BrowserWindow, Menu, app, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
 import firstRun from 'electron-first-run'; // could this eventually be removed too?
 import { autoUpdater } from 'electron-updater';
 import { cp, createReadStream, existsSync } from 'fs';
@@ -18,6 +18,7 @@ import {
     getWorkflows,
     postFormCloudSubmissions,
 } from './sync';
+import { UserData } from './bahis.model.ts';
 
 // SETUP
 process.env.DIST = path.join(__dirname, '../dist');
@@ -275,7 +276,7 @@ Menu.setApplicationMenu(menu);
  * and let them sign in (fresh-user-success)
  * 5. Finally, if this request fails we show an error message to the user (fresh-user-fail)
  */
-const signIn = async (event, userData) => {
+const signIn = async (event, userData: UserData) => {
     log.info(`Attempting electron-side signIn for ${userData.username}`);
     log.debug(event);
 
@@ -472,7 +473,8 @@ const postGetUserData = async (event) => {
     log.debug(`due to ${event.type}`);
 
     // BAHIS 3 data
-    await postFormCloudSubmissions(db).then(() => getFormCloudSubmissions(db));
+    await postFormCloudSubmissions(db);
+    await getFormCloudSubmissions(db);
 };
 
 const readAdministrativeRegions = async (event) => {
@@ -508,7 +510,9 @@ const readTaxonomy = async (event, taxonomySlug: string) => {
     log.info(`READ ${taxonomySlug} taxonomy CSV`);
     log.debug(`due to ${event.type}`);
 
-    const query = `SELECT csv_file FROM taxonomy where slug = '${taxonomySlug}'`;
+    const query = `SELECT csv_file
+                   FROM taxonomy
+                   where slug = '${taxonomySlug}'`;
     const response = db.prepare(query).get();
     const filePath = `${app.getPath('userData')}/${response.csv_file}`;
 

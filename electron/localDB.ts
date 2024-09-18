@@ -65,7 +65,7 @@ export const initialiseDBTables = (db) => {
     initialiseDBFormCloudSubmissionsTable(db);
     initialiseDBTaxonomiesTable(db);
     initialiseDBAdministrativeRegionsTable(db);
-    intialiseUserTable(db);
+    initialiseUserTable(db);
 };
 
 const initialiseDBModulesTable = (db) => {
@@ -127,7 +127,8 @@ const initialiseDBFormCloudSubmissionsTable = (db) => {
         'CREATE TABLE formcloudsubmission (\
         uuid TEXT NOT NULL PRIMARY KEY,\
         form_uid TEXT NOT NULL,\
-        xml TEXT NOT NULL\
+        xml TEXT NOT NULL,\
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\
     );',
     ).run();
 };
@@ -162,7 +163,7 @@ const initialiseDBAdministrativeRegionsTable = (db) => {
     ).run();
 };
 
-const intialiseUserTable = (db) => {
+const initialiseUserTable = (db) => {
     log.info('Creating user table');
     db.prepare(
         'CREATE TABLE users (\

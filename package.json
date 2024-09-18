@@ -2,6 +2,9 @@
   "name": "bahisdev",
   "private": true,
   "version": "3.0.0-b.3",
+  "author": "Department of Livestock Services",
+  "description": "Bangladesh Animal Health Intelligence System",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
@@ -23,6 +26,7 @@
     "@mui/x-date-pickers": "^6.19",
     "@reduxjs/toolkit": "^2.2.6",
     "axios": "^1.4.0",
+    "axios-retry": "^4.5.0",
     "better-sqlite3": "^9.4.3",
     "csv-parser": "^3.0.0",
     "electron-first-run": "^3.0.0",

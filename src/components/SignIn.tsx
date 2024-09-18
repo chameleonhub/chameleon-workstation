@@ -177,9 +177,9 @@ export const SignIn = () => {
             <Box>
                 <Typography color="text.secondary" gutterBottom>
                     Last Logged in as:
-                    <Typography variant="button" color="primary" gutterBottom>
+                    <Button size="small" onClick={() => navigate('/menu/0')} variant="text">
                         {userName}
-                    </Typography>
+                    </Button>
                 </Typography>
             </Box>
             <Box
