@@ -33,3 +33,10 @@ export interface CloudFormData {
     xml: string;
     created_at?: string;
 }
+
+export interface ToastMessageType {
+    type: 'success' | 'warning' | 'error' | 'info';
+    text: string;
+    action?: boolean;
+    duration?: number;
+}

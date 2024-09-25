@@ -1,6 +1,7 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import { getToken } from '../electron/main.ts';
 import axiosRetry from 'axios-retry';
+import { setStatus } from '../electron/utils.ts';
 
 export interface AxiosRetryRequestConfig extends AxiosRequestConfig {
     retry?: boolean;
@@ -17,7 +18,8 @@ instance.interceptors.request.use(
         if (token) {
             config.headers['Authorization'] = `TOKEN ${token}`;
         }
-
+        //default retry true
+        config['retry'] = true;
         return config;
     },
     function (error) {
@@ -29,13 +31,14 @@ axiosRetry(instance, {
     retries: 10,
     retryDelay: axiosRetry.linearDelay(),
     retryCondition: (error) => {
-        console.log('count asd', axiosRetry.isNetworkOrIdempotentRequestError(error), error?.response?.status);
         const config = error.config as AxiosRetryRequestConfig;
+
         return (config.retry === true &&
             (axiosRetry.isNetworkOrIdempotentRequestError(error) ||
                 (error.response?.status && error.response?.status >= 500))) as boolean;
     },
     onRetry: (retryCount, error, requestConfig) => {
+        setStatus(`retrying: ${retryCount} ${error.message}`);
         console.log(retryCount, error.message, requestConfig.url);
     },
 });

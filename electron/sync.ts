@@ -3,10 +3,10 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import { DOMParser } from 'xmldom';
 import xpath from 'xpath';
 import { log } from './log';
-import { auth, AxiosRetryRequestConfig } from '../conf/axios.ts';
-import { mainWindow } from './main.ts';
+import { auth } from '../conf/axios.ts';
 import Xml2Js from 'xml2js';
 import { CloudFormData, Form, FormListObj } from './bahis.model.ts';
+import { setStatus, Toast } from './utils.ts';
 
 const parser = new Xml2Js.Parser();
 
@@ -91,9 +91,11 @@ export const getModules = async (db) => {
                     }
                 }
             }
+            Toast('GET Module Definitions SUCCESS');
             log.info('GET Module Definitions SUCCESS');
         })
         .catch((error) => {
+            Toast('GET Module Definitions FAILED', 'error');
             log.error('GET Module Definitions FAILED with:');
             log.error(error);
         });
@@ -131,9 +133,11 @@ export const getWorkflows = async (db) => {
                     }
                 }
             }
+            Toast('GET Workflow Definitions SUCCESS');
             log.info('GET Workflow Definitions SUCCESS');
         })
         .catch((error) => {
+            Toast('GET Workflow Definitions FAILED', 'error');
             log.error('GET Workflow Definitions FAILED with:');
             log.error(error);
         });
@@ -160,7 +164,7 @@ export const getForms = async (db) => {
                             const forms = formListObj.xforms.xform.map((form) => {
                                 // Convert arrays property values to strings, knowing that each xml node only
                                 form = _simplifyFormObj(form);
-
+                                setStatus(form.name);
                                 return {
                                     uid: form.formID,
                                     name: form.name,
@@ -181,6 +185,7 @@ export const getForms = async (db) => {
             return forms;
         })
         .catch((error) => {
+            Toast('GET Form Definitions FAILED', 'error');
             log.error('GET KoboToolbox Form Definitions FAILED with:');
             log.error(error);
         });
@@ -188,7 +193,6 @@ export const getForms = async (db) => {
     const upsertQuery = db.prepare(
         'INSERT INTO form (uid, name, description, xml) VALUES (?, ?, ?, ?) ON CONFLICT(uid) DO UPDATE SET xml = excluded.xml;',
     );
-    mainWindow?.webContents.send('log', formList);
 
     for (const form of formList as Form[]) {
         log.info(`GET form ${form.uid} from KoboToolbox`);
@@ -200,10 +204,12 @@ export const getForms = async (db) => {
                 log.info(`GET form ${form.uid} SUCCESS`);
             })
             .catch((error) => {
+                Toast('GET Form Definitions FAILED', 'error');
                 log.error('GET KoboToolbox Form Definitions FAILED with:');
                 log.error(error);
             });
     }
+    Toast('Get Form Definitions SUCCESS');
     log.info(`GET KoboToolbox Form Definitions SUCCESS`);
 };
 
@@ -213,7 +219,7 @@ const insertCloudSubmission = async (db, url: string) => {
     );
 
     await auth
-        .get(url, { retry: false } as AxiosRetryRequestConfig)
+        .get(url)
         .then(async (response) => {
             const doc = new DOMParser().parseFromString(response.data, 'text/xml');
 
@@ -225,6 +231,7 @@ const insertCloudSubmission = async (db, url: string) => {
                         upsertQuery.run([uuid, form_id, xml]);
                     }
                 });
+
                 log.debug('Got results from server');
                 const children = results.childNodes;
                 const data: CloudFormData[] = [];
@@ -242,6 +249,7 @@ const insertCloudSubmission = async (db, url: string) => {
                                     const form_id = child.nodeName;
                                     const xml = child.toString();
                                     log.debug('Upserting form submission with UUID: ' + uuid);
+                                    setStatus(uuid as string);
                                     data.push(<CloudFormData>{ uuid, form_id, xml });
                                 }
                             }
@@ -249,7 +257,9 @@ const insertCloudSubmission = async (db, url: string) => {
                     }
                 }
                 insertTransaction(data);
+                Toast('Data insert SUCCESS');
             } else {
+                Toast('No new data received', 'info');
                 log.warn('No results received from server');
             }
             const next = xpath.select('/root/next', doc, true) as Node;
@@ -258,6 +268,7 @@ const insertCloudSubmission = async (db, url: string) => {
             }
         })
         .catch((error) => {
+            Toast('GET Form Submissions FAILED', 'error');
             log.error('GET KoboToolbox Form Submissions FAILED with:');
             log.error(error);
         });
@@ -274,7 +285,8 @@ export const getFormCloudSubmissions = async (db) => {
              limit 1;`,
         )
         .get();
-    let syncUrlQuery = '&start=0&limit=1';
+    const ITEM_PER_PAGE = 100;
+    let syncUrlQuery = `&start=0&limit=${ITEM_PER_PAGE}`;
     let timeQuery = '';
     if (lastSync) {
         timeQuery = `&query={"_submission_time":{"$gt":"${new Date(lastSync.created_at).toISOString()}"}}`;
@@ -288,6 +300,7 @@ export const getFormCloudSubmissions = async (db) => {
         const initialUrl = BAHIS_KOBOTOOLBOX_KF_API_URL + 'assets/' + form.uid + '/data/?format=xml' + syncUrlQuery;
         await insertCloudSubmission(db, initialUrl);
     }
+
     log.info(`GET KoboToolbox Form Submissions SUCCESS`);
 };
 
@@ -324,8 +337,10 @@ export const postFormCloudSubmissions = async (db) => {
                     log.error(`POST form ${form.uid} submissions FAILED with status ${response.status}`);
                     log.error(response);
                 }
+                Toast('Submitted submissions successfully');
             })
             .catch((error) => {
+                Toast('Data submitted FAILED!!', 'error');
                 log.error('POST KoboToolbox Form Submissions FAILED with:');
                 log.error(error);
             });
@@ -348,6 +363,7 @@ export const getTaxonomies = async (db) => {
             return response.data;
         })
         .catch((error) => {
+            Toast('GET Taxonomy List FAILED!!', 'error');
             log.error('GET Taxonomy List FAILED with:');
             log.error(error);
         });
@@ -379,8 +395,10 @@ export const getTaxonomies = async (db) => {
                 }
                 upsertQuery.run([taxonomy.slug, taxonomy.csv_file_stub]);
                 log.info(`GET Taxonomy CSV ${taxonomy.slug} SUCCESS`);
+                Toast(`GET Taxonomy CSV ${taxonomy.slug} SUCCESS`, 'error');
             })
             .catch((error) => {
+                Toast('GET Taxonomy CSV FAILED!!', 'error');
                 log.error('GET Taxonomy CSV FAILED with:');
                 log.error(error);
             });
