@@ -18,7 +18,9 @@ interface Workflow {
 
 const readFormDefinition = async (form_uid: string) => {
     log.info(`reading XML definition from form for form: ${form_uid}`);
-    const query = `SELECT xml FROM form WHERE uid IS '${form_uid}'`;
+    const query = `SELECT xml
+                   FROM form
+                   WHERE uid IS '${form_uid}'`;
     const parser = new DOMParser();
     return ipcRenderer
         .invoke('get-local-db', query)
@@ -34,7 +36,9 @@ const readFormDefinition = async (form_uid: string) => {
 const readFormData = async (form_uid: string, instance_id?: string) => {
     log.info(`reading data from formcloudsubmission table for form_uid: ${form_uid}`);
     if (instance_id) log.info(`  for instance_id: ${instance_id}...`);
-    let query = `SELECT * FROM formcloudsubmission WHERE form_uid IS '${form_uid}'`;
+    let query = `SELECT *
+                 FROM formcloudsubmission
+                 WHERE form_uid IS '${form_uid}'`;
     if (instance_id) query += ` AND uuid IS '${instance_id}'`;
     return ipcRenderer
         .invoke('get-local-db', query)
@@ -50,7 +54,9 @@ const readFormData = async (form_uid: string, instance_id?: string) => {
 
 const readFormWorkflows = async (form_uid: string) => {
     log.info(`reading workflows from workflow table for form_uid: ${form_uid}`);
-    const query = `SELECT * FROM workflow WHERE source_form IS '${form_uid}'`;
+    const query = `SELECT *
+                   FROM workflow
+                   WHERE source_form IS '${form_uid}'`;
     return ipcRenderer
         .invoke('get-local-db', query)
         .then((response) => {
@@ -310,7 +316,7 @@ export const List = () => {
 
     return (
         <>
-            <Typography variant="h3" id="form-title">
+            <Typography color="primary.dark" variant="h3" id="form-title" sx={{ marginBottom: '2rem' }}>
                 {form?.title}
             </Typography>
             {columns && rows && (

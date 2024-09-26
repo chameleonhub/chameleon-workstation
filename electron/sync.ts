@@ -4,8 +4,9 @@ import { DOMParser } from 'xmldom';
 import xpath from 'xpath';
 import { log } from './log';
 import { auth } from '../conf/axios.ts';
-import { mainWindow } from './main.ts';
 import Xml2Js from 'xml2js';
+import { CloudFormData, Form, FormListObj } from './bahis.model.ts';
+import { setStatus, Toast } from './utils.ts';
 
 const parser = new Xml2Js.Parser();
 
@@ -14,24 +15,6 @@ export const BAHIS_SERVER_URL = import.meta.env.VITE_BAHIS_SERVER_URL || 'http:/
 const BAHIS_KOBOTOOLBOX_KF_API_URL = import.meta.env.VITE_BAHIS_KOBOTOOLBOX_KF_API_URL || 'http://kf.localhost:80/api/v2/';
 const BAHIS_KOBOTOOLBOX_KC_API_URL = import.meta.env.VITE_BAHIS_KOBOTOOLBOX_KC_API_URL || 'http://kc.localhost:80/api/v1/';
 log.info(`BAHIS_SERVER_URL=${BAHIS_SERVER_URL} (BAHIS 3)`);
-
-interface xForm {
-    formID: string;
-    name: string;
-    descriptionText: string;
-    downloadUrl: string;
-}
-
-interface Form {
-    uid: string;
-    name: string;
-    description: string;
-    xml_url: string;
-}
-
-interface FormListObj {
-    xforms: { xform: xForm[] };
-}
 
 const _url = (url, time?) => {
     let conjunction = '?';
@@ -108,9 +91,11 @@ export const getModules = async (db) => {
                     }
                 }
             }
+            Toast('GET Module Definitions SUCCESS');
             log.info('GET Module Definitions SUCCESS');
         })
         .catch((error) => {
+            Toast('GET Module Definitions FAILED', 'error');
             log.error('GET Module Definitions FAILED with:');
             log.error(error);
         });
@@ -148,9 +133,11 @@ export const getWorkflows = async (db) => {
                     }
                 }
             }
+            Toast('GET Workflow Definitions SUCCESS');
             log.info('GET Workflow Definitions SUCCESS');
         })
         .catch((error) => {
+            Toast('GET Workflow Definitions FAILED', 'error');
             log.error('GET Workflow Definitions FAILED with:');
             log.error(error);
         });
@@ -164,22 +151,20 @@ export const getForms = async (db) => {
     const kcUrl = new URL(BAHIS_KOBOTOOLBOX_KC_API_URL);
     const formListUrl = kcUrl.origin + '/formList';
     log.info('GET Form UIDs from KoboToolbox');
-    console.log('### form list url ####', formListUrl);
 
-    const formList: Form[] = await auth
-        // .get(BAHIS_KOBOTOOLBOX_KF_API_URL + 'assets')
-        // .get(BAHIS_KOBOTOOLBOX_KC_API_URL + 'forms')
+    const formList: Form[] | unknown = await auth
         .get(formListUrl)
         .then((response) => {
             return new Promise((resolve, reject) => {
                 // first convert to JSON to make it easier to work with
                 _xmlToJson(response.data)
-                    .then((formListObj: FormListObj) => {
-                        if (formListObj.xforms && formListObj.xforms.xform) {
+                    .then((formList: unknown) => {
+                        const formListObj = formList as FormListObj;
+                        if (formListObj && formListObj.xforms && formListObj.xforms.xform) {
                             const forms = formListObj.xforms.xform.map((form) => {
                                 // Convert arrays property values to strings, knowing that each xml node only
                                 form = _simplifyFormObj(form);
-
+                                setStatus(form.name);
                                 return {
                                     uid: form.formID,
                                     name: form.name,
@@ -197,21 +182,19 @@ export const getForms = async (db) => {
             });
         })
         .then((forms) => {
-            console.log(forms);
             return forms;
         })
         .catch((error) => {
+            Toast('GET Form Definitions FAILED', 'error');
             log.error('GET KoboToolbox Form Definitions FAILED with:');
             log.error(error);
-            console.error(error);
         });
 
     const upsertQuery = db.prepare(
         'INSERT INTO form (uid, name, description, xml) VALUES (?, ?, ?, ?) ON CONFLICT(uid) DO UPDATE SET xml = excluded.xml;',
     );
-    mainWindow?.webContents.send('log', formList);
 
-    for (const form of formList) {
+    for (const form of formList as Form[]) {
         log.info(`GET form ${form.uid} from KoboToolbox`);
         log.debug(form.xml_url);
         auth.get(form.xml_url)
@@ -221,69 +204,107 @@ export const getForms = async (db) => {
                 log.info(`GET form ${form.uid} SUCCESS`);
             })
             .catch((error) => {
+                Toast('GET Form Definitions FAILED', 'error');
                 log.error('GET KoboToolbox Form Definitions FAILED with:');
                 log.error(error);
             });
     }
+    Toast('Get Form Definitions SUCCESS');
     log.info(`GET KoboToolbox Form Definitions SUCCESS`);
 };
 
-export const getFormCloudSubmissions = async (db) => {
-    log.info(`GET KoboToolbox Form Submissions`);
-
-    log.info(`KOBOTOOLBOX KF API URL: ${BAHIS_KOBOTOOLBOX_KF_API_URL}`);
-
-    log.info('Using Form UIDs from local database');
-    const formList = db.prepare('SELECT uid FROM form').all();
-
+const insertCloudSubmission = async (db, url: string, form = { name: '' }) => {
     const upsertQuery = db.prepare(
         'INSERT INTO formcloudsubmission (uuid, form_uid, xml) VALUES (?, ?, ?) ON CONFLICT(uuid) DO UPDATE SET xml = excluded.xml;',
     );
-    // NOTE UUID on KoboToolbox actually might not be unique historically; but should be as of 2023
 
-    for (const form of formList) {
-        log.info(`GET form ${form.uid} submissions from KoboToolbox`);
-        await auth
-            .get(BAHIS_KOBOTOOLBOX_KF_API_URL + 'assets/' + form.uid + '/data/?format=xml')
-            // FIXME add something like ?query={"_submission_time": {"$gt": "2019-09-01T01:02:03"}}' based on last sync time
-            .then((response) => {
-                const doc = new DOMParser().parseFromString(response.data, 'text/xml');
+    await auth
+        .get(url)
+        .then(async (response) => {
+            const doc = new DOMParser().parseFromString(response.data, 'text/xml');
 
-                const results = xpath.select('/root/results', doc, true) as Node;
+            const results = xpath.select('/root/results', doc, true) as Node;
 
-                if (results) {
-                    log.debug('Got results from server');
-                    const children = results.childNodes;
-                    for (let i = 0; i < children.length; i++) {
-                        const child = children[i];
-                        if (child.nodeType === 1) {
-                            log.debug('Handling child with nodeName: ' + child.nodeName);
-                            const meta = xpath.select('meta', child, true) as Node;
-                            if (meta) {
-                                const meta_children = meta.childNodes;
-                                for (let j = 0; j < meta_children.length; j++) {
-                                    const meta_child = meta_children[j];
-                                    if (meta_child.nodeType === 1 && meta_child.nodeName === 'instanceID') {
-                                        const uuid = meta_child.textContent;
-                                        const form_id = child.nodeName;
-                                        const xml = child.toString();
-                                        log.debug('Upserting form submission with UUID: ' + uuid);
-                                        upsertQuery.run([uuid, form_id, xml]);
-                                    }
+            if (results) {
+                const insertTransaction = db.transaction((data: CloudFormData[]) => {
+                    for (const { uuid, form_id, xml } of data) {
+                        upsertQuery.run([uuid, form_id, xml]);
+                    }
+                });
+
+                log.debug('Got results from server');
+                const children = results.childNodes;
+                const data: CloudFormData[] = [];
+                for (let i = 0; i < children.length; i++) {
+                    const child = children[i];
+                    if (child.nodeType === 1) {
+                        log.debug('Handling child with nodeName: ' + child.nodeName);
+                        const meta = xpath.select('meta', child, true) as Node;
+                        if (meta) {
+                            const meta_children = meta.childNodes;
+                            for (let j = 0; j < meta_children.length; j++) {
+                                const meta_child = meta_children[j];
+                                if (meta_child.nodeType === 1 && meta_child.nodeName === 'instanceID') {
+                                    const uuid = meta_child.textContent;
+                                    const form_id = child.nodeName;
+                                    const xml = child.toString();
+                                    log.debug('Upserting form submission with UUID: ' + uuid);
+                                    setStatus(uuid as string);
+                                    data.push(<CloudFormData>{ uuid, form_id, xml });
                                 }
                             }
                         }
                     }
-                    log.info(`GET form ${form.uid} submissions SUCCESS`);
-                } else {
-                    log.warn('No results received from server');
                 }
-            })
-            .catch((error) => {
-                log.error('GET KoboToolbox Form Submissions FAILED with:');
-                log.error(error);
-            });
+                if (data.length) {
+                    insertTransaction(data);
+                    Toast(`${form?.name} form sync SUCCESS`);
+                } else {
+                    Toast('No new data to sync', 'info');
+                }
+            } else {
+                Toast('No new data received', 'info');
+                log.warn('No results received from server');
+            }
+            const next = xpath.select('/root/next', doc, true) as Node;
+            if (next && next.textContent != 'None') {
+                await insertCloudSubmission(db, next.textContent as string, form);
+            }
+        })
+        .catch((error) => {
+            Toast(`${form?.name} form sync FAILED`, 'error');
+            log.error('GET KoboToolbox Form Submissions FAILED with:');
+            log.error(error);
+        });
+};
+
+export const getFormCloudSubmissions = async (db) => {
+    const formList = db.prepare('SELECT uid, name FROM form').all();
+
+    const lastSync = db
+        .prepare(
+            `SELECT strftime('%Y-%m-%dT%H:%M:%SZ', created_at) as created_at
+             FROM formcloudsubmission
+             order by created_at desc
+             limit 1;`,
+        )
+        .get();
+    const ITEM_PER_PAGE = 100;
+    let syncUrlQuery = `&start=0&limit=${ITEM_PER_PAGE}`;
+    let timeQuery = '';
+    if (lastSync) {
+        timeQuery = `&query={"_submission_time":{"$gt":"${new Date(lastSync.created_at).toISOString()}"}}`;
+        syncUrlQuery += timeQuery;
     }
+
+    // NOTE UUID on KoboToolbox actually might not be unique historically; but should be as of 2023
+
+    for (const form of formList) {
+        log.info(`GET form ${form.uid} submissions from KoboToolbox`);
+        const initialUrl = BAHIS_KOBOTOOLBOX_KF_API_URL + 'assets/' + form.uid + '/data/?format=xml' + syncUrlQuery;
+        await insertCloudSubmission(db, initialUrl, form);
+    }
+
     log.info(`GET KoboToolbox Form Submissions SUCCESS`);
 };
 
@@ -320,8 +341,10 @@ export const postFormCloudSubmissions = async (db) => {
                     log.error(`POST form ${form.uid} submissions FAILED with status ${response.status}`);
                     log.error(response);
                 }
+                Toast('Submitted submissions successfully');
             })
             .catch((error) => {
+                Toast('Data submitted FAILED!!', 'error');
                 log.error('POST KoboToolbox Form Submissions FAILED with:');
                 log.error(error);
             });
@@ -344,6 +367,7 @@ export const getTaxonomies = async (db) => {
             return response.data;
         })
         .catch((error) => {
+            Toast('GET Taxonomy List FAILED!!', 'error');
             log.error('GET Taxonomy List FAILED with:');
             log.error(error);
         });
@@ -375,8 +399,10 @@ export const getTaxonomies = async (db) => {
                 }
                 upsertQuery.run([taxonomy.slug, taxonomy.csv_file_stub]);
                 log.info(`GET Taxonomy CSV ${taxonomy.slug} SUCCESS`);
+                Toast(`GET Taxonomy CSV ${taxonomy.slug} SUCCESS`);
             })
             .catch((error) => {
+                Toast('GET Taxonomy CSV FAILED!!', 'error');
                 log.error('GET Taxonomy CSV FAILED with:');
                 log.error(error);
             });
@@ -412,8 +438,8 @@ export const getAdministrativeRegions = async (db) => {
 
     log.info(`GET getAdministrativeRegions Definitions`);
 
-    const userAdministrativeRegionQuery = `SELECT upazila FROM users`;
-    const administrativeRegionID = db.prepare(userAdministrativeRegionQuery).get().upazila; // FIXME replace when moving to BAHIS 3 user systems
+    const userAdminRegionQuery = 'SELECT upazila FROM users';
+    const administrativeRegionID = db.prepare(userAdminRegionQuery).get().upazila; // FIXME replace when moving to BAHIS 3 user systems
 
     const BAHIS_ADMINISTRATIVE_REGIONS_ENDPOINT = (administrativeRegionID) =>
         `${BAHIS_SERVER_URL}/api/taxonomy/administrative-regions-catchment/?id=${administrativeRegionID}`;

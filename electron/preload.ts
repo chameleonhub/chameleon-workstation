@@ -1,3 +1,10 @@
+// import { contextBridge, ipcRenderer } from 'electron';
+//
+// contextBridge.exposeInMainWorld('electronAPI', {
+//     sendMessage: (message) => ipcRenderer.send('toMain', message),
+//     onMessage: (callback) => ipcRenderer.on('fromMain', (_event, message) => callback(message)),
+// });
+
 function domReady(condition: DocumentReadyState[] = ['complete', 'interactive']) {
     return new Promise((resolve) => {
         if (condition.includes(document.readyState)) {

@@ -1,8 +1,11 @@
-import PreviewIcon from '@mui/icons-material/Preview';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import HomeIcon from '@mui/icons-material/Home';
-import SyncIcon from '@mui/icons-material/Sync';
-import AccountCircle from '@mui/icons-material/AccountCircle';
+import {
+    AccountCircle as AccountCircleIcon,
+    ArrowBack as ArrowBackIcon,
+    Home as HomeIcon,
+    Preview as PreviewIcon,
+    Sync as SyncIcon,
+    Update as UpdateIcon,
+} from '@mui/icons-material';
 import {
     Alert,
     AppBar,
@@ -10,35 +13,96 @@ import {
     Box,
     Button,
     CircularProgress,
-    Snackbar,
-    Toolbar,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
+    IconButton,
     Menu,
     MenuItem,
-    IconButton,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    DialogContentText,
+    Paper,
+    Snackbar,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableRow,
+    Toolbar,
+    Typography,
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import React, { Fragment, ReactElement, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { log } from '../helpers/log';
 import { ipcRenderer } from 'electron';
-
-const getDraftCount = async () => {
-    log.info('GET local draft Count');
-    return ipcRenderer.invoke('get-local-db', 'select count(*) as count from formlocaldraft').then((response) => {
-        return response[0].count;
-    });
-};
+import { useSelector } from 'react-redux';
+import { fetchDraftCount, selectDraftCount } from '../stores/featues/draftCounterSlice.ts';
+import { useAppDispatch } from '../stores/store.ts';
+import { User } from '../app.model.ts';
+import { OpenToast } from '../stores/featues/NotificationSlice.ts';
+import logoWhite from '../assets/logo-white.png';
 
 export const Header = () => {
-    const [draftCount, setDraftCount] = useState<number>(0);
     const [isWaitingForDataSync, setWaitingForDataSync] = useState(false);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-    const [userName, setUserName] = useState<string>('');
+    const [dialogEl, setDialogEl] = useState<ReactElement[]>([]);
+    const [user, setUser] = useState<User>({});
     const [open, setOpen] = useState(false);
+    const dispatch = useAppDispatch();
+    const draftCount = useSelector(selectDraftCount);
+
+    const handleLogout = () => {
+        setAnchorEl(null);
+        setOpen(false);
+        navigate('/');
+    };
+    const logoutEl: ReactElement[] = [
+        <Fragment key="logoutFragKey">
+            <DialogTitle id="alert-dialog-title">{'Are you sure?'}</DialogTitle>
+            <DialogContent>
+                <DialogContentText id="alert-dialog-description">Do you want to logout?</DialogContentText>
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={handleLogout}>Yes</Button>
+                <Button onClick={() => setOpen(false)} autoFocus>
+                    No
+                </Button>
+            </DialogActions>
+        </Fragment>,
+    ];
+
+    const profileEl: ReactElement[] = [
+        <Fragment key="profileFragKey">
+            <DialogTitle id="alert-dialog-title">{'Profile'}</DialogTitle>
+            <DialogContent>
+                <DialogContentText id="alert-dialog-description">
+                    <TableContainer component={Paper}>
+                        <Table sx={{ minWidth: 300 }}>
+                            <TableBody>
+                                <TableRow>
+                                    <TableCell>Name</TableCell>
+                                    <TableCell>{user.name}</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Username</TableCell>
+                                    <TableCell>{user.username}</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Upazila</TableCell>
+                                    <TableCell>{user.upazila}</TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={() => setOpen(false)} autoFocus>
+                    Ok
+                </Button>
+            </DialogActions>
+        </Fragment>,
+    ];
 
     const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
@@ -48,39 +112,30 @@ export const Header = () => {
         setAnchorEl(null);
     };
     const handleLogoutDialog = () => {
+        setDialogEl(logoutEl);
         setAnchorEl(null);
         setOpen(true);
     };
-    const handleLogout = () => {
-        setAnchorEl(null);
-        setOpen(false);
-        navigate('/');
-    };
     const handleProfile = () => {
+        setDialogEl(profileEl);
         setAnchorEl(null);
+        setOpen(true);
     };
 
     const navigate = useNavigate();
 
     useEffect(() => {
-        const timer = setTimeout(
-            () =>
-                getDraftCount().then((unsyncCount) => {
-                    setDraftCount(unsyncCount);
-                    log.info(`Draft count: ${unsyncCount}`);
-                }),
-            1000,
-        );
-        return () => clearTimeout(timer);
-    }, [isWaitingForDataSync]);
-
-    useEffect(() => {
         ipcRenderer.invoke('get-user-data').then((res) => {
             if (res) {
-                setUserName(res);
+                setUser(res);
             }
         });
-    });
+        dispatch(fetchDraftCount());
+    }, []);
+
+    useEffect(() => {
+        dispatch(fetchDraftCount());
+    }, [isWaitingForDataSync]);
 
     const handleClose = () => {
         setWaitingForDataSync(false);
@@ -106,6 +161,23 @@ export const Header = () => {
             });
     };
 
+    const handleUpdateAppData = () => {
+        setWaitingForDataSync(true);
+        ipcRenderer
+            .invoke('request-app-data-sync')
+            .then(() => {
+                dispatch(OpenToast('Update data SUCCESS'));
+            })
+            .catch((error) => {
+                dispatch(OpenToast({ type: 'error', text: 'Unable to update data' + error.message }));
+            })
+            .finally(() => {
+                setWaitingForDataSync(false);
+                log.info('App sync attempt complete. Navigating to menu.');
+                navigate('/menu/0');
+            });
+    };
+
     const onBackHandler = () => {
         navigate(-1);
     };
@@ -115,7 +187,7 @@ export const Header = () => {
     };
 
     const getButtonColor = () => {
-        return draftCount === 0 ? 'primary' : 'secondary';
+        return draftCount === 0 ? 'info' : 'secondary';
     };
 
     const Toast = () => (
@@ -127,19 +199,42 @@ export const Header = () => {
     );
 
     return (
-        <AppBar position="sticky">
+        <AppBar position="fixed">
             {isWaitingForDataSync && <Toast />}
             <Toolbar sx={{ justifyContent: 'space-between' }}>
-                <Button color="inherit" onClick={onHomeHandler} startIcon={<HomeIcon />}>
-                    Home
-                </Button>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box className="cursor-pointer" display="flex" onClick={onHomeHandler}>
+                        <Box
+                            component="img"
+                            src={logoWhite}
+                            sx={{ display: { xs: 'none', md: 'flex' }, mr: 1, height: '2rem' }}
+                        />
+                        <Typography className="pr-4" variant="h4">
+                            BAHIS
+                        </Typography>
+                    </Box>
+                    <Box>
+                        <Button color="inherit" onClick={onHomeHandler} startIcon={<HomeIcon />}>
+                            Home
+                        </Button>
+                        <Button color="inherit" onClick={handleUpdateAppData} startIcon={<UpdateIcon />}>
+                            Update Data
+                        </Button>
+                    </Box>
+                </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Badge badgeContent={draftCount} color="warning">
-                        <Button variant="contained" onClick={() => navigate('list/drafts')} disabled={isWaitingForDataSync}>
+                        <Button
+                            variant="contained"
+                            color="info"
+                            onClick={() => navigate('list/drafts')}
+                            disabled={isWaitingForDataSync}
+                        >
                             <PreviewIcon />
                             Review Drafts
                         </Button>
                     </Badge>
+                    <span className="mr-2"></span>
                     <Button
                         variant="contained"
                         color={getButtonColor()}
@@ -147,7 +242,7 @@ export const Header = () => {
                         disabled={isWaitingForDataSync}
                     >
                         <SyncIcon />
-                        Submit Drafts
+                        Sync Data
                     </Button>
                 </Box>
                 <Box sx={{ display: 'flex' }}>
@@ -162,9 +257,9 @@ export const Header = () => {
                                 aria-haspopup="true"
                                 color="inherit"
                             >
-                                <AccountCircle />
+                                <AccountCircleIcon />
                             </IconButton>
-                            {userName}
+                            {user.username}
                         </Box>
 
                         <Menu
@@ -189,16 +284,7 @@ export const Header = () => {
                 </Box>
             </Toolbar>
             <Dialog open={open} aria-labelledby="alert-dialog-title" aria-describedby="alert-dialog-description">
-                <DialogTitle id="alert-dialog-title">{'Are you sure?'}</DialogTitle>
-                <DialogContent>
-                    <DialogContentText id="alert-dialog-description">Do you want to logout?</DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleLogout}>Yes</Button>
-                    <Button onClick={() => setOpen(false)} autoFocus>
-                        No
-                    </Button>
-                </DialogActions>
+                {dialogEl}
             </Dialog>
         </AppBar>
     );

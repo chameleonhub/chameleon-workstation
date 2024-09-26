@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import SignalCellular4BarIcon from '@mui/icons-material/SignalCellular4Bar';
 import SignalCellularOffIcon from '@mui/icons-material/SignalCellularOff';
 import { Alert, Box, Snackbar, Tooltip, Typography } from '@mui/material';
@@ -34,7 +34,7 @@ export const NetworkIndicator = () => {
                 <Tooltip title="Good network connection">
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <SignalCellular4BarIcon color="success" />
-                        <Typography>Good network connection</Typography>
+                        <Typography sx={{ paddingLeft: '.30rem' }}>Good connection</Typography>
                     </Box>
                 </Tooltip>
             ) : (
@@ -42,7 +42,7 @@ export const NetworkIndicator = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <SignalCellularOffIcon color="error" />
                         <Typography fontWeight="bold" color="error">
-                            Poor network connection
+                            Poor connection
                         </Typography>
                     </Box>
                 </Tooltip>

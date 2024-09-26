@@ -1,20 +1,8 @@
-import {
-    Accordion,
-    AccordionDetails,
-    AccordionSummary,
-    Alert,
-    Button,
-    Card,
-    CardContent,
-    Grid,
-    Icon,
-    Typography,
-} from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { useEffect, useState } from 'react';
-import { log } from '../helpers/log';
-import { ipcRenderer } from 'electron';
-import { Link, useParams } from 'react-router-dom';
+import {Alert, Button, Card, CardContent, Grid, Icon, Typography} from '@mui/material';
+import {useEffect, useState} from 'react';
+import {log} from '../helpers/log';
+import {ipcRenderer} from 'electron';
+import {Link, useParams} from 'react-router-dom';
 
 enum MenuItemTypes {
     form = 1,
@@ -55,7 +43,7 @@ export default function MenuButton(props: MenuButtonProps) {
     }
 
     return (
-        <Link to={url} style={{ textDecoration: 'none' }}>
+        <Link to={url} style={{textDecoration: 'none'}}>
             <Card
                 sx={{
                     minWidth: 150,
@@ -65,13 +53,15 @@ export default function MenuButton(props: MenuButtonProps) {
                     justifyContent: 'center',
                     alignItems: 'center',
                     textAlign: 'center',
+                    boxShadow: '3px 3px 5px 3px rgba(0,0,0,0.2)',
                 }}
+                className="hover:bg-gray-100"
             >
                 <CardContent>
                     <Typography variant="h6" color={'primary'}>
                         {props.menuItem.title}
                     </Typography>
-                    <Icon fontSize="large" color={'primary'} sx={{ margin: 1 }}>
+                    <Icon fontSize="large" color={'primary'} sx={{margin: 1}}>
                         {props.menuItem.icon}
                     </Icon>
                     <Typography>{props.menuItem.description ?? ''}</Typography>
@@ -84,7 +74,7 @@ export default function MenuButton(props: MenuButtonProps) {
 export const Menu = () => {
     const [menuModules, setmenuModules] = useState<MenuItem[]>([]);
 
-    const { menu_id } = useParams();
+    const {menu_id} = useParams();
     log.info(`menu_id: ${menu_id}`);
 
     const readModulesWithParent = (parent_module) => {
@@ -112,6 +102,7 @@ export const Menu = () => {
 
     return (
         <>
+            {/*
             <Accordion>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel1a-content" id="panel1a-header">
                     Latest Improvements
@@ -174,20 +165,21 @@ export const Menu = () => {
                     </ul>
                 </AccordionDetails>
             </Accordion>
+     */}
 
-            <Grid container sx={{ marginTop: 2 }}>
+            <Grid container sx={{marginTop: 2}}>
                 {menuModules.length > 0 ? (
                     menuModules.map((menuItem) => (
                         <Grid
                             item
                             key={'menu-' + menuItem.id}
-                            style={{ order: menuItem.sort_order }}
+                            style={{order: menuItem.sort_order}}
                             lg={3}
                             md={4}
                             sm={6}
                             xs={12}
                         >
-                            <MenuButton menuItem={menuItem} />
+                            <MenuButton menuItem={menuItem}/>
                         </Grid>
                     ))
                 ) : (

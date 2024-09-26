@@ -10,7 +10,9 @@ const readFormData = async (tableName: string, form_uid: string, instance_id?: s
     log.info(`reading data from ${tableName} table...`);
     log.info(`  for form_uid: ${form_uid}...`);
     if (instance_id) log.info(`  for instance_id: ${instance_id}...`);
-    let query = `SELECT * FROM ${tableName} WHERE form_uid IS '${form_uid}'`;
+    let query = `SELECT *
+                 FROM ${tableName}
+                 WHERE form_uid IS '${form_uid}'`;
     if (instance_id) query += ` AND uuid IS '${instance_id}'`;
     return ipcRenderer
         .invoke('get-local-db', query)
@@ -28,7 +30,7 @@ interface FormProps {
     draft?: boolean;
 }
 
-export const Form: React.FC<FormProps> = ({ draft }) => {
+export const Form: React.FC<FormProps> = ({ draft }: FormProps) => {
     const [formXML, setFormXML] = useState<string>('');
     const [injectedData, setInjectedData] = useState<string>();
     const [prefilledFormXML, setPrefilledFormXML] = useState<string>('');
@@ -72,7 +74,9 @@ export const Form: React.FC<FormProps> = ({ draft }) => {
     useEffect(() => {
         const readForm = (form_uid: string) => {
             log.info(`reading XML definition from forms for form: ${form_uid}`);
-            const query = `SELECT xml FROM form WHERE uid = '${form_uid}'`;
+            const query = `SELECT xml
+                           FROM form
+                           WHERE uid = '${form_uid}'`;
             ipcRenderer
                 .invoke('get-local-db', query)
                 .then((response) => {

@@ -6,14 +6,22 @@ import { theme } from './theme.ts';
 import { register } from './services/serviceWorker.ts';
 import { ThemeProvider } from '@mui/material';
 
+import { store } from './stores/store';
+import { Provider } from 'react-redux';
+
 import './App.css';
+import { SnackbarProvider } from 'notistack';
 
 const rootElement = document.getElementById('root') as HTMLElement;
 createRoot(rootElement).render(
     <React.StrictMode>
-        <ThemeProvider theme={theme}>
-            <App />
-        </ThemeProvider>
+        <Provider store={store}>
+            <ThemeProvider theme={theme}>
+                <SnackbarProvider maxSnack={4}>
+                    <App />
+                </SnackbarProvider>
+            </ThemeProvider>
+        </Provider>
     </React.StrictMode>,
 );
 
