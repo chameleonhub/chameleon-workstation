@@ -1,4 +1,4 @@
-import { Container } from '@mui/material';
+import { Box, Container, Toolbar } from '@mui/material';
 import React, { useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { log } from '../helpers/log';
@@ -49,12 +49,13 @@ export const Layout: React.FC<LayoutProps> = ({ hasHeader }) => {
             <SystemAlerts />
             <Container
                 sx={{
-                    height: '90%',
-                    my: '1rem',
-                    px: '3rem',
+                    padding: '1.5rem 1rem 1rem 1rem',
                 }}
             >
-                <Outlet />
+                <Toolbar />
+                <Box sx={{ marginTop: '1.5rem' }}>
+                    <Outlet />
+                </Box>
             </Container>
             <Footer lastSyncTime={lastSyncTime} />
         </>

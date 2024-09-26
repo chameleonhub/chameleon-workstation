@@ -199,11 +199,11 @@ export const Header = () => {
     );
 
     return (
-        <AppBar position="sticky">
+        <AppBar position="fixed">
             {isWaitingForDataSync && <Toast />}
             <Toolbar sx={{ justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Box display="flex" onClick={onHomeHandler}>
+                    <Box className="cursor-pointer" display="flex" onClick={onHomeHandler}>
                         <Box
                             component="img"
                             src={logoWhite}

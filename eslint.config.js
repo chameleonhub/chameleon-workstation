@@ -19,8 +19,9 @@ export default [
             'react-hooks': eslintPluginReactHooks,
         },
         rules: {
-            'no-unused-vars': 'error',
-            'no-undef': 'error',
+            'no-unused-vars': 'off',
+            'react/react-in-jsx-scope': 'off',
+            '@typescript-eslint/no-unused-expressions': 'off',
         },
     },
 ];

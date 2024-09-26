@@ -24,3 +24,12 @@ body {
 .enketo-power {
     display: none;
 }
+
+#form-title {
+    font-size: 1.8rem;
+    font-weight: bold;
+}
+
+.datepicker {
+    z-index: 2000 !important;
+}

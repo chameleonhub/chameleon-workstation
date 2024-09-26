@@ -1,4 +1,4 @@
-import { Button } from '@mui/material';
+import { Box, Button, Stack } from '@mui/material';
 import { ipcRenderer } from 'electron';
 import { Form } from 'enketo-core';
 import { transform } from 'enketo-transformer/web';
@@ -47,7 +47,9 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
     };
 
     const deleteDraft = (uuid) => {
-        const query = `DELETE FROM formlocaldraft WHERE uuid = '${uuid}';`;
+        const query = `DELETE
+                       FROM formlocaldraft
+                       WHERE uuid = '${uuid}';`;
         ipcRenderer
             .invoke('post-local-db', query)
             .then((response) => {
@@ -187,17 +189,19 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
     };
 
     return (
-        <>
+        <Stack sx={{ margin: '2rem 3rem' }}>
             <div ref={formEl}></div>
-            {editable && (
-                <>
-                    <Button onClick={onCancel}>Cancel</Button>
-                    <Button onClick={onReset}>Reset</Button>
-                    <Button onClick={onSubmit}>Submit</Button>
-                    {instanceID && <Button onClick={onDelete}>Delete Draft</Button>}
-                </>
-            )}
-        </>
+            <Box>
+                {editable && (
+                    <>
+                        <Button onClick={onCancel}>Cancel</Button>
+                        <Button onClick={onReset}>Reset</Button>
+                        <Button onClick={onSubmit}>Submit</Button>
+                        {instanceID && <Button onClick={onDelete}>Delete Draft</Button>}
+                    </>
+                )}
+            </Box>
+        </Stack>
     );
 };
 
