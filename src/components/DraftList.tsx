@@ -43,7 +43,9 @@ const parseSubmissionsAsRows = async (submissions) => {
 
         const instance_start = new Date(xmlDoc.documentElement.getElementsByTagName('start')[0].textContent as string);
 
-        const query = `SELECT uid, name FROM form WHERE uid='${xmlDoc.documentElement.tagName}'`;
+        const query = `SELECT uid, name
+                       FROM form
+                       WHERE uid = '${xmlDoc.documentElement.tagName}'`;
 
         try {
             const response = await ipcRenderer.invoke('get-local-db', query);
@@ -71,7 +73,9 @@ export const DraftList = () => {
     const dispatch = useAppDispatch();
 
     const deleteDraft = (uuid) => {
-        const query = `DELETE FROM formlocaldraft WHERE uuid = '${uuid}';`;
+        const query = `DELETE
+                       FROM formlocaldraft
+                       WHERE uuid = '${uuid}';`;
         ipcRenderer
             .invoke('post-local-db', query)
             .then((response) => {
@@ -144,7 +148,7 @@ export const DraftList = () => {
 
     return (
         <>
-            <Typography variant="h3" id="form-title">
+            <Typography variant="h3" id="form-title" sx={{ marginBottom: '2rem' }}>
                 Draft Submissions
             </Typography>
             {columns && rows && <DataGrid columns={columns} rows={rows} logger={log} onRowClick={onRowClick} autoHeight />}

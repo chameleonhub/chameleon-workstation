@@ -1,12 +1,12 @@
-import {app} from 'electron';
-import {existsSync, mkdirSync, rmSync, writeFileSync} from 'fs';
-import {DOMParser} from 'xmldom';
+import { app } from 'electron';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
+import { DOMParser } from 'xmldom';
 import xpath from 'xpath';
-import {log} from './log';
-import {auth} from '../conf/axios.ts';
+import { log } from './log';
+import { auth } from '../conf/axios.ts';
 import Xml2Js from 'xml2js';
-import {CloudFormData, Form, FormListObj} from './bahis.model.ts';
-import {setStatus, Toast} from './utils.ts';
+import { CloudFormData, Form, FormListObj } from './bahis.model.ts';
+import { setStatus, Toast } from './utils.ts';
 
 const parser = new Xml2Js.Parser();
 
@@ -213,7 +213,7 @@ export const getForms = async (db) => {
     log.info(`GET KoboToolbox Form Definitions SUCCESS`);
 };
 
-const insertCloudSubmission = async (db, url: string) => {
+const insertCloudSubmission = async (db, url: string, form = { name: '' }) => {
     const upsertQuery = db.prepare(
         'INSERT INTO formcloudsubmission (uuid, form_uid, xml) VALUES (?, ?, ?) ON CONFLICT(uuid) DO UPDATE SET xml = excluded.xml;',
     );
@@ -227,7 +227,7 @@ const insertCloudSubmission = async (db, url: string) => {
 
             if (results) {
                 const insertTransaction = db.transaction((data: CloudFormData[]) => {
-                    for (const {uuid, form_id, xml} of data) {
+                    for (const { uuid, form_id, xml } of data) {
                         upsertQuery.run([uuid, form_id, xml]);
                     }
                 });
@@ -250,32 +250,36 @@ const insertCloudSubmission = async (db, url: string) => {
                                     const xml = child.toString();
                                     log.debug('Upserting form submission with UUID: ' + uuid);
                                     setStatus(uuid as string);
-                                    data.push(<CloudFormData>{uuid, form_id, xml});
+                                    data.push(<CloudFormData>{ uuid, form_id, xml });
                                 }
                             }
                         }
                     }
                 }
-                insertTransaction(data);
-                Toast('Data insert SUCCESS');
+                if (data.length) {
+                    insertTransaction(data);
+                    Toast(`${form?.name} form sync SUCCESS`);
+                } else {
+                    Toast('No new data to sync', 'info');
+                }
             } else {
                 Toast('No new data received', 'info');
                 log.warn('No results received from server');
             }
             const next = xpath.select('/root/next', doc, true) as Node;
             if (next && next.textContent != 'None') {
-                await insertCloudSubmission(db, next.textContent as string);
+                await insertCloudSubmission(db, next.textContent as string, form);
             }
         })
         .catch((error) => {
-            Toast('GET Form Submissions FAILED', 'error');
+            Toast(`${form?.name} form sync FAILED`, 'error');
             log.error('GET KoboToolbox Form Submissions FAILED with:');
             log.error(error);
         });
 };
 
 export const getFormCloudSubmissions = async (db) => {
-    const formList = db.prepare('SELECT uid FROM form').all();
+    const formList = db.prepare('SELECT uid, name FROM form').all();
 
     const lastSync = db
         .prepare(
@@ -298,7 +302,7 @@ export const getFormCloudSubmissions = async (db) => {
     for (const form of formList) {
         log.info(`GET form ${form.uid} submissions from KoboToolbox`);
         const initialUrl = BAHIS_KOBOTOOLBOX_KF_API_URL + 'assets/' + form.uid + '/data/?format=xml' + syncUrlQuery;
-        await insertCloudSubmission(db, initialUrl);
+        await insertCloudSubmission(db, initialUrl, form);
     }
 
     log.info(`GET KoboToolbox Form Submissions SUCCESS`);
@@ -321,7 +325,7 @@ export const postFormCloudSubmissions = async (db) => {
 
     for (const form of formcloudsubmissionList) {
         log.info(`POST form ${form.uuid} submissions from KoboToolbox`);
-        const selectedFile = new Blob([form.xml], {type: 'text/xml'});
+        const selectedFile = new Blob([form.xml], { type: 'text/xml' });
         const formData = new FormData();
         formData.append('xml_submission_file', selectedFile, '@/submission.xml');
 

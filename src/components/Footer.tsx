@@ -1,19 +1,19 @@
-import { Alert, AppBar, IconButton, Snackbar, SnackbarCloseReason, Typography } from '@mui/material';
+import { AppBar, IconButton, Typography } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 import { NetworkIndicator } from './NetworkIndicator';
 import { ipcRenderer } from 'electron';
-import CloseIcon from '@mui/icons-material/Close';
 import { ToastMessageType } from '../../electron/bahis.model.ts';
 import { useSelector } from 'react-redux';
 import {
     selectStatus,
     selectToastMessage,
-    selectToastOpen,
     setStatus,
     setToastMessage,
     setToastOpen,
 } from '../stores/featues/NotificationSlice.ts';
 import { useAppDispatch } from '../stores/store.ts';
+import { useSnackbar } from 'notistack';
+import { Close as CloseIcon } from '@mui/icons-material';
 
 export interface FooterProps {
     lastSyncTime?: string;
@@ -21,12 +21,13 @@ export interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
     const [version, setVersion] = useState<string>('');
-    const toastOpen = useSelector(selectToastOpen);
+    // const toastOpen = useSelector(selectToastOpen);
     const toastMessage = useSelector(selectToastMessage);
     const status = useSelector(selectStatus);
 
     const [timeOutId, setTimeOutId] = React.useState<NodeJS.Timeout | number | undefined>();
     const dispatch = useAppDispatch();
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
     useEffect(() => {
         ipcRenderer
@@ -58,20 +59,32 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
         );
     }, [status]);
 
-    const handleClose = (_event: React.SyntheticEvent | Event, reason?: SnackbarCloseReason) => {
-        if (reason === 'clickaway') {
-            return;
+    useEffect(() => {
+        if (toastMessage.text) {
+            enqueueSnackbar(toastMessage.text, {
+                autoHideDuration: toastMessage.duration || 5000,
+                variant: toastMessage.type || 'success',
+                action: action,
+                preventDuplicate: true,
+            });
         }
+    }, [toastMessage]);
 
+    const handleClose = (snackbarId) => {
+        closeSnackbar(snackbarId);
         dispatch(setToastOpen(false));
     };
 
-    const action = (
-        <React.Fragment>
-            <IconButton size="small" aria-label="close" color="inherit" onClick={handleClose}>
-                <CloseIcon fontSize="small" />
+    const action = (snackbarId) => (
+        <>
+            <IconButton
+                onClick={() => {
+                    handleClose(snackbarId);
+                }}
+            >
+                <CloseIcon />
             </IconButton>
-        </React.Fragment>
+        </>
     );
 
     return (
@@ -97,17 +110,6 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
                 <Typography>{`App version ${version}`}</Typography>
                 <NetworkIndicator />
             </AppBar>
-
-            <Snackbar
-                open={toastOpen}
-                autoHideDuration={toastMessage ? toastMessage?.duration : 5000}
-                onClose={handleClose}
-                action={action}
-            >
-                <Alert onClose={handleClose} severity={toastMessage ? toastMessage?.type : 'success'} sx={{ width: '100%' }}>
-                    {toastMessage?.text}
-                </Alert>
-            </Snackbar>
         </>
     );
 };

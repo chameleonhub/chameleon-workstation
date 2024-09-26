@@ -10,13 +10,16 @@ import { store } from './stores/store';
 import { Provider } from 'react-redux';
 
 import './App.css';
+import { SnackbarProvider } from 'notistack';
 
 const rootElement = document.getElementById('root') as HTMLElement;
 createRoot(rootElement).render(
     <React.StrictMode>
         <Provider store={store}>
             <ThemeProvider theme={theme}>
-                <App />
+                <SnackbarProvider maxSnack={4}>
+                    <App />
+                </SnackbarProvider>
             </ThemeProvider>
         </Provider>
     </React.StrictMode>,
