@@ -1,10 +1,10 @@
 import Database from 'better-sqlite3';
-import { app } from 'electron';
-import { existsSync, unlinkSync } from 'fs';
-import { createRequire } from 'module';
+import {app} from 'electron';
+import {existsSync, unlinkSync} from 'fs';
+import {createRequire} from 'module';
 import path from 'path';
-import { pathToFileURL, fileURLToPath } from 'url';
-import { log } from './log';
+import {fileURLToPath, pathToFileURL} from 'url';
+import {log} from './log';
 
 // 2023-08-21 the following options are a fix for using rollup (within vite) with better-sqlite3
 const __filename = fileURLToPath(import.meta.url);
@@ -17,7 +17,7 @@ const DB_PATH = (MODE) => path.join(app.getPath('userData'), `bahis_${MODE}.db`)
 
 export const createLocalDatabase = (MODE) => {
     log.info(`CREATE clean local database at ${DB_PATH(MODE)}`);
-    const db = new Database(DB_PATH(MODE), { nativeBinding: addon });
+    const db = new Database(DB_PATH(MODE), {nativeBinding: addon});
 
     log.info('Running initialisation');
     try {
@@ -39,14 +39,15 @@ export const createOrReadLocalDatabase = (MODE) => {
         db = createLocalDatabase(MODE);
     } else {
         log.info(`Using existing local database at ${DB_PATH(MODE)}`);
-        db = new Database(DB_PATH(MODE), { nativeBinding: addon });
+        db = new Database(DB_PATH(MODE), {nativeBinding: addon});
     }
 
     return db;
 };
 
 export const createUserInLocalDatabase = async (data, userData, db) => {
-    const insertStmt = db.prepare(`INSERT INTO users (username, password, name, token, upazila) VALUES (?, ?, ?, ?, ?)`);
+    const insertStmt = db.prepare(`INSERT INTO users (username, password, name, token, upazila)
+                                   VALUES (?, ?, ?, ?, ?)`);
     insertStmt.run(data.user.username, userData.password, data.user.name, data.token, data.upazila);
 
     log.info(`Created db with user details for ${data.user_name}`);

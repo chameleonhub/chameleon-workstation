@@ -1,12 +1,12 @@
-import { app } from 'electron';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
-import { DOMParser } from 'xmldom';
+import {app} from 'electron';
+import {existsSync, mkdirSync, rmSync, writeFileSync} from 'fs';
+import {DOMParser} from 'xmldom';
 import xpath from 'xpath';
-import { log } from './log';
-import { auth } from '../conf/axios.ts';
+import {log} from './log';
+import {auth} from '../conf/axios.ts';
 import Xml2Js from 'xml2js';
-import { CloudFormData, Form, FormListObj } from './bahis.model.ts';
-import { setStatus, Toast } from './utils.ts';
+import {CloudFormData, Form, FormListObj} from './bahis.model.ts';
+import {setStatus, Toast} from './utils.ts';
 
 const parser = new Xml2Js.Parser();
 
@@ -227,7 +227,7 @@ const insertCloudSubmission = async (db, url: string) => {
 
             if (results) {
                 const insertTransaction = db.transaction((data: CloudFormData[]) => {
-                    for (const { uuid, form_id, xml } of data) {
+                    for (const {uuid, form_id, xml} of data) {
                         upsertQuery.run([uuid, form_id, xml]);
                     }
                 });
@@ -250,7 +250,7 @@ const insertCloudSubmission = async (db, url: string) => {
                                     const xml = child.toString();
                                     log.debug('Upserting form submission with UUID: ' + uuid);
                                     setStatus(uuid as string);
-                                    data.push(<CloudFormData>{ uuid, form_id, xml });
+                                    data.push(<CloudFormData>{uuid, form_id, xml});
                                 }
                             }
                         }
@@ -321,7 +321,7 @@ export const postFormCloudSubmissions = async (db) => {
 
     for (const form of formcloudsubmissionList) {
         log.info(`POST form ${form.uuid} submissions from KoboToolbox`);
-        const selectedFile = new Blob([form.xml], { type: 'text/xml' });
+        const selectedFile = new Blob([form.xml], {type: 'text/xml'});
         const formData = new FormData();
         formData.append('xml_submission_file', selectedFile, '@/submission.xml');
 

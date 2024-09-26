@@ -51,7 +51,7 @@ export const Layout: React.FC<LayoutProps> = ({ hasHeader }) => {
                 sx={{
                     height: '90%',
                     my: '1rem',
-                    px: '3rem'
+                    px: '3rem',
                 }}
             >
                 <Outlet />

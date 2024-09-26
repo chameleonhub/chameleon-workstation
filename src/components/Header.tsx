@@ -31,7 +31,7 @@ import {
     Toolbar,
     Typography,
 } from '@mui/material';
-import { Fragment, ReactElement, useEffect, useState } from 'react';
+import React, { Fragment, ReactElement, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { log } from '../helpers/log';
 import { ipcRenderer } from 'electron';
