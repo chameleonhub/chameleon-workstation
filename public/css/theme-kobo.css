@@ -2218,18 +2218,6 @@
   -moz-box-sizing: border-box;
   box-sizing: border-box; }
 
-html {
-  /*font-size: 62.5%;*/
-  -webkit-tap-highlight-color: rgba(0, 0, 0, 0); }
-
-body {
-  font-family: 'OpenSans', Arial, sans-serif;
-  font-weight: normal;
-  font-size: 15px;
-  line-height: 1.42857;
-  color: #333333;
-  background-color: #f0f0f0; }
-
 input,
 button,
 select,

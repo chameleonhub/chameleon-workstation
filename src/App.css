@@ -1,8 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
 body {
+    font-family: 'OpenSans', Arial, sans-serif;
+    font-weight: normal;
+    font-size: 15px;
+    line-height: 1.42857;
+    color: #333333;
+    background-color: #fefefe;
     margin: 0;
     height: 100%;
 }
 
 #root {
     height: 100%;
+}
+
+.enketo-power {
+    display: none;
 }

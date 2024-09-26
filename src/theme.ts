@@ -1,17 +1,17 @@
 import { createTheme } from '@mui/material/styles';
 
 // default (development) colours
-let primary_main = '#009EDB'; // AppBar, Borders, Icons
-let primary_light = '#6ED6FF'; // Box backgrounds
-let primary_dark = '#004F6E'; // Box backgrounds
-const secondary_main = '#DB3E00'; // Button backgrounds
+let primary_main = '#036DBA'; // AppBar, Borders, Icons
+let primary_light = '#cbf3ff'; // Box backgrounds
+let primary_dark = '#034777'; // Box backgrounds
+const secondary_main = '#F44336'; // Button backgrounds
 const secondary_light = '#FFFAFB'; // Button text
-const secondary_dark = '#2B2C28';
+const secondary_dark = '#972d02';
 // override based on mode
 if (import.meta.env.MODE === 'production') {
-    primary_main = '#649a6a';
-    primary_light = '#ebfded';
-    primary_dark = '#8ac390';
+    primary_main = '#01b54c';
+    primary_light = '#dafade';
+    primary_dark = '#008037';
 }
 
 export const theme = createTheme({
@@ -20,6 +20,7 @@ export const theme = createTheme({
             main: primary_main,
             light: primary_light,
             dark: primary_dark,
+            contrastText: 'white',
         },
         secondary: {
             main: secondary_main,
@@ -37,6 +38,7 @@ export const theme = createTheme({
         },
         success: {
             main: '#4caf50',
+            contrastText: 'white',
         },
     },
 });

@@ -4,6 +4,16 @@ import { NetworkIndicator } from './NetworkIndicator';
 import { ipcRenderer } from 'electron';
 import CloseIcon from '@mui/icons-material/Close';
 import { ToastMessageType } from '../../electron/bahis.model.ts';
+import { useSelector } from 'react-redux';
+import {
+    selectStatus,
+    selectToastMessage,
+    selectToastOpen,
+    setStatus,
+    setToastMessage,
+    setToastOpen,
+} from '../stores/featues/NotificationSlice.ts';
+import { useAppDispatch } from '../stores/store.ts';
 
 export interface FooterProps {
     lastSyncTime?: string;
@@ -11,10 +21,12 @@ export interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
     const [version, setVersion] = useState<string>('');
-    const [toastOpen, setToastOpen] = React.useState(false);
-    const [toastMessage, setToastMessage] = React.useState<ToastMessageType>();
-    const [status, setStatus] = React.useState('');
+    const toastOpen = useSelector(selectToastOpen);
+    const toastMessage = useSelector(selectToastMessage);
+    const status = useSelector(selectStatus);
+
     const [timeOutId, setTimeOutId] = React.useState<NodeJS.Timeout | number | undefined>();
+    const dispatch = useAppDispatch();
 
     useEffect(() => {
         ipcRenderer
@@ -27,12 +39,12 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
             });
 
         ipcRenderer.on('sendMsg', (_evt, msg: ToastMessageType) => {
-            setToastMessage(msg);
-            setToastOpen(true);
+            dispatch(setToastMessage(msg));
+            dispatch(setToastOpen(true));
         });
 
         ipcRenderer.on('sendStatus', (_evt, msg: string) => {
-            setStatus(msg);
+            dispatch(setStatus(msg));
         });
     }, []);
 
@@ -41,21 +53,17 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
 
         setTimeOutId(
             setTimeout(() => {
-                setStatus('');
+                dispatch(setStatus('Ready'));
             }, 10000),
         );
     }, [status]);
-
-    const handleClick = () => {
-        setToastOpen(true);
-    };
 
     const handleClose = (_event: React.SyntheticEvent | Event, reason?: SnackbarCloseReason) => {
         if (reason === 'clickaway') {
             return;
         }
 
-        setToastOpen(false);
+        dispatch(setToastOpen(false));
     };
 
     const action = (
@@ -85,10 +93,8 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
                 >
                     {status}
                 </Typography>
-                <Typography onClick={handleClick} sx={{ marginLeft: 3 }}>
-                    Time of last synchronisation: {lastSyncTime}
-                </Typography>
-                <Typography>{`BAHIS Desk Version ${version}`}</Typography>
+                <Typography sx={{ marginLeft: 3 }}>Last sync: {lastSyncTime}</Typography>
+                <Typography>{`App version ${version}`}</Typography>
                 <NetworkIndicator />
             </AppBar>
 

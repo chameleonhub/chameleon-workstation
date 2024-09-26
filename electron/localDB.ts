@@ -1,12 +1,13 @@
 import Database from 'better-sqlite3';
 import { app } from 'electron';
 import { existsSync, unlinkSync } from 'fs';
-import { createRequire } from 'node:module';
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { createRequire } from 'module';
+import path from 'path';
+import { pathToFileURL, fileURLToPath } from 'url';
 import { log } from './log';
 
 // 2023-08-21 the following options are a fix for using rollup (within vite) with better-sqlite3
+const __filename = fileURLToPath(import.meta.url);
 const requireMe = createRequire(pathToFileURL(__filename).href);
 const addon = requireMe(
     path.resolve('./node_modules/better-sqlite3/build/Release/better_sqlite3.node').replace(/(\.node)?$/, '.node'),

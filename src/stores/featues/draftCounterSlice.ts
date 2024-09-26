@@ -1,5 +1,4 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { log } from '../../helpers/log.ts';
 import { ipcRenderer } from 'electron';
 
 export interface DraftCounterState {
@@ -11,9 +10,7 @@ const initialState: DraftCounterState = {
 };
 
 export const fetchDraftCount = createAsyncThunk('draft/fetch', async () => {
-    log.info('GET local draft Count');
     return ipcRenderer.invoke('get-local-db', 'select count(*) as count from formlocaldraft').then((response) => {
-        console.log(response[0].count);
         return response[0].count;
     });
 });

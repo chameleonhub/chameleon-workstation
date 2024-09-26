@@ -31,7 +31,7 @@ export const Layout: React.FC<LayoutProps> = ({ hasHeader }) => {
         ipcRenderer.invoke('get-user-data').then((res) => {
             if (res) {
                 const diffInDays = (Date.now() - Date.parse(res.last_login)) / (1000 * 3600 * 24);
-                console.log(diffInDays, Date.now(), Date.parse(res.last_login), res.last_login);
+                console.log(diffInDays);
                 if (diffInDays <= 7) {
                     navigate('/menu/0');
                 }
@@ -51,6 +51,7 @@ export const Layout: React.FC<LayoutProps> = ({ hasHeader }) => {
                 sx={{
                     height: '90%',
                     my: '1rem',
+                    px: '3rem'
                 }}
             >
                 <Outlet />

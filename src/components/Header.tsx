@@ -1,8 +1,11 @@
-import PreviewIcon from '@mui/icons-material/Preview';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import HomeIcon from '@mui/icons-material/Home';
-import SyncIcon from '@mui/icons-material/Sync';
-import AccountCircle from '@mui/icons-material/AccountCircle';
+import {
+    AccountCircle as AccountCircleIcon,
+    ArrowBack as ArrowBackIcon,
+    Home as HomeIcon,
+    Preview as PreviewIcon,
+    Sync as SyncIcon,
+    Update as UpdateIcon,
+} from '@mui/icons-material';
 import {
     Alert,
     AppBar,
@@ -26,6 +29,7 @@ import {
     TableContainer,
     TableRow,
     Toolbar,
+    Typography,
 } from '@mui/material';
 import { Fragment, ReactElement, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -35,6 +39,8 @@ import { useSelector } from 'react-redux';
 import { fetchDraftCount, selectDraftCount } from '../stores/featues/draftCounterSlice.ts';
 import { useAppDispatch } from '../stores/store.ts';
 import { User } from '../app.model.ts';
+import { OpenToast } from '../stores/featues/NotificationSlice.ts';
+import logoWhite from '../assets/logo-white.png';
 
 export const Header = () => {
     const [isWaitingForDataSync, setWaitingForDataSync] = useState(false);
@@ -155,6 +161,23 @@ export const Header = () => {
             });
     };
 
+    const handleUpdateAppData = () => {
+        setWaitingForDataSync(true);
+        ipcRenderer
+            .invoke('request-app-data-sync')
+            .then(() => {
+                dispatch(OpenToast('Update data SUCCESS'));
+            })
+            .catch((error) => {
+                dispatch(OpenToast({ type: 'error', text: 'Unable to update data' + error.message }));
+            })
+            .finally(() => {
+                setWaitingForDataSync(false);
+                log.info('App sync attempt complete. Navigating to menu.');
+                navigate('/menu/0');
+            });
+    };
+
     const onBackHandler = () => {
         navigate(-1);
     };
@@ -164,7 +187,7 @@ export const Header = () => {
     };
 
     const getButtonColor = () => {
-        return draftCount === 0 ? 'primary' : 'secondary';
+        return draftCount === 0 ? 'info' : 'secondary';
     };
 
     const Toast = () => (
@@ -179,16 +202,39 @@ export const Header = () => {
         <AppBar position="sticky">
             {isWaitingForDataSync && <Toast />}
             <Toolbar sx={{ justifyContent: 'space-between' }}>
-                <Button color="inherit" onClick={onHomeHandler} startIcon={<HomeIcon />}>
-                    Home
-                </Button>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box display="flex" onClick={onHomeHandler}>
+                        <Box
+                            component="img"
+                            src={logoWhite}
+                            sx={{ display: { xs: 'none', md: 'flex' }, mr: 1, height: '2rem' }}
+                        />
+                        <Typography className="pr-4" variant="h4">
+                            BAHIS
+                        </Typography>
+                    </Box>
+                    <Box>
+                        <Button color="inherit" onClick={onHomeHandler} startIcon={<HomeIcon />}>
+                            Home
+                        </Button>
+                        <Button color="inherit" onClick={handleUpdateAppData} startIcon={<UpdateIcon />}>
+                            Update Data
+                        </Button>
+                    </Box>
+                </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Badge badgeContent={draftCount} color="warning">
-                        <Button variant="contained" onClick={() => navigate('list/drafts')} disabled={isWaitingForDataSync}>
+                        <Button
+                            variant="contained"
+                            color="info"
+                            onClick={() => navigate('list/drafts')}
+                            disabled={isWaitingForDataSync}
+                        >
                             <PreviewIcon />
                             Review Drafts
                         </Button>
                     </Badge>
+                    <span className="mr-2"></span>
                     <Button
                         variant="contained"
                         color={getButtonColor()}
@@ -196,7 +242,7 @@ export const Header = () => {
                         disabled={isWaitingForDataSync}
                     >
                         <SyncIcon />
-                        Submit Drafts
+                        Sync Data
                     </Button>
                 </Box>
                 <Box sx={{ display: 'flex' }}>
@@ -211,7 +257,7 @@ export const Header = () => {
                                 aria-haspopup="true"
                                 color="inherit"
                             >
-                                <AccountCircle />
+                                <AccountCircleIcon />
                             </IconButton>
                             {user.username}
                         </Box>

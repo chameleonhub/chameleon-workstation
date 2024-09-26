@@ -395,7 +395,7 @@ export const getTaxonomies = async (db) => {
                 }
                 upsertQuery.run([taxonomy.slug, taxonomy.csv_file_stub]);
                 log.info(`GET Taxonomy CSV ${taxonomy.slug} SUCCESS`);
-                Toast(`GET Taxonomy CSV ${taxonomy.slug} SUCCESS`, 'error');
+                Toast(`GET Taxonomy CSV ${taxonomy.slug} SUCCESS`);
             })
             .catch((error) => {
                 Toast('GET Taxonomy CSV FAILED!!', 'error');

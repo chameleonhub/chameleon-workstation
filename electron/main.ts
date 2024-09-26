@@ -1,13 +1,18 @@
 import axios from 'axios';
 import csv from 'csv-parser';
-import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
+import {app, BrowserWindow, dialog, ipcMain, Menu} from 'electron';
 import firstRun from 'electron-first-run'; // could this eventually be removed too?
-import { autoUpdater } from 'electron-updater';
-import { cp, createReadStream, existsSync } from 'fs';
+import {autoUpdater} from 'electron-updater';
+import {cp, createReadStream, existsSync} from 'fs';
 import path from 'node:path';
-import { create } from 'xmlbuilder2';
-import { createLocalDatabase, createOrReadLocalDatabase, createUserInLocalDatabase, deleteLocalDatabase } from './localDB';
-import { log } from './log';
+import {create} from 'xmlbuilder2';
+import {
+    createLocalDatabase,
+    createOrReadLocalDatabase,
+    createUserInLocalDatabase,
+    deleteLocalDatabase
+} from './localDB';
+import {log} from './log';
 import {
     BAHIS_SERVER_URL,
     getAdministrativeRegions,
@@ -18,9 +23,13 @@ import {
     getWorkflows,
     postFormCloudSubmissions,
 } from './sync';
-import { UserData } from './bahis.model.ts';
+import {UserData} from './bahis.model.ts';
+import {fileURLToPath} from 'url';
+import {dirname} from 'path';
 
 // SETUP
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 process.env.DIST = path.join(__dirname, '../dist');
 process.env.PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, '../public');
 
@@ -64,7 +73,7 @@ const migrate = (old_app_location) => {
         log.warn(`Migrating user data from old location: ${old_app_location}`);
         log.debug(`Old location: ${old_app_location}`);
         log.debug(`New location: ${app.getPath('userData')}`);
-        cp(old_app_location, app.getPath('userData'), { recursive: true }, (error) => {
+        cp(old_app_location, app.getPath('userData'), {recursive: true}, (error) => {
             log.error('Failed to migrate user data from old location');
             log.error(error);
         });
@@ -100,7 +109,7 @@ const createWindow = () => {
         height: 680,
         icon: path.join(process.env.PUBLIC as string, 'icon.png'),
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
+            preload: path.join(__dirname, 'preload.mjs'),
             nodeIntegration: true,
             contextIsolation: false,
         },
@@ -218,22 +227,22 @@ const template: Electron.MenuItemConstructorOptions[] = [
                     }
                 },
             },
-            isMac ? { role: 'close' } : { role: 'quit' },
+            isMac ? {role: 'close'} : {role: 'quit'},
         ],
     },
     // { role: 'viewMenu' }
     {
         label: 'View',
         submenu: [
-            { role: 'reload' },
-            { role: 'forceReload' },
-            { role: 'toggleDevTools' },
-            { type: 'separator' },
-            { role: 'resetZoom' },
-            { role: 'zoomIn' },
-            { role: 'zoomOut' },
-            { type: 'separator' },
-            { role: 'togglefullscreen' },
+            {role: 'reload'},
+            {role: 'forceReload'},
+            {role: 'toggleDevTools'},
+            {type: 'separator'},
+            {role: 'resetZoom'},
+            {role: 'zoomIn'},
+            {role: 'zoomOut'},
+            {type: 'separator'},
+            {role: 'togglefullscreen'},
         ],
     },
     // { role: 'helpMenu' }
@@ -372,7 +381,8 @@ const readUserAdministrativeRegion = async (event, args) => {
 
     return new Promise<object>((resolve, reject) => {
         try {
-            const userAdministrativeRegionQuery = `SELECT upazila FROM users`;
+            const userAdministrativeRegionQuery = `SELECT upazila
+                                                   FROM users`;
             let administrativeRegionID = db.prepare(userAdministrativeRegionQuery).get().upazila; // FIXME replace when moving to BAHIS 3 user systems
             const queryForLevel = db.prepare('SELECT administrative_region_level FROM administrativeregion WHERE id IS ?');
             const queryForNextLevelUp = db.prepare(
@@ -487,7 +497,7 @@ const readAdministrativeRegions = async (event) => {
 
     return new Promise<string>((resolve, reject) => {
         try {
-            const doc = create({ version: '1.0' }).ele('root');
+            const doc = create({version: '1.0'}).ele('root');
             response.forEach((row) => {
                 const item = doc.ele('item');
                 Object.keys(row).forEach((key) => {
@@ -495,7 +505,7 @@ const readAdministrativeRegions = async (event) => {
                 });
             });
 
-            const xmlString = doc.root().toString({ prettyPrint: false });
+            const xmlString = doc.root().toString({prettyPrint: false});
             log.info('READ administrative regions SUCCESS');
             resolve(xmlString);
         } catch (error) {
@@ -523,7 +533,7 @@ const readTaxonomy = async (event, taxonomySlug: string) => {
             .pipe(csv())
             .on('data', (row: object) => data.push(row))
             .on('end', () => {
-                const doc = create({ version: '1.0' }).ele('root');
+                const doc = create({version: '1.0'}).ele('root');
 
                 data.forEach((row) => {
                     const item = doc.ele('item');
@@ -532,7 +542,7 @@ const readTaxonomy = async (event, taxonomySlug: string) => {
                     });
                 });
 
-                const xmlString = doc.root().toString({ prettyPrint: false });
+                const xmlString = doc.root().toString({prettyPrint: false});
                 log.info(`READ taxonomy CSV at ${filePath} SUCCESS`);
                 resolve(xmlString);
             })
