@@ -6,7 +6,7 @@ import { log } from '../helpers/log';
 import { ipcRenderer } from 'electron';
 import { useNavigate, useParams } from 'react-router-dom';
 
-const GROUPS_TO_SHOW = ['basic_info'];
+// const GROUPS_TO_SHOW = ['basic_info'];
 const FIELDS_TO_HIDE = ['division', 'district', 'upazila']; // FIXME move out to some sort of config}
 
 interface Workflow {
@@ -109,7 +109,7 @@ const mapWorkflow = (workflow: Workflow, row) => {
 };
 
 const parseSubmissionsAsRows = (submission) => {
-    log.info('Parsing form data submissions as datagrid rows');
+    // log.info('Parsing form data submissions as datagrid rows');
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(submission.xml, 'application/xml');
 
@@ -133,9 +133,10 @@ const parseSubmissionsAsRows = (submission) => {
     const row = {};
     fields
         .filter((element) => {
-            const parent_name = element.parentElement?.nodeName || '';
+            // const parent_name = element.parentElement?.nodeName || '';
             const name = element.nodeName || '';
-            if (GROUPS_TO_SHOW.includes(parent_name) && !FIELDS_TO_HIDE.includes(name)) {
+            // if (GROUPS_TO_SHOW.includes(parent_name) && !FIELDS_TO_HIDE.includes(name)) {
+            if (!FIELDS_TO_HIDE.includes(name)) {
                 return true;
             } else {
                 return false;
@@ -224,7 +225,8 @@ export const List = () => {
                 const ref = element.getAttribute('ref');
                 const parent_name = ref?.split('/')[2] || '';
                 const name = ref?.split('/')[3] || '';
-                if (GROUPS_TO_SHOW.includes(parent_name) && !FIELDS_TO_HIDE.includes(name)) {
+                // if (GROUPS_TO_SHOW.includes(parent_name) && !FIELDS_TO_HIDE.includes(name)) {
+                if (!FIELDS_TO_HIDE.includes(name)) {
                     columnVisibilityInitial[`${parent_name}_${name}`] = true;
                 } else {
                     columnVisibilityInitial[`${parent_name}_${name}`] = false;
@@ -327,6 +329,13 @@ export const List = () => {
                     onColumnVisibilityModelChange={(newModel) => setColumnVisibility(newModel)}
                     rows={rows}
                     slots={{ toolbar: GridToolbar }}
+                    initialState={{
+                        pagination: {
+                            paginationModel: {
+                                pageSize: 25,
+                            },
+                        },
+                    }}
                     logger={log}
                     onRowClick={onRowClick}
                     autoHeight
