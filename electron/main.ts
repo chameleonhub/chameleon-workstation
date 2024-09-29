@@ -457,7 +457,7 @@ const getAppData = async (event) => {
     log.info('GET app data from server');
     log.debug(`due to ${event.type}`);
 
-    await Promise.all([
+    return await Promise.all([
         getModules(db),
         getWorkflows(db),
         getForms(db).then(() => getFormCloudSubmissions(db)),
@@ -466,10 +466,12 @@ const getAppData = async (event) => {
     ])
         .then(() => {
             log.info('GET app data SUCCESS');
+            return true;
         })
         .catch((error) => {
             log.error('GET app data FAILED with:');
             log.error(error);
+            throw error;
         });
 };
 

@@ -32,9 +32,13 @@ export const notificationSlice = createSlice({
         },
         OpenToast(state, action: PayloadAction<ToastMessageType | string>) {
             if (typeof action.payload === 'string') {
-                state.toastMessage.text = action.payload;
+                state.toastMessage = {
+                    type: 'success',
+                    text: action.payload,
+                    duration: 5000,
+                };
             } else {
-                state.toastMessage.text = action.payload.text;
+                state.toastMessage = action.payload;
             }
             state.toastOpen = true;
         },
