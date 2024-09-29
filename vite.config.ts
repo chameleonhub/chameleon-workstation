@@ -23,14 +23,14 @@ export default function ViteConfig({ mode }) {
                 },
                 {
                     entry: 'electron/preload.ts',
-                    vite:{
-                      build: {
-                          rollupOptions:{
-                              output: {
-                                  entryFileNames: '[name].mjs',
-                              }
-                          }
-                      }
+                    vite: {
+                        build: {
+                            rollupOptions: {
+                                output: {
+                                    entryFileNames: '[name].mjs',
+                                },
+                            },
+                        },
                     },
                     onstart(options) {
                         // Notify the Renderer-Process to reload the page when the Preload-Scripts build is complete,

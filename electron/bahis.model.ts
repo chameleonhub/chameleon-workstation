@@ -1,4 +1,4 @@
-import {IpcMainInvokeEvent} from 'electron';
+import { IpcMainInvokeEvent } from 'electron';
 
 export interface UserData {
     username: string;
