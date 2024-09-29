@@ -260,7 +260,8 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }) => {
                     insertTransaction(data);
                     Toast(`${form?.name} form sync SUCCESS`);
                 } else {
-                    Toast('No new data to sync', 'info');
+                    // Toast(`${form?.name} No new data to sync`, 'info');
+                    Toast(`No new data to sync`, 'info');
                 }
             } else {
                 Toast('No new data received', 'info');

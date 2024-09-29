@@ -272,6 +272,7 @@ export const List = () => {
                         return workflows.map((workflow) => {
                             return (
                                 <GridActionsCellItem
+                                    key={workflow.title}
                                     label={workflow.title}
                                     icon={<Tooltip title={workflow.title}>{<PostAddIcon />}</Tooltip>}
                                     onClick={() => {
