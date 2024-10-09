@@ -161,7 +161,7 @@ const parseSubmissionsAsRows = (submission) => {
         });
 
     row['id'] = submission.uuid;
-    row['submission_date'] = new Date(xmlDoc.documentElement.getElementsByTagName('end')[0].textContent as string);
+    row['submission_date'] = new Date(xmlDoc.documentElement.getElementsByTagName('start')[0].textContent as string);
     row['raw_xml'] = submission.xml;
     return row;
 };
@@ -176,12 +176,7 @@ export const List = () => {
     const { form_uid } = useParams();
     const navigate = useNavigate();
 
-    useEffect(() => {
-        log.debug('mounted');
-        return () => {
-            log.debug('unmounted');
-        };
-    });
+    const titleCase = (s) => s.replace(/^_*(.)|_+(.)/g, (_s, c, d) => (c ? c.toUpperCase() : ' ' + d.toUpperCase()));
 
     // read form definition
     useEffect(() => {
@@ -205,7 +200,7 @@ export const List = () => {
             log.info('Parsing form definition as datagrid columns');
 
             const form = xmlDoc.body.children;
-
+            console.log(form);
             const recurseXML = (collection: HTMLCollection, fields: Element[]) => {
                 for (const element of collection) {
                     if (element.nodeName === 'group' || element.nodeName === 'repeat') {
@@ -225,12 +220,7 @@ export const List = () => {
                 const ref = element.getAttribute('ref');
                 const parent_name = ref?.split('/')[2] || '';
                 const name = ref?.split('/')[3] || '';
-                // if (GROUPS_TO_SHOW.includes(parent_name) && !FIELDS_TO_HIDE.includes(name)) {
-                if (!FIELDS_TO_HIDE.includes(name)) {
-                    columnVisibilityInitial[`${parent_name}_${name}`] = true;
-                } else {
-                    columnVisibilityInitial[`${parent_name}_${name}`] = false;
-                }
+                columnVisibilityInitial[`${parent_name}_${name}`] = !FIELDS_TO_HIDE.includes(name);
             });
 
             // Map fields to column definition objects
@@ -238,18 +228,18 @@ export const List = () => {
                 const ref = element.getAttribute('ref');
                 const parent_name = ref?.split('/')[2] || '';
                 const name = ref?.split('/')[3] || '';
-                const headerName = element.getElementsByTagName('label')[0].textContent;
+                // const headerName = element.getElementsByTagName('label')[0].textContent;
                 if (name.toLowerCase().includes('date')) {
                     return {
                         field: `${parent_name}_${name}`,
-                        headerName: headerName || name,
+                        headerName: titleCase(name),
                         type: 'date',
                         width: 100,
                     };
                 } else {
                     return {
                         field: `${parent_name}_${name}`,
-                        headerName: headerName || name,
+                        headerName: titleCase(name),
                         width: 200,
                     };
                 }
