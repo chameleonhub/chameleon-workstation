@@ -26,6 +26,7 @@ export const SignIn = () => {
     const [alertContent, setAlertContent] = React.useState<AlertContent | null>(null);
     const [openChangeUserDialog, setOpenChangeUserDialog] = React.useState<boolean>(false);
     const [isSignedIn, setIsSignedIn] = React.useState<boolean>(false);
+    const [isSignedInValid, setIsSignedInValid] = React.useState<boolean>(false);
     const [userData, setUserData] = React.useState<userData>();
     const [userName, setUserName] = React.useState<string>('');
 
@@ -54,6 +55,11 @@ export const SignIn = () => {
         ipcRenderer.invoke('get-user-data').then((res) => {
             if (res) {
                 setUserName(res.username);
+
+                const diffInDays = (Date.now() - Date.parse(res.last_login)) / (1000 * 3600 * 24);
+                if (diffInDays <= 7) {
+                    setIsSignedInValid(true);
+                }
             }
         });
     });
@@ -72,14 +78,19 @@ export const SignIn = () => {
         }
     };
 
-    const ChangeUserDialog = (props) => {
+    interface ChangeUserDialogProps {
+        open: boolean;
+        handleClick: (type: string) => void;
+    }
+
+    const ChangeUserDialog = (props: ChangeUserDialogProps) => {
         return (
             <Dialog open={props.open}>
                 <DialogTitle>Change of User Warning</DialogTitle>
                 <DialogContent>
                     <DialogContentText>
-                        You are changing the local user. This will delete the previous user's data and replace it with the new
-                        user's data. Are you sure you want to delete the data ?
+                        You are changing the local user. This will delete the previous user&apos;s data and replace it with the
+                        new user&apos;s data. Are you sure you want to delete the data ?
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
@@ -177,9 +188,15 @@ export const SignIn = () => {
             <Box>
                 <Typography color="text.secondary" gutterBottom>
                     Last Logged in as:
-                    <Button size="small" onClick={() => navigate('/menu/0')} variant="text">
-                        {userName}
-                    </Button>
+                    {isSignedInValid ? (
+                        <Button size="small" onClick={() => navigate('/menu/0')} variant="text">
+                            {userName}
+                        </Button>
+                    ) : userName ? (
+                        ` ${userName}`
+                    ) : (
+                        ' No User'
+                    )}
                 </Typography>
             </Box>
             <Box
