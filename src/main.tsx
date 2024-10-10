@@ -17,7 +17,7 @@ createRoot(rootElement).render(
     <React.StrictMode>
         <Provider store={store}>
             <ThemeProvider theme={theme}>
-                <SnackbarProvider maxSnack={4}>
+                <SnackbarProvider maxSnack={5}>
                     <App />
                 </SnackbarProvider>
             </ThemeProvider>

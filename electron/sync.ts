@@ -71,6 +71,10 @@ export const getModules = async (db) => {
                     'INSERT INTO module (id, title, icon, description, form, external_url, sort_order, parent_module, module_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET title = excluded.title, icon = excluded.icon, description = excluded.description, form = excluded.form, external_url = excluded.external_url, sort_order = excluded.sort_order, parent_module = excluded.parent_module, module_type = excluded.module_type;',
                 );
                 const deleteQuery = db.prepare('DELETE FROM module WHERE id = ?');
+                // const moduleIds = response.data.map(({ id }) => id);
+                // BrowserLog(moduleIds);
+
+                db.prepare('DELETE FROM module').run();
 
                 for (const module of response.data) {
                     if (module.is_active) {
@@ -117,6 +121,8 @@ export const getWorkflows = async (db) => {
                     'INSERT INTO workflow (id, title, source_form, destination_form, definition) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET title = excluded.title, definition = excluded.definition;',
                 );
                 const deleteQuery = db.prepare('DELETE FROM workflow WHERE id = ?');
+
+                db.prepare('DELETE FROM workflow').run();
 
                 for (const workflow of response.data) {
                     if (workflow.is_active) {
@@ -182,6 +188,7 @@ export const getForms = async (db) => {
             });
         })
         .then((forms) => {
+            db.prepare('DELETE FROM form').run();
             return forms;
         })
         .catch((error) => {
@@ -202,6 +209,7 @@ export const getForms = async (db) => {
                 const deployment = response.data;
                 upsertQuery.run([form.uid, form.name, form.description, deployment]);
                 log.info(`GET form ${form.uid} SUCCESS`);
+                setStatus(form.name + ' updated');
             })
             .catch((error) => {
                 Toast('GET Form Definitions FAILED', 'error');
@@ -249,7 +257,7 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }) => {
                                     const form_id = child.nodeName;
                                     const xml = child.toString();
                                     log.debug('Upserting form submission with UUID: ' + uuid);
-                                    setStatus(uuid as string);
+                                    setStatus('received: ' + uuid);
                                     data.push(<CloudFormData>{ uuid, form_id, xml });
                                 }
                             }
@@ -260,8 +268,8 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }) => {
                     insertTransaction(data);
                     Toast(`${form?.name} form sync SUCCESS`);
                 } else {
-                    // Toast(`${form?.name} No new data to sync`, 'info');
-                    Toast(`No new data to sync`, 'info');
+                    Toast(`${form?.name} No new data to sync`, 'info', 5000);
+                    // Toast(`No new data to sync`, 'info');
                 }
             } else {
                 Toast('No new data received', 'info');
@@ -394,6 +402,7 @@ export const getTaxonomies = async (db) => {
                         rmSync(`${uPath}/${taxonomy.csv_file_stub}`);
                     }
                     writeFileSync(`${uPath}/${taxonomy.csv_file_stub}`, response.data, 'utf-8');
+                    setStatus(taxonomy.csv_file_stub + ' updated');
                 } catch (error) {
                     log.error('GET Taxonomy CSV FAILED while saving with:');
                     log.error(error);
@@ -428,12 +437,14 @@ export const getAdministrativeRegions = async (db) => {
 
                 for (const administrativeregionlevel of response.data) {
                     upsertQuery.run([administrativeregionlevel.id, administrativeregionlevel.title]);
+                    setStatus(administrativeregionlevel.title + ' Admin level updated');
                 }
             }
             log.info('GET getAdministrativeRegionLevels Definitions SUCCESS');
         })
         .catch((error) => {
             log.error('GET getAdministrativeRegionLevels Definitions FAILED with:');
+            Toast('GET getAdministrativeRegionLevels Definitions FAILED', 'error');
             log.error(error);
         });
 
@@ -463,6 +474,7 @@ export const getAdministrativeRegions = async (db) => {
                         administrativeregion.parent_administrative_region,
                         administrativeregion.administrative_region_level,
                     ]);
+                    setStatus('Admin update ' + administrativeregion.title);
                 }
             }
             log.info('GET getAdministrativeRegions Definitions SUCCESS');

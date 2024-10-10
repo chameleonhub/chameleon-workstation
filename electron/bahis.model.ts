@@ -39,4 +39,5 @@ export interface ToastMessageType {
     text: string;
     action?: boolean;
     duration?: number;
+    options?: object;
 }

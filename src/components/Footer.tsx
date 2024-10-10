@@ -55,7 +55,7 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
         setTimeOutId(
             setTimeout(() => {
                 dispatch(setStatus('Ready'));
-            }, 10000),
+            }, 15000),
         );
     }, [status]);
 
@@ -66,6 +66,7 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
                 variant: toastMessage.type || 'success',
                 action: action,
                 preventDuplicate: true,
+                ...toastMessage.options,
             });
         }
     }, [toastMessage]);
