@@ -218,7 +218,7 @@ export const Header = () => {
                             Home
                         </Button>
                         <Button color="inherit" onClick={handleUpdateAppData} startIcon={<UpdateIcon />}>
-                            Update Forms
+                            Update Modules
                         </Button>
                     </Box>
                 </Box>

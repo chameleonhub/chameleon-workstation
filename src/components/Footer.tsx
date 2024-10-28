@@ -1,5 +1,5 @@
 import { AppBar, IconButton, Typography } from '@mui/material';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NetworkIndicator } from './NetworkIndicator';
 import { ipcRenderer } from 'electron';
 import { ToastMessageType } from '../../electron/bahis.model.ts';
@@ -28,7 +28,9 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
     const [timeOutId, setTimeOutId] = React.useState<NodeJS.Timeout | number | undefined>();
     const dispatch = useAppDispatch();
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+    let a = 0;
 
+    const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
     useEffect(() => {
         ipcRenderer
             .invoke('read-app-version')
@@ -39,14 +41,30 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
                 console.error('Error reading app version:', error);
             });
 
-        ipcRenderer.on('sendMsg', (_evt, msg: ToastMessageType) => {
+        const updateMessage = (_evt, msg: ToastMessageType) => {
             dispatch(setToastMessage(msg));
             dispatch(setToastOpen(true));
-        });
+        };
+        ipcRenderer.on('sendMsg', updateMessage);
 
-        ipcRenderer.on('sendStatus', (_evt, msg: string) => {
-            dispatch(setStatus(msg));
-        });
+        const updateStatus = (_event, msg: string) => {
+            if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+            debounceTimeout.current = setTimeout(() => {
+                console.log(a++, msg, msg != status, status);
+                if (msg !== status) {
+                    dispatch(setStatus(msg));
+                }
+            }, 1);
+        };
+
+        ipcRenderer.on('sendStatus', updateStatus);
+
+        return () => {
+            ipcRenderer.removeListener('sendStatus', updateStatus);
+            ipcRenderer.removeListener('sendMsg', updateMessage);
+
+            if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+        };
     }, []);
 
     useEffect(() => {
@@ -57,6 +75,9 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
                 dispatch(setStatus('Ready'));
             }, 15000),
         );
+        return () => {
+            timeOutId && clearTimeout(timeOutId);
+        };
     }, [status]);
 
     useEffect(() => {

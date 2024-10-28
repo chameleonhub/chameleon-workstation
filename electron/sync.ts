@@ -94,9 +94,9 @@ export const getModules = async (db) => {
                         deleteQuery.run([module.id]);
                     }
                 }
+                Toast('GET Module Definitions SUCCESS');
+                log.info('GET Module Definitions SUCCESS');
             }
-            Toast('GET Module Definitions SUCCESS');
-            log.info('GET Module Definitions SUCCESS');
         })
         .catch((error) => {
             Toast('GET Module Definitions FAILED', 'error');
@@ -156,7 +156,7 @@ export const getForms = async (db) => {
 
     const kcUrl = new URL(BAHIS_KOBOTOOLBOX_KC_API_URL);
     const formListUrl = kcUrl.origin + '/formList';
-    log.info('GET Form UIDs from KoboToolbox');
+    log.info('GET Form UIDs from KoboToolbox', formListUrl);
 
     const formList: Form[] | unknown = await auth
         .get(formListUrl)
@@ -192,7 +192,7 @@ export const getForms = async (db) => {
             return forms;
         })
         .catch((error) => {
-            Toast('GET Form Definitions FAILED', 'error');
+            Toast('GET form list FAILED', 'error');
             log.error('GET KoboToolbox Form Definitions FAILED with:');
             log.error(error);
         });
@@ -201,31 +201,35 @@ export const getForms = async (db) => {
         'INSERT INTO form (uid, name, description, xml) VALUES (?, ?, ?, ?) ON CONFLICT(uid) DO UPDATE SET xml = excluded.xml;',
     );
 
-    for (const form of formList as Form[]) {
-        log.info(`GET form ${form.uid} from KoboToolbox`);
-        log.debug(form.xml_url);
-        auth.get(form.xml_url)
-            .then((response) => {
-                const deployment = response.data;
-                upsertQuery.run([form.uid, form.name, form.description, deployment]);
-                log.info(`GET form ${form.uid} SUCCESS`);
-                setStatus(form.name + ' updated');
-            })
-            .catch((error) => {
-                Toast('GET Form Definitions FAILED', 'error');
-                log.error('GET KoboToolbox Form Definitions FAILED with:');
-                log.error(error);
-            });
+    if (formList) {
+        for (const form of formList as Form[]) {
+            log.info(`GET form ${form.uid} from KoboToolbox`);
+            log.debug(form.xml_url);
+            auth.get(form.xml_url)
+                .then((response) => {
+                    const deployment = response.data;
+                    upsertQuery.run([form.uid, form.name, form.description, deployment]);
+                    log.info(`GET form ${form.uid} SUCCESS`);
+                    setStatus(form.name + ' updated');
+                })
+                .catch((error) => {
+                    Toast('GET Form Definitions FAILED', 'error');
+                    log.error('GET KoboToolbox Form Definitions FAILED with:');
+                    log.error(error);
+                });
+        }
+        Toast('Get Form Definitions SUCCESS');
+        log.info(`GET KoboToolbox Form Definitions SUCCESS`);
+    } else {
+        Toast('No forms assigned', 'warning');
     }
-    Toast('Get Form Definitions SUCCESS');
-    log.info(`GET KoboToolbox Form Definitions SUCCESS`);
 };
 
 const insertCloudSubmission = async (db, url: string, form = { name: '' }) => {
     const upsertQuery = db.prepare(
         'INSERT INTO formcloudsubmission (uuid, form_uid, xml) VALUES (?, ?, ?) ON CONFLICT(uuid) DO UPDATE SET xml = excluded.xml;',
     );
-
+    console.log(`get cloud data from: ${url}`);
     await auth
         .get(url)
         .then(async (response) => {

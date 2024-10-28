@@ -13,7 +13,13 @@ const addon = requireMe(
     path.resolve('./node_modules/better-sqlite3/build/Release/better_sqlite3.node').replace(/(\.node)?$/, '.node'),
 );
 
-const DB_PATH = (MODE) => path.join(app.getPath('userData'), `bahis_${MODE}.db`);
+const DB_PATH = (MODE) => {
+    if (MODE === 'production') {
+        return path.join(app.getPath('userData'), `bahis3.db`);
+    } else {
+        return path.join(app.getPath('userData'), `bahis3_${MODE}.db`);
+    }
+};
 
 export const createLocalDatabase = (MODE) => {
     log.info(`CREATE clean local database at ${DB_PATH(MODE)}`);
