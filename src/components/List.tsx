@@ -161,7 +161,12 @@ const parseSubmissionsAsRows = (submission) => {
         });
 
     row['id'] = submission.uuid;
-    row['submission_date'] = new Date(xmlDoc.documentElement.getElementsByTagName('start')[0].textContent as string);
+    const subDate = xmlDoc.documentElement.getElementsByTagName('start');
+    if (!subDate || subDate.length <= 0) {
+        row['submission_date'] = new Date('2020-01-28T20:05:00');
+    } else {
+        row['submission_date'] = new Date(xmlDoc.documentElement.getElementsByTagName('start')[0].textContent as string);
+    }
     row['raw_xml'] = submission.xml;
     return row;
 };
@@ -200,7 +205,6 @@ export const List = () => {
             log.info('Parsing form definition as datagrid columns');
 
             const form = xmlDoc.body.children;
-            console.log(form);
             const recurseXML = (collection: HTMLCollection, fields: Element[]) => {
                 for (const element of collection) {
                     if (element.nodeName === 'group' || element.nodeName === 'repeat') {
@@ -297,6 +301,7 @@ export const List = () => {
                     setRows(jsonData);
                 })
                 .catch((error) => {
+                    console.error(error);
                     log.error(`Error reading form data: ${error}`);
                 });
         }

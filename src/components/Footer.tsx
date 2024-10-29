@@ -28,7 +28,6 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
     const [timeOutId, setTimeOutId] = React.useState<NodeJS.Timeout | number | undefined>();
     const dispatch = useAppDispatch();
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
-    let a = 0;
 
     const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
     useEffect(() => {
@@ -50,7 +49,6 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
         const updateStatus = (_event, msg: string) => {
             if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
             debounceTimeout.current = setTimeout(() => {
-                console.log(a++, msg, msg != status, status);
                 if (msg !== status) {
                     dispatch(setStatus(msg));
                 }
