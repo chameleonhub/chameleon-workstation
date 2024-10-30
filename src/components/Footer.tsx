@@ -109,21 +109,12 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
 
     return (
         <>
-            <AppBar position="fixed" sx={{ top: 'auto', bottom: 0, justifyContent: 'space-evenly', flexDirection: 'row' }}>
-                <Typography
-                    variant="caption"
-                    className="px-2"
-                    gutterBottom
-                    sx={{
-                        display: 'block',
-                        height: '1rem',
-                        textOverflow: 'ellipsis',
-                        maxWidth: '120px',
-                        alignSelf: 'center',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                    }}
-                >
+            <AppBar
+                className="footer-container"
+                position="fixed"
+                sx={{ top: 'auto', bottom: 0, justifyContent: 'space-evenly', flexDirection: 'row' }}
+            >
+                <Typography variant="caption" className="px-2" gutterBottom>
                     {status}
                 </Typography>
                 <Typography sx={{ marginLeft: 3 }}>Last sync: {lastSyncTime}</Typography>

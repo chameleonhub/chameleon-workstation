@@ -225,7 +225,7 @@ export const getForms = async (db) => {
     }
 };
 
-const insertCloudSubmission = async (db, url: string, form = { name: '' }) => {
+const insertCloudSubmission = async (db, url: string, form = { name: '' }, count = 0) => {
     const upsertQuery = db.prepare(
         'INSERT INTO formcloudsubmission (uuid, form_uid, xml) VALUES (?, ?, ?) ON CONFLICT(uuid) DO UPDATE SET xml = excluded.xml;',
     );
@@ -237,20 +237,22 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }) => {
 
             const results = xpath.select('/root/results', doc, true) as Node;
 
+            const data: CloudFormData[] = [];
             if (results) {
                 const insertTransaction = db.transaction((data: CloudFormData[]) => {
                     for (const { uuid, form_id, xml } of data) {
                         upsertQuery.run([uuid, form_id, xml]);
                     }
+                    setStatus(`Inserted: ${count} (count)`);
                 });
 
                 log.debug('Got results from server');
                 const children = results.childNodes;
-                const data: CloudFormData[] = [];
+
                 for (let i = 0; i < children.length; i++) {
                     const child = children[i];
                     if (child.nodeType === 1) {
-                        log.debug('Handling child with nodeName: ' + child.nodeName);
+                        // log.debug('Handling child with nodeName: ' + child.nodeName);
                         const meta = xpath.select('meta', child, true) as Node;
                         if (meta) {
                             const meta_children = meta.childNodes;
@@ -261,7 +263,6 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }) => {
                                     const form_id = child.nodeName;
                                     const xml = child.toString();
                                     log.debug('Upserting form submission with UUID: ' + uuid);
-                                    setStatus('received: ' + uuid);
                                     data.push(<CloudFormData>{ uuid, form_id, xml });
                                 }
                             }
@@ -270,9 +271,9 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }) => {
                 }
                 if (data.length) {
                     insertTransaction(data);
-                    Toast(`${form?.name} form sync SUCCESS`);
+                    Toast(`${data.length} data inserted`, 'info', 2000);
                 } else {
-                    Toast(`${form?.name} No new data to sync`, 'info', 5000);
+                    // Toast(`${form?.name} No new data to sync`, 'info', 5000);
                     // Toast(`No new data to sync`, 'info');
                 }
             } else {
@@ -281,7 +282,13 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }) => {
             }
             const next = xpath.select('/root/next', doc, true) as Node;
             if (next && next.textContent != 'None') {
-                await insertCloudSubmission(db, next.textContent as string, form);
+                await insertCloudSubmission(db, next.textContent as string, form, count + data.length);
+            } else {
+                if (data.length) {
+                    Toast(`${form?.name} form sync SUCCESS`);
+                } else {
+                    Toast(`${form?.name} No new data to sync`, 'info', 5000);
+                }
             }
         })
         .catch((error) => {
@@ -302,7 +309,7 @@ export const getFormCloudSubmissions = async (db) => {
              limit 1;`,
         )
         .get();
-    const ITEM_PER_PAGE = 100;
+    const ITEM_PER_PAGE = 500;
     let syncUrlQuery = `&start=0&limit=${ITEM_PER_PAGE}`;
     let timeQuery = '';
     if (lastSync) {

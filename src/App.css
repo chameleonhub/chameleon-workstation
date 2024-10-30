@@ -33,3 +33,30 @@ body {
 .datepicker {
     z-index: 2000 !important;
 }
+
+.footer-container {
+    display: flex;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.footer-container :nth-child(1) {
+    flex: 1 1 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 0;
+    line-height: 1;
+    font-weight: lighter;
+}
+
+.footer-container :nth-child(n+2) {
+    flex: 0 1 auto;
+    margin-left: .5rem;
+    margin-right: .5rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
