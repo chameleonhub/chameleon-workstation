@@ -1,31 +1,28 @@
-// import React from 'react';
-import ReactDOM from 'react-dom';
-import { Provider } from 'react-redux';
-import { ConnectedRouter } from 'connected-react-router'; // FIXME doesn't work wiht React 18
+import React from 'react';
+import { createRoot } from 'react-dom/client';
 
-import DateFnsUtils from '@date-io/date-fns';
-import { ThemeProvider } from '@material-ui/core/styles'; // FIXME doesn't work wiht React 18
-import { MuiPickersUtilsProvider } from '@material-ui/pickers'; // FIXME doesn't work wiht React 18
-import { history } from '@onaio/connected-reducer-registry'; // TODO can this be replaced?
-
-import App from './App/App.tsx';
-import { register } from './serviceWorker.ts'; // TODO can this be replaced with a module?
-import store from './store';
+import { App } from './App.tsx';
 import { theme } from './theme.ts';
+import { register } from './services/serviceWorker.ts';
+import { ThemeProvider } from '@mui/material';
 
-ReactDOM.render(
-    //   <React.StrictMode> // we should move to StrictMode when we upgrade to react v18
-    <Provider store={store}>
-        <ConnectedRouter history={history}>
+import { store } from './stores/store';
+import { Provider } from 'react-redux';
+
+import './App.css';
+import { SnackbarProvider } from 'notistack';
+
+const rootElement = document.getElementById('root') as HTMLElement;
+createRoot(rootElement).render(
+    <React.StrictMode>
+        <Provider store={store}>
             <ThemeProvider theme={theme}>
-                <MuiPickersUtilsProvider utils={DateFnsUtils}>
+                <SnackbarProvider maxSnack={5}>
                     <App />
-                </MuiPickersUtilsProvider>
+                </SnackbarProvider>
             </ThemeProvider>
-        </ConnectedRouter>
-    </Provider>,
-    //   </React.StrictMode>,
-    document.getElementById('root'),
+        </Provider>
+    </React.StrictMode>,
 );
 
 // If you want your app to work offline and load faster, you can change
