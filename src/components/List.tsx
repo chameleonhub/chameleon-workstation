@@ -1,4 +1,4 @@
-import { Tooltip, Typography } from '@mui/material';
+import { Box, TextField, Tooltip, Typography } from '@mui/material';
 import { DataGrid, GridActionsCellItem, GridColDef, GridColumnVisibilityModel, GridToolbar } from '@mui/x-data-grid';
 import PostAddIcon from '@mui/icons-material/PostAdd';
 import { useEffect, useState } from 'react';
@@ -312,29 +312,44 @@ export const List = () => {
         navigate(`/form/details/${form_uid}/${event.row.id}`);
     };
 
+    const [searchText, setSearchText] = useState('');
+
+    const filteredRows = rows.filter((row) =>
+        Object.values(row).some((value) => String(value).toLowerCase().includes(searchText.toLowerCase())),
+    );
+
     return (
         <>
             <Typography color="primary.dark" variant="h3" id="form-title" sx={{ marginBottom: '2rem' }}>
                 {form?.title}
             </Typography>
             {columns && rows && (
-                <DataGrid
-                    columns={columns}
-                    columnVisibilityModel={columnVisibility}
-                    onColumnVisibilityModelChange={(newModel) => setColumnVisibility(newModel)}
-                    rows={rows}
-                    slots={{ toolbar: GridToolbar }}
-                    initialState={{
-                        pagination: {
-                            paginationModel: {
-                                pageSize: 25,
+                <Box display="flex" flexDirection="column">
+                    <TextField
+                        sx={{ alignSelf: 'end' }}
+                        variant="filled"
+                        label="Search"
+                        onChange={(e) => setSearchText(e.target.value)}
+                        style={{ marginBottom: '.5rem' }}
+                    />
+                    <DataGrid
+                        columns={columns}
+                        columnVisibilityModel={columnVisibility}
+                        onColumnVisibilityModelChange={(newModel) => setColumnVisibility(newModel)}
+                        rows={filteredRows}
+                        slots={{ toolbar: GridToolbar }}
+                        initialState={{
+                            pagination: {
+                                paginationModel: {
+                                    pageSize: 25,
+                                },
                             },
-                        },
-                    }}
-                    logger={log}
-                    onRowClick={onRowClick}
-                    autoHeight
-                />
+                        }}
+                        logger={log}
+                        onRowClick={onRowClick}
+                        autoHeight
+                    />
+                </Box>
             )}
         </>
     );

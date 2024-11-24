@@ -1,4 +1,4 @@
-import { AppBar, IconButton, Typography } from '@mui/material';
+import { AppBar, IconButton, Tooltip, Typography } from '@mui/material';
 import React, { useEffect, useRef, useState } from 'react';
 import { NetworkIndicator } from './NetworkIndicator';
 import { ipcRenderer } from 'electron';
@@ -13,7 +13,7 @@ import {
 } from '../stores/featues/NotificationSlice.ts';
 import { useAppDispatch } from '../stores/store.ts';
 import { useSnackbar } from 'notistack';
-import { Close as CloseIcon } from '@mui/icons-material';
+import { Close as CloseIcon, Info as InfoIcon } from '@mui/icons-material';
 
 export interface FooterProps {
     lastSyncTime?: string;
@@ -21,6 +21,7 @@ export interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
     const [version, setVersion] = useState<string>('');
+    const [tooltipOpen, setTooltipOpen] = useState(false);
     // const toastOpen = useSelector(selectToastOpen);
     const toastMessage = useSelector(selectToastMessage);
     const status = useSelector(selectStatus);
@@ -57,11 +58,17 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
 
         ipcRenderer.on('sendStatus', updateStatus);
 
+        setTooltipOpen(true);
+        const tooltipTimer = setTimeout(() => {
+            setTooltipOpen(false);
+        }, 10000);
+
         return () => {
             ipcRenderer.removeListener('sendStatus', updateStatus);
             ipcRenderer.removeListener('sendMsg', updateMessage);
 
             if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+            clearTimeout(tooltipTimer);
         };
     }, []);
 
@@ -117,9 +124,25 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
                 <Typography variant="caption" className="px-2" gutterBottom>
                     {status}
                 </Typography>
-                <Typography sx={{ marginLeft: 3 }}>Last sync: {lastSyncTime}</Typography>
-                <Typography>{`App version ${version}`}</Typography>
+                <Typography sx={{ marginLeft: 3, display: 'flex', alignItems: 'center' }}>
+                    Last sync: {lastSyncTime}
+                </Typography>
+                <Typography sx={{ display: 'flex', alignItems: 'center' }}>{`App version ${version}`}</Typography>
                 <NetworkIndicator />
+                <Tooltip
+                    title={
+                        <h1 style={{ fontSize: '1rem' }}>
+                            In this version, previous data is temporarily unavailable. The data is going to be available soon.
+                        </h1>
+                    }
+                    open={tooltipOpen}
+                    onClose={() => setTooltipOpen(false)}
+                    onOpen={() => setTooltipOpen(true)}
+                >
+                    <IconButton color="info">
+                        <InfoIcon />
+                    </IconButton>
+                </Tooltip>
             </AppBar>
         </>
     );

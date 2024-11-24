@@ -243,7 +243,6 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }, count
                     for (const { uuid, form_id, xml } of data) {
                         upsertQuery.run([uuid, form_id, xml]);
                     }
-                    setStatus(`Inserted: ${count} (count)`);
                 });
 
                 log.debug('Got results from server');
@@ -271,10 +270,8 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }, count
                 }
                 if (data.length) {
                     insertTransaction(data);
-                    Toast(`${data.length} data inserted`, 'info', 2000);
-                } else {
-                    // Toast(`${form?.name} No new data to sync`, 'info', 5000);
-                    // Toast(`No new data to sync`, 'info');
+                    setStatus(`Inserted: ${count + data.length} (count)`);
+                    Toast(`${form?.name} ${data.length} data inserted total (${count})`, 'info', 2000);
                 }
             } else {
                 Toast('No new data received', 'info');
@@ -283,6 +280,7 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }, count
             const next = xpath.select('/root/next', doc, true) as Node;
             if (next && next.textContent != 'None') {
                 await insertCloudSubmission(db, next.textContent as string, form, count + data.length);
+                console.log(count);
             } else {
                 if (data.length) {
                     Toast(`${form?.name} form sync SUCCESS`);

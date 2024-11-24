@@ -58,6 +58,7 @@ export const Layout: React.FC<LayoutProps> = ({ hasHeader }) => {
                     <Outlet />
                 </Box>
             </Container>
+            <Toolbar />
             <Footer lastSyncTime={lastSyncTime} />
         </>
     );

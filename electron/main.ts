@@ -253,7 +253,9 @@ const template: Electron.MenuItemConstructorOptions[] = [
                             title: 'About BAHIS',
                             message: `
                                 BAHIS
-                                Version ${APP_VERSION}
+                                Version ${APP_VERSION}.
+                                
+                                Powered By Chameleon
                                 `,
                             type: 'info',
                         });
