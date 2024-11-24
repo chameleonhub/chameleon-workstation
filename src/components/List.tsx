@@ -1,4 +1,4 @@
-import { Tooltip, Typography } from '@mui/material';
+import { Box, TextField, Tooltip, Typography } from '@mui/material';
 import { DataGrid, GridActionsCellItem, GridColDef, GridColumnVisibilityModel, GridToolbar } from '@mui/x-data-grid';
 import PostAddIcon from '@mui/icons-material/PostAdd';
 import { useEffect, useState } from 'react';
@@ -6,7 +6,7 @@ import { log } from '../helpers/log';
 import { ipcRenderer } from 'electron';
 import { useNavigate, useParams } from 'react-router-dom';
 
-const GROUPS_TO_SHOW = ['basic_info'];
+// const GROUPS_TO_SHOW = ['basic_info'];
 const FIELDS_TO_HIDE = ['division', 'district', 'upazila']; // FIXME move out to some sort of config}
 
 interface Workflow {
@@ -109,7 +109,7 @@ const mapWorkflow = (workflow: Workflow, row) => {
 };
 
 const parseSubmissionsAsRows = (submission) => {
-    log.info('Parsing form data submissions as datagrid rows');
+    // log.info('Parsing form data submissions as datagrid rows');
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(submission.xml, 'application/xml');
 
@@ -133,9 +133,10 @@ const parseSubmissionsAsRows = (submission) => {
     const row = {};
     fields
         .filter((element) => {
-            const parent_name = element.parentElement?.nodeName || '';
+            // const parent_name = element.parentElement?.nodeName || '';
             const name = element.nodeName || '';
-            if (GROUPS_TO_SHOW.includes(parent_name) && !FIELDS_TO_HIDE.includes(name)) {
+            // if (GROUPS_TO_SHOW.includes(parent_name) && !FIELDS_TO_HIDE.includes(name)) {
+            if (!FIELDS_TO_HIDE.includes(name)) {
                 return true;
             } else {
                 return false;
@@ -160,7 +161,12 @@ const parseSubmissionsAsRows = (submission) => {
         });
 
     row['id'] = submission.uuid;
-    row['submission_date'] = new Date(xmlDoc.documentElement.getElementsByTagName('end')[0].textContent as string);
+    const subDate = xmlDoc.documentElement.getElementsByTagName('start');
+    if (!subDate || subDate.length <= 0) {
+        row['submission_date'] = new Date('2020-01-28T20:05:00');
+    } else {
+        row['submission_date'] = new Date(xmlDoc.documentElement.getElementsByTagName('start')[0].textContent as string);
+    }
     row['raw_xml'] = submission.xml;
     return row;
 };
@@ -175,12 +181,7 @@ export const List = () => {
     const { form_uid } = useParams();
     const navigate = useNavigate();
 
-    useEffect(() => {
-        log.debug('mounted');
-        return () => {
-            log.debug('unmounted');
-        };
-    });
+    const titleCase = (s) => s.replace(/^_*(.)|_+(.)/g, (_s, c, d) => (c ? c.toUpperCase() : ' ' + d.toUpperCase()));
 
     // read form definition
     useEffect(() => {
@@ -204,7 +205,6 @@ export const List = () => {
             log.info('Parsing form definition as datagrid columns');
 
             const form = xmlDoc.body.children;
-
             const recurseXML = (collection: HTMLCollection, fields: Element[]) => {
                 for (const element of collection) {
                     if (element.nodeName === 'group' || element.nodeName === 'repeat') {
@@ -224,11 +224,7 @@ export const List = () => {
                 const ref = element.getAttribute('ref');
                 const parent_name = ref?.split('/')[2] || '';
                 const name = ref?.split('/')[3] || '';
-                if (GROUPS_TO_SHOW.includes(parent_name) && !FIELDS_TO_HIDE.includes(name)) {
-                    columnVisibilityInitial[`${parent_name}_${name}`] = true;
-                } else {
-                    columnVisibilityInitial[`${parent_name}_${name}`] = false;
-                }
+                columnVisibilityInitial[`${parent_name}_${name}`] = !FIELDS_TO_HIDE.includes(name);
             });
 
             // Map fields to column definition objects
@@ -236,18 +232,18 @@ export const List = () => {
                 const ref = element.getAttribute('ref');
                 const parent_name = ref?.split('/')[2] || '';
                 const name = ref?.split('/')[3] || '';
-                const headerName = element.getElementsByTagName('label')[0].textContent;
+                // const headerName = element.getElementsByTagName('label')[0].textContent;
                 if (name.toLowerCase().includes('date')) {
                     return {
                         field: `${parent_name}_${name}`,
-                        headerName: headerName || name,
+                        headerName: titleCase(name),
                         type: 'date',
                         width: 100,
                     };
                 } else {
                     return {
                         field: `${parent_name}_${name}`,
-                        headerName: headerName || name,
+                        headerName: titleCase(name),
                         width: 200,
                     };
                 }
@@ -272,6 +268,7 @@ export const List = () => {
                         return workflows.map((workflow) => {
                             return (
                                 <GridActionsCellItem
+                                    key={workflow.title}
                                     label={workflow.title}
                                     icon={<Tooltip title={workflow.title}>{<PostAddIcon />}</Tooltip>}
                                     onClick={() => {
@@ -304,6 +301,7 @@ export const List = () => {
                     setRows(jsonData);
                 })
                 .catch((error) => {
+                    console.error(error);
                     log.error(`Error reading form data: ${error}`);
                 });
         }
@@ -314,22 +312,44 @@ export const List = () => {
         navigate(`/form/details/${form_uid}/${event.row.id}`);
     };
 
+    const [searchText, setSearchText] = useState('');
+
+    const filteredRows = rows.filter((row) =>
+        Object.values(row).some((value) => String(value).toLowerCase().includes(searchText.toLowerCase())),
+    );
+
     return (
         <>
             <Typography color="primary.dark" variant="h3" id="form-title" sx={{ marginBottom: '2rem' }}>
                 {form?.title}
             </Typography>
             {columns && rows && (
-                <DataGrid
-                    columns={columns}
-                    columnVisibilityModel={columnVisibility}
-                    onColumnVisibilityModelChange={(newModel) => setColumnVisibility(newModel)}
-                    rows={rows}
-                    slots={{ toolbar: GridToolbar }}
-                    logger={log}
-                    onRowClick={onRowClick}
-                    autoHeight
-                />
+                <Box display="flex" flexDirection="column">
+                    <TextField
+                        sx={{ alignSelf: 'end' }}
+                        variant="filled"
+                        label="Search"
+                        onChange={(e) => setSearchText(e.target.value)}
+                        style={{ marginBottom: '.5rem' }}
+                    />
+                    <DataGrid
+                        columns={columns}
+                        columnVisibilityModel={columnVisibility}
+                        onColumnVisibilityModelChange={(newModel) => setColumnVisibility(newModel)}
+                        rows={filteredRows}
+                        slots={{ toolbar: GridToolbar }}
+                        initialState={{
+                            pagination: {
+                                paginationModel: {
+                                    pageSize: 25,
+                                },
+                            },
+                        }}
+                        logger={log}
+                        onRowClick={onRowClick}
+                        autoHeight
+                    />
+                </Box>
             )}
         </>
     );

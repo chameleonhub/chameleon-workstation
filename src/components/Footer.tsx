@@ -1,5 +1,5 @@
-import { AppBar, IconButton, Typography } from '@mui/material';
-import React, { useEffect, useState } from 'react';
+import { AppBar, IconButton, Tooltip, Typography } from '@mui/material';
+import React, { useEffect, useRef, useState } from 'react';
 import { NetworkIndicator } from './NetworkIndicator';
 import { ipcRenderer } from 'electron';
 import { ToastMessageType } from '../../electron/bahis.model.ts';
@@ -13,7 +13,7 @@ import {
 } from '../stores/featues/NotificationSlice.ts';
 import { useAppDispatch } from '../stores/store.ts';
 import { useSnackbar } from 'notistack';
-import { Close as CloseIcon } from '@mui/icons-material';
+import { Close as CloseIcon, Info as InfoIcon } from '@mui/icons-material';
 
 export interface FooterProps {
     lastSyncTime?: string;
@@ -21,6 +21,7 @@ export interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
     const [version, setVersion] = useState<string>('');
+    const [tooltipOpen, setTooltipOpen] = useState(false);
     // const toastOpen = useSelector(selectToastOpen);
     const toastMessage = useSelector(selectToastMessage);
     const status = useSelector(selectStatus);
@@ -29,6 +30,7 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
     const dispatch = useAppDispatch();
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
+    const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
     useEffect(() => {
         ipcRenderer
             .invoke('read-app-version')
@@ -39,14 +41,35 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
                 console.error('Error reading app version:', error);
             });
 
-        ipcRenderer.on('sendMsg', (_evt, msg: ToastMessageType) => {
+        const updateMessage = (_evt, msg: ToastMessageType) => {
             dispatch(setToastMessage(msg));
             dispatch(setToastOpen(true));
-        });
+        };
+        ipcRenderer.on('sendMsg', updateMessage);
 
-        ipcRenderer.on('sendStatus', (_evt, msg: string) => {
-            dispatch(setStatus(msg));
-        });
+        const updateStatus = (_event, msg: string) => {
+            if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+            debounceTimeout.current = setTimeout(() => {
+                if (msg !== status) {
+                    dispatch(setStatus(msg));
+                }
+            }, 1);
+        };
+
+        ipcRenderer.on('sendStatus', updateStatus);
+
+        setTooltipOpen(true);
+        const tooltipTimer = setTimeout(() => {
+            setTooltipOpen(false);
+        }, 10000);
+
+        return () => {
+            ipcRenderer.removeListener('sendStatus', updateStatus);
+            ipcRenderer.removeListener('sendMsg', updateMessage);
+
+            if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+            clearTimeout(tooltipTimer);
+        };
     }, []);
 
     useEffect(() => {
@@ -55,8 +78,11 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
         setTimeOutId(
             setTimeout(() => {
                 dispatch(setStatus('Ready'));
-            }, 10000),
+            }, 15000),
         );
+        return () => {
+            timeOutId && clearTimeout(timeOutId);
+        };
     }, [status]);
 
     useEffect(() => {
@@ -66,6 +92,7 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
                 variant: toastMessage.type || 'success',
                 action: action,
                 preventDuplicate: true,
+                ...toastMessage.options,
             });
         }
     }, [toastMessage]);
@@ -89,26 +116,33 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
 
     return (
         <>
-            <AppBar position="fixed" sx={{ top: 'auto', bottom: 0, justifyContent: 'space-evenly', flexDirection: 'row' }}>
-                <Typography
-                    variant="caption"
-                    className="px-2"
-                    gutterBottom
-                    sx={{
-                        display: 'block',
-                        height: '1rem',
-                        textOverflow: 'ellipsis',
-                        maxWidth: '120px',
-                        alignSelf: 'center',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                    }}
-                >
+            <AppBar
+                className="footer-container"
+                position="fixed"
+                sx={{ top: 'auto', bottom: 0, justifyContent: 'space-evenly', flexDirection: 'row' }}
+            >
+                <Typography variant="caption" className="px-2" gutterBottom>
                     {status}
                 </Typography>
-                <Typography sx={{ marginLeft: 3 }}>Last sync: {lastSyncTime}</Typography>
-                <Typography>{`App version ${version}`}</Typography>
+                <Typography sx={{ marginLeft: 3, display: 'flex', alignItems: 'center' }}>
+                    Last sync: {lastSyncTime}
+                </Typography>
+                <Typography sx={{ display: 'flex', alignItems: 'center' }}>{`App version ${version}`}</Typography>
                 <NetworkIndicator />
+                <Tooltip
+                    title={
+                        <h1 style={{ fontSize: '1rem' }}>
+                            In this version, previous data is temporarily unavailable. The data is going to be available soon.
+                        </h1>
+                    }
+                    open={tooltipOpen}
+                    onClose={() => setTooltipOpen(false)}
+                    onOpen={() => setTooltipOpen(true)}
+                >
+                    <IconButton color="info">
+                        <InfoIcon />
+                    </IconButton>
+                </Tooltip>
             </AppBar>
         </>
     );

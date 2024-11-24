@@ -49,14 +49,16 @@ export const Layout: React.FC<LayoutProps> = ({ hasHeader }) => {
             <SystemAlerts />
             <Container
                 sx={{
-                    padding: '1.5rem 1rem 1rem 1rem',
+                    padding: '1.5rem 1rem 2.5rem 1rem',
                 }}
             >
-                <Toolbar />
+                {hasHeader && <Toolbar />}
+
                 <Box sx={{ marginTop: '1.5rem' }}>
                     <Outlet />
                 </Box>
             </Container>
+            <Toolbar />
             <Footer lastSyncTime={lastSyncTime} />
         </>
     );

@@ -71,6 +71,10 @@ export const getModules = async (db) => {
                     'INSERT INTO module (id, title, icon, description, form, external_url, sort_order, parent_module, module_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET title = excluded.title, icon = excluded.icon, description = excluded.description, form = excluded.form, external_url = excluded.external_url, sort_order = excluded.sort_order, parent_module = excluded.parent_module, module_type = excluded.module_type;',
                 );
                 const deleteQuery = db.prepare('DELETE FROM module WHERE id = ?');
+                // const moduleIds = response.data.map(({ id }) => id);
+                // BrowserLog(moduleIds);
+
+                db.prepare('DELETE FROM module').run();
 
                 for (const module of response.data) {
                     if (module.is_active) {
@@ -90,9 +94,9 @@ export const getModules = async (db) => {
                         deleteQuery.run([module.id]);
                     }
                 }
+                Toast('GET Module Definitions SUCCESS');
+                log.info('GET Module Definitions SUCCESS');
             }
-            Toast('GET Module Definitions SUCCESS');
-            log.info('GET Module Definitions SUCCESS');
         })
         .catch((error) => {
             Toast('GET Module Definitions FAILED', 'error');
@@ -117,6 +121,8 @@ export const getWorkflows = async (db) => {
                     'INSERT INTO workflow (id, title, source_form, destination_form, definition) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET title = excluded.title, definition = excluded.definition;',
                 );
                 const deleteQuery = db.prepare('DELETE FROM workflow WHERE id = ?');
+
+                db.prepare('DELETE FROM workflow').run();
 
                 for (const workflow of response.data) {
                     if (workflow.is_active) {
@@ -150,7 +156,7 @@ export const getForms = async (db) => {
 
     const kcUrl = new URL(BAHIS_KOBOTOOLBOX_KC_API_URL);
     const formListUrl = kcUrl.origin + '/formList';
-    log.info('GET Form UIDs from KoboToolbox');
+    log.info('GET Form UIDs from KoboToolbox', formListUrl);
 
     const formList: Form[] | unknown = await auth
         .get(formListUrl)
@@ -182,10 +188,11 @@ export const getForms = async (db) => {
             });
         })
         .then((forms) => {
+            db.prepare('DELETE FROM form').run();
             return forms;
         })
         .catch((error) => {
-            Toast('GET Form Definitions FAILED', 'error');
+            Toast('GET form list FAILED', 'error');
             log.error('GET KoboToolbox Form Definitions FAILED with:');
             log.error(error);
         });
@@ -194,30 +201,35 @@ export const getForms = async (db) => {
         'INSERT INTO form (uid, name, description, xml) VALUES (?, ?, ?, ?) ON CONFLICT(uid) DO UPDATE SET xml = excluded.xml;',
     );
 
-    for (const form of formList as Form[]) {
-        log.info(`GET form ${form.uid} from KoboToolbox`);
-        log.debug(form.xml_url);
-        auth.get(form.xml_url)
-            .then((response) => {
-                const deployment = response.data;
-                upsertQuery.run([form.uid, form.name, form.description, deployment]);
-                log.info(`GET form ${form.uid} SUCCESS`);
-            })
-            .catch((error) => {
-                Toast('GET Form Definitions FAILED', 'error');
-                log.error('GET KoboToolbox Form Definitions FAILED with:');
-                log.error(error);
-            });
+    if (formList) {
+        for (const form of formList as Form[]) {
+            log.info(`GET form ${form.uid} from KoboToolbox`);
+            log.debug(form.xml_url);
+            auth.get(form.xml_url)
+                .then((response) => {
+                    const deployment = response.data;
+                    upsertQuery.run([form.uid, form.name, form.description, deployment]);
+                    log.info(`GET form ${form.uid} SUCCESS`);
+                    setStatus(form.name + ' updated');
+                })
+                .catch((error) => {
+                    Toast('GET Form Definitions FAILED', 'error');
+                    log.error('GET KoboToolbox Form Definitions FAILED with:');
+                    log.error(error);
+                });
+        }
+        Toast('Get Form Definitions SUCCESS');
+        log.info(`GET KoboToolbox Form Definitions SUCCESS`);
+    } else {
+        Toast('No forms assigned', 'warning');
     }
-    Toast('Get Form Definitions SUCCESS');
-    log.info(`GET KoboToolbox Form Definitions SUCCESS`);
 };
 
-const insertCloudSubmission = async (db, url: string, form = { name: '' }) => {
+const insertCloudSubmission = async (db, url: string, form = { name: '' }, count = 0) => {
     const upsertQuery = db.prepare(
         'INSERT INTO formcloudsubmission (uuid, form_uid, xml) VALUES (?, ?, ?) ON CONFLICT(uuid) DO UPDATE SET xml = excluded.xml;',
     );
-
+    console.log(`get cloud data from: ${url}`);
     await auth
         .get(url)
         .then(async (response) => {
@@ -225,6 +237,7 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }) => {
 
             const results = xpath.select('/root/results', doc, true) as Node;
 
+            const data: CloudFormData[] = [];
             if (results) {
                 const insertTransaction = db.transaction((data: CloudFormData[]) => {
                     for (const { uuid, form_id, xml } of data) {
@@ -234,11 +247,11 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }) => {
 
                 log.debug('Got results from server');
                 const children = results.childNodes;
-                const data: CloudFormData[] = [];
+
                 for (let i = 0; i < children.length; i++) {
                     const child = children[i];
                     if (child.nodeType === 1) {
-                        log.debug('Handling child with nodeName: ' + child.nodeName);
+                        // log.debug('Handling child with nodeName: ' + child.nodeName);
                         const meta = xpath.select('meta', child, true) as Node;
                         if (meta) {
                             const meta_children = meta.childNodes;
@@ -249,7 +262,6 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }) => {
                                     const form_id = child.nodeName;
                                     const xml = child.toString();
                                     log.debug('Upserting form submission with UUID: ' + uuid);
-                                    setStatus(uuid as string);
                                     data.push(<CloudFormData>{ uuid, form_id, xml });
                                 }
                             }
@@ -258,9 +270,8 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }) => {
                 }
                 if (data.length) {
                     insertTransaction(data);
-                    Toast(`${form?.name} form sync SUCCESS`);
-                } else {
-                    Toast('No new data to sync', 'info');
+                    setStatus(`Inserted: ${count + data.length} (count)`);
+                    Toast(`${form?.name} ${data.length} data inserted total (${count})`, 'info', 2000);
                 }
             } else {
                 Toast('No new data received', 'info');
@@ -268,7 +279,14 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }) => {
             }
             const next = xpath.select('/root/next', doc, true) as Node;
             if (next && next.textContent != 'None') {
-                await insertCloudSubmission(db, next.textContent as string, form);
+                await insertCloudSubmission(db, next.textContent as string, form, count + data.length);
+                console.log(count);
+            } else {
+                if (data.length) {
+                    Toast(`${form?.name} form sync SUCCESS`);
+                } else {
+                    Toast(`${form?.name} No new data to sync`, 'info', 5000);
+                }
             }
         })
         .catch((error) => {
@@ -289,7 +307,7 @@ export const getFormCloudSubmissions = async (db) => {
              limit 1;`,
         )
         .get();
-    const ITEM_PER_PAGE = 100;
+    const ITEM_PER_PAGE = 500;
     let syncUrlQuery = `&start=0&limit=${ITEM_PER_PAGE}`;
     let timeQuery = '';
     if (lastSync) {
@@ -393,6 +411,7 @@ export const getTaxonomies = async (db) => {
                         rmSync(`${uPath}/${taxonomy.csv_file_stub}`);
                     }
                     writeFileSync(`${uPath}/${taxonomy.csv_file_stub}`, response.data, 'utf-8');
+                    setStatus(taxonomy.csv_file_stub + ' updated');
                 } catch (error) {
                     log.error('GET Taxonomy CSV FAILED while saving with:');
                     log.error(error);
@@ -427,12 +446,14 @@ export const getAdministrativeRegions = async (db) => {
 
                 for (const administrativeregionlevel of response.data) {
                     upsertQuery.run([administrativeregionlevel.id, administrativeregionlevel.title]);
+                    setStatus(administrativeregionlevel.title + ' Admin level updated');
                 }
             }
             log.info('GET getAdministrativeRegionLevels Definitions SUCCESS');
         })
         .catch((error) => {
             log.error('GET getAdministrativeRegionLevels Definitions FAILED with:');
+            Toast('GET getAdministrativeRegionLevels Definitions FAILED', 'error');
             log.error(error);
         });
 
@@ -462,6 +483,7 @@ export const getAdministrativeRegions = async (db) => {
                         administrativeregion.parent_administrative_region,
                         administrativeregion.administrative_region_level,
                     ]);
+                    setStatus('Admin update ' + administrativeregion.title);
                 }
             }
             log.info('GET getAdministrativeRegions Definitions SUCCESS');
