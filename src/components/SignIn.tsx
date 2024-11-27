@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { log } from '../helpers/log';
 import { ipcRenderer } from 'electron';
 import { AlertContent } from './SystemAlerts';
+import { grey } from '@mui/material/colors';
 
 interface userData {
     username: string;
@@ -212,7 +213,7 @@ export const SignIn = () => {
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        backgroundColor: 'primary.light',
+                        backgroundColor: grey[200],
                         px: '1.5rem',
                         py: '2rem',
                         borderRadius: '0.5rem',
@@ -221,6 +222,10 @@ export const SignIn = () => {
                     <Avatar variant="square" src="/icon.png" sx={{ width: 50, height: 50, margin: 1 }} />
                     <Box component="form" noValidate onSubmit={onSubmit} sx={{ marginTop: 1 }}>
                         <TextField
+                            sx={{
+                                backgroundColor: 'white',
+                            }}
+                            variant="outlined"
                             margin="normal"
                             required
                             fullWidth
@@ -231,6 +236,10 @@ export const SignIn = () => {
                             autoFocus
                         />
                         <TextField
+                            sx={{
+                                backgroundColor: 'white',
+                            }}
+                            variant="outlined"
                             margin="normal"
                             required
                             fullWidth

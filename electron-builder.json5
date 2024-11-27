@@ -1,33 +1,45 @@
 {
-    $schema: 'https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json',
-    appId: 'com.dls.bahisdev',
-    productName: 'BAHIS Dev',
-    executableName: 'bahisdev',
-    asar: true,
-    directories: {
-        output: 'release/${version}',
-        buildResources: 'public',
-    },
-    files: ['dist-electron', 'dist'],
-    extraFiles: ['node_modules/better-sqlite3/build/Release/better_sqlite3.node'],
-    win: {
-        target: [
-            {
-                target: 'nsis',
-                arch: ['x64'],
-            },
-        ],
-        icon: './public/icon.png',
-        artifactName: '${productName}_${version}.${ext}',
-    },
-    nsis: {
-        oneClick: false,
-        perMachine: true,
-        allowElevation: true,
-        allowToChangeInstallationDirectory: true,
-        createDesktopShortcut: 'always',
-        menuCategory: 'bahis',
-        deleteAppDataOnUninstall: false,
-        shortcutName: 'BAHIS Dev ${version}',
-    },
+  $schema: 'https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json',
+  appId: 'com.github.chameleonhub.chameleon',
+  publish: {
+    "provider": "github",
+    "owner": "chameleonhub",
+    "repo": "chameleon-workstation"
+  },
+  productName: 'BAHIS',
+  executableName: 'bahis',
+  asar: true,
+  directories: {
+    output: 'release/${version}',
+    buildResources: 'public'
+  },
+  files: [
+    'dist-electron',
+    'dist'
+  ],
+  extraFiles: [
+    'node_modules/better-sqlite3/build/Release/better_sqlite3.node'
+  ],
+  win: {
+    target: [
+      {
+        target: 'nsis',
+        arch: [
+          'x64'
+        ]
+      }
+    ],
+    icon: './public/icon.png',
+    artifactName: '${productName}_${version}.${ext}'
+  },
+  nsis: {
+    oneClick: false,
+    perMachine: true,
+    allowElevation: true,
+    allowToChangeInstallationDirectory: true,
+    createDesktopShortcut: 'always',
+    menuCategory: 'bahis',
+    deleteAppDataOnUninstall: false,
+    shortcutName: 'BAHIS ${version}',
+  }
 }

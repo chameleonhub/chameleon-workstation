@@ -12,6 +12,7 @@ import {
     Badge,
     Box,
     Button,
+    ButtonProps,
     CircularProgress,
     Dialog,
     DialogActions,
@@ -23,6 +24,7 @@ import {
     MenuItem,
     Paper,
     Snackbar,
+    styled,
     Table,
     TableBody,
     TableCell,
@@ -187,7 +189,7 @@ export const Header = () => {
     };
 
     const getButtonColor = () => {
-        return draftCount === 0 ? 'info' : 'secondary';
+        return draftCount === 0 ? 'accent' : 'error';
     };
 
     const Toast = () => (
@@ -214,19 +216,24 @@ export const Header = () => {
                         </Typography>
                     </Box>
                     <Box>
-                        <Button color="inherit" onClick={onHomeHandler} startIcon={<HomeIcon />}>
+                        <HeaderTextButton color="inherit" onClick={onHomeHandler} startIcon={<HomeIcon />}>
                             Home
-                        </Button>
-                        <Button color="inherit" onClick={handleUpdateAppData} startIcon={<UpdateIcon />}>
+                        </HeaderTextButton>
+                        <HeaderTextButton
+                            textTransform="capitalize"
+                            color="inherit"
+                            onClick={handleUpdateAppData}
+                            startIcon={<UpdateIcon />}
+                        >
                             Update Modules
-                        </Button>
+                        </HeaderTextButton>
                     </Box>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Badge badgeContent={draftCount} color="warning">
                         <Button
                             variant="contained"
-                            color="info"
+                            color="accent"
                             onClick={() => navigate('list/drafts')}
                             disabled={isWaitingForDataSync}
                         >
@@ -246,9 +253,9 @@ export const Header = () => {
                     </Button>
                 </Box>
                 <Box sx={{ display: 'flex' }}>
-                    <Button color="inherit" onClick={onBackHandler} startIcon={<ArrowBackIcon />}>
+                    <HeaderTextButton color="inherit" onClick={onBackHandler} startIcon={<ArrowBackIcon />}>
                         Back
-                    </Button>
+                    </HeaderTextButton>
                     <div>
                         <Box sx={{ cursor: 'pointer' }} onClick={handleMenu}>
                             <IconButton
@@ -289,3 +296,18 @@ export const Header = () => {
         </AppBar>
     );
 };
+
+interface HeaderTextButtonProps extends ButtonProps {
+    textTransform?: 'none' | 'uppercase' | 'capitalize';
+}
+
+const HeaderTextButton = styled(Button, { shouldForwardProp: (prop) => prop != 'textTransform' })<HeaderTextButtonProps>(
+    ({ theme, textTransform = 'uppercase' }) => ({
+        textTransform: textTransform,
+        color: 'inherit',
+        '&:hover': {
+            color: theme.palette.primary.dark,
+            backgroundColor: theme.palette.primary.light,
+        },
+    }),
+);

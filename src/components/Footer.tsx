@@ -119,7 +119,7 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
             <AppBar
                 className="footer-container"
                 position="fixed"
-                sx={{ top: 'auto', bottom: 0, justifyContent: 'space-evenly', flexDirection: 'row' }}
+                sx={{ top: 'auto', bottom: 0, justifyContent: 'space-evenly', flexDirection: 'row', zIndex: 0 }}
             >
                 <Typography variant="caption" className="px-2" gutterBottom>
                     {status}
@@ -139,7 +139,7 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
                     onClose={() => setTooltipOpen(false)}
                     onOpen={() => setTooltipOpen(true)}
                 >
-                    <IconButton color="info">
+                    <IconButton color="accent" sx={{ color: 'white' }}>
                         <InfoIcon />
                     </IconButton>
                 </Tooltip>

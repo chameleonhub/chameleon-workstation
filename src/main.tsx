@@ -9,7 +9,7 @@ import { ThemeProvider } from '@mui/material';
 import { store } from './stores/store';
 import { Provider } from 'react-redux';
 
-import './App.css';
+import './App.scss';
 import { SnackbarProvider } from 'notistack';
 
 const rootElement = document.getElementById('root') as HTMLElement;

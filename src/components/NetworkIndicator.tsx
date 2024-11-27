@@ -33,7 +33,7 @@ export const NetworkIndicator = () => {
             {online ? (
                 <Tooltip title="Good network connection">
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <SignalCellular4BarIcon color="success" />
+                        <SignalCellular4BarIcon />
                         <Typography sx={{ paddingLeft: '.30rem' }}>Good connection</Typography>
                     </Box>
                 </Tooltip>
