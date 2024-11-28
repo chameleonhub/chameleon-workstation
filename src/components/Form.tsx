@@ -4,7 +4,7 @@ import { log } from '../helpers/log';
 import { ipcRenderer } from 'electron';
 import { EnketoForm } from './EnketoForm';
 import { Footer } from './EnketoFooter';
-import { Loading } from './Loading';
+import { LoadingSpinner } from './LoadingSpinner.tsx';
 
 const readFormData = async (tableName: string, form_uid: string, instance_id?: string) => {
     log.info(`reading data from ${tableName} table...`);
@@ -314,7 +314,7 @@ export const Form: React.FC<FormProps> = ({ draft }: FormProps) => {
             {form_uid && prefilledFormXML && isDeskUserReplaced && isDeskTaxonomyInserted && isPrefilled ? (
                 <EnketoForm formUID={form_uid} formODKXML={prefilledFormXML} instanceID={instance_id} editable={editable} />
             ) : (
-                <Loading />
+                <LoadingSpinner />
             )}
             <Footer />
         </>

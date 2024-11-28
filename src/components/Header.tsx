@@ -7,13 +7,11 @@ import {
     Update as UpdateIcon,
 } from '@mui/icons-material';
 import {
-    Alert,
     AppBar,
     Badge,
     Box,
     Button,
     ButtonProps,
-    CircularProgress,
     Dialog,
     DialogActions,
     DialogContent,
@@ -23,7 +21,6 @@ import {
     Menu,
     MenuItem,
     Paper,
-    Snackbar,
     styled,
     Table,
     TableBody,
@@ -43,9 +40,11 @@ import { useAppDispatch } from '../stores/store.ts';
 import { User } from '../app.model.ts';
 import { OpenToast } from '../stores/featues/NotificationSlice.ts';
 import logoWhite from '../assets/logo-white.png';
+import { LoadingSpinner } from './LoadingSpinner.tsx';
 
 export const Header = () => {
     const [isWaitingForDataSync, setWaitingForDataSync] = useState(false);
+    const [loadingMessage, setLoadingMessage] = useState('');
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [dialogEl, setDialogEl] = useState<ReactElement[]>([]);
     const [user, setUser] = useState<User>({});
@@ -139,11 +138,8 @@ export const Header = () => {
         dispatch(fetchDraftCount());
     }, [isWaitingForDataSync]);
 
-    const handleClose = () => {
-        setWaitingForDataSync(false);
-    };
-
     const handleDraftSync = async () => {
+        setLoadingMessage('Synchronizing data');
         setWaitingForDataSync(true);
 
         await ipcRenderer
@@ -164,6 +160,7 @@ export const Header = () => {
     };
 
     const handleUpdateAppData = () => {
+        setLoadingMessage('Updating modules');
         setWaitingForDataSync(true);
         ipcRenderer
             .invoke('request-app-data-sync')
@@ -192,17 +189,9 @@ export const Header = () => {
         return draftCount === 0 ? 'accent' : 'error';
     };
 
-    const Toast = () => (
-        <Snackbar open={isWaitingForDataSync} anchorOrigin={{ vertical: 'top', horizontal: 'center' }} key={'topcenter'}>
-            <Alert severity="info" onClose={handleClose} icon={false}>
-                <CircularProgress size={'1rem'} /> Synchronising data.
-            </Alert>
-        </Snackbar>
-    );
-
     return (
         <AppBar position="fixed">
-            {isWaitingForDataSync && <Toast />}
+            {isWaitingForDataSync && <LoadingSpinner loadingText={loadingMessage} zHeight={5000} />}
             <Toolbar sx={{ justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Box className="cursor-pointer" display="flex" onClick={onHomeHandler}>

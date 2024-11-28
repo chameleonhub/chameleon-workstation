@@ -57,5 +57,9 @@ export const theme = createTheme({
             dark: accent_dark,
             contrastText: 'white',
         },
+        text: {
+            primary: primary_main,
+            secondary: secondary_main,
+        },
     },
 });
