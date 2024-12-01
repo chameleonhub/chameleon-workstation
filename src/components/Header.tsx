@@ -39,7 +39,7 @@ import { fetchDraftCount, selectDraftCount } from '../stores/featues/draftCounte
 import { useAppDispatch } from '../stores/store.ts';
 import { User } from '../app.model.ts';
 import { OpenToast } from '../stores/featues/NotificationSlice.ts';
-import bahisWhite from '../assets/bahis_white.png';
+import bahisWhite from '../assets/images/bahis_white.png';
 import { LoadingSpinner } from './LoadingSpinner.tsx';
 
 export const Header = () => {

@@ -1,8 +1,47 @@
-@use 'assets/theme-kobo' as *;
+@use 'assets/styles/theme-kobo' as *;
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* fallback */
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  src: url(assets/fonts/materialIcons-webfont.woff2) format('woff2');
+}
+
+@font-face {
+  font-family: 'OpenSans';
+  src: url('assets/fonts/OpenSans-Regular-webfont.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'OpenSans';
+  src: url('assets/fonts/OpenSans-Bold-webfont.woff') format('woff');
+  font-weight: bold;
+  font-style: normal;
+}
+
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
 
 html {
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);

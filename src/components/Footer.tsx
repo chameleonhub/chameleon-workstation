@@ -14,7 +14,7 @@ import {
 import { useAppDispatch } from '../stores/store.ts';
 import { useSnackbar } from 'notistack';
 import { Close as CloseIcon, Info as InfoIcon } from '@mui/icons-material';
-import chameleonLogo from '../assets/chameleon_white.png';
+import chameleonLogo from '../assets/images/chameleon_white.png';
 
 export interface FooterProps {
     lastSyncTime?: string;

@@ -17,6 +17,7 @@ import { log } from '../helpers/log';
 import { ipcRenderer } from 'electron';
 import { AlertContent } from './SystemAlerts';
 import { grey } from '@mui/material/colors';
+import bahisLogo from '../assets/images/bahis_logo.png'
 
 interface userData {
     username: string;
@@ -219,7 +220,7 @@ export const SignIn = () => {
                         borderRadius: '0.5rem',
                     }}
                 >
-                    <Avatar variant="square" src="/icon.png" sx={{ width: 'auto', height: 50, margin: 1 }} />
+                    <Avatar variant="square" src={bahisLogo} sx={{ width: 'auto', height: 50, margin: 1 }} />
                     <Box component="form" noValidate onSubmit={onSubmit} sx={{ marginTop: 1 }}>
                         <TextField
                             sx={{
