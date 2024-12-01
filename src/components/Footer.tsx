@@ -1,4 +1,4 @@
-import { AppBar, IconButton, Tooltip, Typography } from '@mui/material';
+import { AppBar, Box, IconButton, Tooltip, Typography } from '@mui/material';
 import React, { useEffect, useRef, useState } from 'react';
 import { NetworkIndicator } from './NetworkIndicator';
 import { ipcRenderer } from 'electron';
@@ -14,6 +14,7 @@ import {
 import { useAppDispatch } from '../stores/store.ts';
 import { useSnackbar } from 'notistack';
 import { Close as CloseIcon, Info as InfoIcon } from '@mui/icons-material';
+import chameleonLogo from '../assets/chameleon_white.png';
 
 export interface FooterProps {
     lastSyncTime?: string;
@@ -129,6 +130,12 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
                 </Typography>
                 <Typography sx={{ display: 'flex', alignItems: 'center' }}>{`App version ${version}`}</Typography>
                 <NetworkIndicator />
+                <Tooltip title="Powered by Chameleon">
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="caption">Powered by</Typography>
+                        <img src={chameleonLogo} alt="Powered by Logo" style={{ height: '1.5rem', width: 'auto' }} />
+                    </Box>
+                </Tooltip>
                 <Tooltip
                     title={
                         <h1 style={{ fontSize: '1rem' }}>

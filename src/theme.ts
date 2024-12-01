@@ -59,7 +59,6 @@ export const theme = createTheme({
         },
         text: {
             primary: primary_main,
-            secondary: secondary_main,
         },
     },
 });

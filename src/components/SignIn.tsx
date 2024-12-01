@@ -219,7 +219,7 @@ export const SignIn = () => {
                         borderRadius: '0.5rem',
                     }}
                 >
-                    <Avatar variant="square" src="/icon.png" sx={{ width: 50, height: 50, margin: 1 }} />
+                    <Avatar variant="square" src="/icon.png" sx={{ width: 'auto', height: 50, margin: 1 }} />
                     <Box component="form" noValidate onSubmit={onSubmit} sx={{ marginTop: 1 }}>
                         <TextField
                             sx={{

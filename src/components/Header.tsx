@@ -39,7 +39,7 @@ import { fetchDraftCount, selectDraftCount } from '../stores/featues/draftCounte
 import { useAppDispatch } from '../stores/store.ts';
 import { User } from '../app.model.ts';
 import { OpenToast } from '../stores/featues/NotificationSlice.ts';
-import logoWhite from '../assets/logo-white.png';
+import bahisWhite from '../assets/bahis_white.png';
 import { LoadingSpinner } from './LoadingSpinner.tsx';
 
 export const Header = () => {
@@ -197,7 +197,7 @@ export const Header = () => {
                     <Box className="cursor-pointer" display="flex" onClick={onHomeHandler}>
                         <Box
                             component="img"
-                            src={logoWhite}
+                            src={bahisWhite}
                             sx={{ display: { xs: 'none', md: 'flex' }, mr: 1, height: '2rem' }}
                         />
                         <Typography className="pr-4" variant="h4">
