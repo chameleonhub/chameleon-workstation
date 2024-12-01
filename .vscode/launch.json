@@ -1,23 +1,24 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-      {
-        "name": "BAHIS-electron",
-        "type": "node",
-        "request": "launch",
-        "cwd": "${workspaceFolder}",
-        "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
-        "windows": {
-          "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
-        },
-        "args" : ["."],
-        "outputCapture": "std",
-        "env": {
-//            "BAHIS_SERVER": "http://www.bahis2-dev.net"
-            "BAHIS_SERVER": "http://localhost"
-            // "BAHIS_SERVER": "http://bahis.dls.gov.bd"
-
-        }
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "BAHIS-electron",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
+      "windows": {
+        "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
+      },
+      "args": [
+        "."
+      ],
+      "outputCapture": "std",
+      "env": {
+        //            "BAHIS_SERVER": "http://www.bahis2-dev.net"
+        "BAHIS_SERVER": "http://localhost"
+        // "BAHIS_SERVER": "http://bahis.dls.gov.bd"
       }
-    ]
-  }
+    }
+  ]
+}

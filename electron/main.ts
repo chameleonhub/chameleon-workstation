@@ -1,9 +1,9 @@
 import axios from 'axios';
 import csv from 'csv-parser';
-import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, MessageBoxOptions } from 'electron';
 import firstRun from 'electron-first-run'; // could this eventually be removed too?
-import { autoUpdater } from 'electron-updater';
-import { cp, createReadStream, existsSync } from 'fs';
+import { autoUpdater, UpdateDownloadedEvent } from 'electron-updater';
+import { createReadStream } from 'fs';
 import path from 'node:path';
 import { create } from 'xmlbuilder2';
 import { createLocalDatabase, createOrReadLocalDatabase, createUserInLocalDatabase, deleteLocalDatabase } from './localDB';
@@ -21,6 +21,7 @@ import {
 import { UserData } from './bahis.model.ts';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { Toast } from './utils.ts';
 
 // SETUP
 const __filename = fileURLToPath(import.meta.url);
@@ -63,28 +64,28 @@ log.info(`Full debug logs can be found in ${path.join(process.env.DIST, 'electro
 // The following code migrates user data from bahis-desk <=v2.3.0
 // to a new location used in later version (in preparation for v3.0)
 // This code can be removed once we are confident that all users have upgraded to v3.0
-const migrate = (old_app_location) => {
-    if (existsSync(old_app_location)) {
-        log.warn(`Migrating user data from old location: ${old_app_location}`);
-        log.debug(`Old location: ${old_app_location}`);
-        log.debug(`New location: ${app.getPath('userData')}`);
-        cp(old_app_location, app.getPath('userData'), { recursive: true }, (error) => {
-            log.error('Failed to migrate user data from old location');
-            log.error(error);
-        });
-    }
-};
-switch (MODE) {
-    case 'development':
-        migrate(path.join(app.getPath('userData'), '..', 'devbahis/'));
-        break;
-    case 'production':
-        migrate(path.join(app.getPath('userData'), '..', 'bahis/'));
-        break;
-    default:
-        log.error(`Unknown mode: ${MODE}`);
-        break;
-}
+// const migrate = (old_app_location) => {
+//     if (existsSync(old_app_location)) {
+//         log.warn(`Migrating user data from old location: ${old_app_location}`);
+//         log.debug(`Old location: ${old_app_location}`);
+//         log.debug(`New location: ${app.getPath('userData')}`);
+//         cp(old_app_location, app.getPath('userData'), { recursive: true }, (error) => {
+//             log.error('Failed to migrate user data from old location');
+//             log.error(error);
+//         });
+//     }
+// };
+// switch (MODE) {
+//     case 'development':
+//         migrate(path.join(app.getPath('userData'), '..', 'devbahis/'));
+//         break;
+//     case 'production':
+//         migrate(path.join(app.getPath('userData'), '..', 'bahis/'));
+//         break;
+//     default:
+//         log.error(`Unknown mode: ${MODE}`);
+//         break;
+// }
 
 // report the status of environment variables and logging
 log.info(`Running version ${APP_VERSION} in ${MODE} mode with the following environment variables:`);
@@ -129,6 +130,12 @@ const createWindow = () => {
 };
 
 const autoUpdateBahis = () => {
+    autoUpdater.setFeedURL({
+        provider: 'github',
+        owner: 'chameleonhub',
+        repo: 'chameleon-workstation',
+    });
+
     log.info('Checking for the app software updates call');
     if (MODE !== 'development') {
         autoUpdater.checkForUpdatesAndNotify();
@@ -207,7 +214,7 @@ const template: Electron.MenuItemConstructorOptions[] = [
                 label: 'Manually update app',
                 click: () => {
                     try {
-                        autoUpdater.quitAndInstall();
+                        autoUpdater.checkForUpdatesAndNotify();
                     } catch (error) {
                         log.error('Manual update app FAILED with:');
                         log.error(error);
@@ -612,3 +619,22 @@ ipcMain.handle('read-administrative-region-data', readAdministrativeRegions);
 ipcMain.handle('read-user-administrative-region', readUserAdministrativeRegion);
 ipcMain.handle('read-app-version', readAppVersion);
 ipcMain.handle('get-user-data', getUserData);
+
+autoUpdater.on('update-downloaded', (event: UpdateDownloadedEvent) => {
+    const dialogOpts = {
+        type: 'info',
+        buttons: ['Restart', 'Later'],
+        title: 'Application Update',
+        message: process.platform === 'win32' ? (event.releaseNotes as string) : (event.releaseName as string),
+        detail: 'A new version has been downloaded. Restart the application to apply the updates.',
+    } as MessageBoxOptions;
+
+    dialog.showMessageBox(dialogOpts).then((returnValue) => {
+        if (returnValue.response === 0) autoUpdater.quitAndInstall();
+    });
+});
+
+autoUpdater.on('update-available', (info) => {
+    log.info('Update available:', info);
+    Toast('update-available', 'info', 7000);
+});

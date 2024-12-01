@@ -1,4 +1,4 @@
-import { RouterProvider, createHashRouter } from 'react-router-dom';
+import { createHashRouter, RouterProvider } from 'react-router-dom';
 
 import { ErrorPage } from './components/ErrorPage';
 import { Form } from './components/Form';

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { log } from '../helpers/log';
-import { Loading } from './Loading';
+import { LoadingSpinner } from './LoadingSpinner.tsx';
 import { ipcRenderer } from 'electron';
 
 const encodeAdministrativeRegion = (administrativeRegionID) => {
@@ -46,6 +46,6 @@ export const IFrame = () => {
     if (completeURL) {
         return <iframe src={completeURL} style={{ width: '95%', height: '85vh', margin: '2.5%' }}></iframe>;
     } else {
-        return <Loading />;
+        return <LoadingSpinner />;
     }
 };

@@ -7,12 +7,11 @@ import {
     Update as UpdateIcon,
 } from '@mui/icons-material';
 import {
-    Alert,
     AppBar,
     Badge,
     Box,
     Button,
-    CircularProgress,
+    ButtonProps,
     Dialog,
     DialogActions,
     DialogContent,
@@ -22,7 +21,7 @@ import {
     Menu,
     MenuItem,
     Paper,
-    Snackbar,
+    styled,
     Table,
     TableBody,
     TableCell,
@@ -40,10 +39,12 @@ import { fetchDraftCount, selectDraftCount } from '../stores/featues/draftCounte
 import { useAppDispatch } from '../stores/store.ts';
 import { User } from '../app.model.ts';
 import { OpenToast } from '../stores/featues/NotificationSlice.ts';
-import logoWhite from '../assets/logo-white.png';
+import bahisWhite from '../assets/bahis_white.png';
+import { LoadingSpinner } from './LoadingSpinner.tsx';
 
 export const Header = () => {
     const [isWaitingForDataSync, setWaitingForDataSync] = useState(false);
+    const [loadingMessage, setLoadingMessage] = useState('');
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [dialogEl, setDialogEl] = useState<ReactElement[]>([]);
     const [user, setUser] = useState<User>({});
@@ -137,11 +138,8 @@ export const Header = () => {
         dispatch(fetchDraftCount());
     }, [isWaitingForDataSync]);
 
-    const handleClose = () => {
-        setWaitingForDataSync(false);
-    };
-
     const handleDraftSync = async () => {
+        setLoadingMessage('Synchronizing data');
         setWaitingForDataSync(true);
 
         await ipcRenderer
@@ -162,6 +160,7 @@ export const Header = () => {
     };
 
     const handleUpdateAppData = () => {
+        setLoadingMessage('Updating modules');
         setWaitingForDataSync(true);
         ipcRenderer
             .invoke('request-app-data-sync')
@@ -187,26 +186,18 @@ export const Header = () => {
     };
 
     const getButtonColor = () => {
-        return draftCount === 0 ? 'info' : 'secondary';
+        return draftCount === 0 ? 'accent' : 'error';
     };
-
-    const Toast = () => (
-        <Snackbar open={isWaitingForDataSync} anchorOrigin={{ vertical: 'top', horizontal: 'center' }} key={'topcenter'}>
-            <Alert severity="info" onClose={handleClose} icon={false}>
-                <CircularProgress size={'1rem'} /> Synchronising data.
-            </Alert>
-        </Snackbar>
-    );
 
     return (
         <AppBar position="fixed">
-            {isWaitingForDataSync && <Toast />}
+            {isWaitingForDataSync && <LoadingSpinner loadingText={loadingMessage} zHeight={5000} />}
             <Toolbar sx={{ justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Box className="cursor-pointer" display="flex" onClick={onHomeHandler}>
                         <Box
                             component="img"
-                            src={logoWhite}
+                            src={bahisWhite}
                             sx={{ display: { xs: 'none', md: 'flex' }, mr: 1, height: '2rem' }}
                         />
                         <Typography className="pr-4" variant="h4">
@@ -214,19 +205,24 @@ export const Header = () => {
                         </Typography>
                     </Box>
                     <Box>
-                        <Button color="inherit" onClick={onHomeHandler} startIcon={<HomeIcon />}>
+                        <HeaderTextButton color="inherit" onClick={onHomeHandler} startIcon={<HomeIcon />}>
                             Home
-                        </Button>
-                        <Button color="inherit" onClick={handleUpdateAppData} startIcon={<UpdateIcon />}>
+                        </HeaderTextButton>
+                        <HeaderTextButton
+                            textTransform="capitalize"
+                            color="inherit"
+                            onClick={handleUpdateAppData}
+                            startIcon={<UpdateIcon />}
+                        >
                             Update Modules
-                        </Button>
+                        </HeaderTextButton>
                     </Box>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Badge badgeContent={draftCount} color="warning">
                         <Button
                             variant="contained"
-                            color="info"
+                            color="accent"
                             onClick={() => navigate('list/drafts')}
                             disabled={isWaitingForDataSync}
                         >
@@ -246,9 +242,9 @@ export const Header = () => {
                     </Button>
                 </Box>
                 <Box sx={{ display: 'flex' }}>
-                    <Button color="inherit" onClick={onBackHandler} startIcon={<ArrowBackIcon />}>
+                    <HeaderTextButton color="inherit" onClick={onBackHandler} startIcon={<ArrowBackIcon />}>
                         Back
-                    </Button>
+                    </HeaderTextButton>
                     <div>
                         <Box sx={{ cursor: 'pointer' }} onClick={handleMenu}>
                             <IconButton
@@ -289,3 +285,18 @@ export const Header = () => {
         </AppBar>
     );
 };
+
+interface HeaderTextButtonProps extends ButtonProps {
+    textTransform?: 'none' | 'uppercase' | 'capitalize';
+}
+
+const HeaderTextButton = styled(Button, { shouldForwardProp: (prop) => prop != 'textTransform' })<HeaderTextButtonProps>(
+    ({ theme, textTransform = 'uppercase' }) => ({
+        textTransform: textTransform,
+        color: 'inherit',
+        '&:hover': {
+            color: theme.palette.primary.dark,
+            backgroundColor: theme.palette.primary.light,
+        },
+    }),
+);

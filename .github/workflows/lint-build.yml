@@ -1,25 +1,25 @@
 name: lint and build
 on:
-    pull_request:
-        types: [opened, edited, synchronize, auto_merge_enabled, reopened]
-        branches:
-            - development
+  pull_request:
+    types: [ opened, edited, synchronize, auto_merge_enabled, reopened ]
+    branches:
+      - development
 jobs:
-    lint:
-        runs-on: ubuntu-latest
-        timeout-minutes: 10
-        steps:
-            - name: checkout
-              uses: actions/checkout@v3
-            - name: setup node
-              uses: actions/setup-node@v3
-              with:
-                  node-version: 18
-            - name: setup dependencies
-              run: npm install
-            - name: lint React
-              run: npm run lint-react
-            - name: lint Electron
-              run: npm run lint-electron
-            - name: build
-              run: npm run build
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: setup dependencies
+        run: npm install
+      - name: lint React
+        run: npm run lint-react
+      - name: lint Electron
+        run: npm run lint-electron
+      - name: build
+        run: npm run build

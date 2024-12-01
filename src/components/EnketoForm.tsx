@@ -189,7 +189,7 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
     };
 
     return (
-        <Stack sx={{ margin: '2rem 3rem' }}>
+        <Stack className="ek-form" sx={{ margin: '2rem 3rem' }}>
             <div ref={formEl}></div>
             <Box>
                 {editable && (

@@ -4,7 +4,8 @@
 
 ### Linux
 
-We need node v18 - the latest LTS. On linux a convenient way is to use Node Version Manager (https://github.com/nvm-sh/nvm)
+We need node v18 - the latest LTS. On linux a convenient way is to use Node Version
+Manager (https://github.com/nvm-sh/nvm)
 
 ```bash
 nvm install lts/hydrogen
@@ -20,9 +21,11 @@ npm run dev
 
 ### Windows
 
-On Windows install node direct from their website, or by clicking [here](https://nodejs.org/dist/v18.17.1/node-v18.17.1-x64.msi).
+On Windows install node direct from their website, or by
+clicking [here](https://nodejs.org/dist/v18.17.1/node-v18.17.1-x64.msi).
 
-Please tick to install all additional tools with "chocolatey" that should cover all of the other requirements (visual studio, python etc.)
+Please tick to install all additional tools with "chocolatey" that should cover all of the other requirements (visual
+studio, python etc.)
 
 ## Helpful tricks
 
@@ -36,7 +39,8 @@ Just run `npm run lint-electron` for the electron code and `npm run lint-react` 
 
 ### core dumped and loads of go errors
 
-Scroll up - do you see "fatal error: all goroutines are asleep - deadlock!". If so, I think you are using the wrong version of node. Try running:
+Scroll up - do you see "fatal error: all goroutines are asleep - deadlock!". If so, I think you are using the wrong
+version of node. Try running:
 
 ```bash
 node --version
@@ -99,16 +103,20 @@ npm run build
 
 We have three `.env` files:
 
--   `.env` - for local development
--   `.env.staging` - for staging builds
--   `.env.production` - for production builds
+- `.env` - for local development
+- `.env.staging` - for staging builds
+- `.env.production` - for production builds
 
-Note that all variables in `.env` files should follow the naming format of: `VITE_[SCOPE]_[REALLY_USEFUL_NAME]`, where `SCOPE` is on of [`BAHIS`, `ELECTRON`, `REACT`] depending on whether it defines how the system interacts with the BAHIS server, the electron main process, or the react renderer process.
-Once variables are read into the code they can loose the `VITE_` prefix, e.g. `VITE_BAHIS2_SERVER_URL` becomes `BAHIS2_SERVER_URL`.
+Note that all variables in `.env` files should follow the naming format of: `VITE_[SCOPE]_[REALLY_USEFUL_NAME]`, where
+`SCOPE` is on of [`BAHIS`, `ELECTRON`, `REACT`] depending on whether it defines how the system interacts with the BAHIS
+server, the electron main process, or the react renderer process.
+Once variables are read into the code they can loose the `VITE_` prefix, e.g. `VITE_BAHIS2_SERVER_URL` becomes
+`BAHIS2_SERVER_URL`.
 
 ### Locally overriding environment variables
 
-If you have a `.env.local` file, this will be used instead of `.env` for local development, e.g. your `.env.local` if you are testing local server changes might look like this:
+If you have a `.env.local` file, this will be used instead of `.env` for local development, e.g. your `.env.local` if
+you are testing local server changes might look like this:
 
 ```bash
 VITE_BAHIS2_SERVER_URL=http://localhost
@@ -120,7 +128,10 @@ Note that adding environment variables is a multistep process and depends on wha
 
 #### Scenario 1 - environment variables that depend only on the build mode
 
-If you're trying to set an environment variable that depends only on the build mode (`development` / `staging` / `production`), e.g. `BAHIS2_SERVER_URL` might be `http://localhost` in `development` and `http://www.bahis2-dev.net` in `staging` and if you are accessing this variable in the electron main process (probably the most common scenario), you can hard code this into the switch statement near the top of [`/electron/main.ts`](./electron/main.ts). For example:
+If you're trying to set an environment variable that depends only on the build mode (`development` / `staging` /
+`production`), e.g. `BAHIS2_SERVER_URL` might be `http://localhost` in `development` and `http://www.bahis2-dev.net` in
+`staging` and if you are accessing this variable in the electron main process (probably the most common scenario), you
+can hard code this into the switch statement near the top of [`/electron/main.ts`](./electron/main.ts). For example:
 
 ```typescript
 // default environment variables, i.e. for local development
@@ -138,7 +149,8 @@ switch (import.meta.env.MODE) {
 }
 ```
 
-If you also want to enable the ability to override this variable from a `.env` file or local shell environment, you can add the following code below the switch statement:
+If you also want to enable the ability to override this variable from a `.env` file or local shell environment, you can
+add the following code below the switch statement:
 
 ```typescript
 // overwrite anything defined in a .env file
@@ -152,5 +164,6 @@ if (import.meta.env.VITE_BAHIS2_SERVER_URL) {
 
 Store these inside an appropriate `.env` file:
 
--   if it's not-so-secret, i.e. a URL, add it to `.env` (and if it changes then `.env.staging` and / or `.env.production`).
--   if it's a secret, i.e. a key or password, add it to `.env.local` and document it in the `README.md` file.
+- if it's not-so-secret, i.e. a URL, add it to `.env` (and if it changes then `.env.staging` and / or
+  `.env.production`).
+- if it's a secret, i.e. a key or password, add it to `.env.local` and document it in the `README.md` file.
