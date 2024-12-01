@@ -314,7 +314,7 @@ export const Form: React.FC<FormProps> = ({ draft }: FormProps) => {
             {form_uid && prefilledFormXML && isDeskUserReplaced && isDeskTaxonomyInserted && isPrefilled ? (
                 <EnketoForm formUID={form_uid} formODKXML={prefilledFormXML} instanceID={instance_id} editable={editable} />
             ) : (
-                <LoadingSpinner />
+                <LoadingSpinner loadingText="Form is Loading" />
             )}
             <Footer />
         </>

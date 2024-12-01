@@ -46,9 +46,20 @@ export const LoadingSpinner: React.FC<LoadingProps> = ({ loadingText = 'Loading'
         >
             <CircularProgress color="primary" />
             <Typography
+                variant="caption"
+                sx={{
+                    mt: 2,
+                    color: 'text.primary',
+                    display: 'flex',
+                }}
+            >
+                Please wait
+            </Typography>
+            <Typography
                 variant="h5"
                 sx={{
                     mt: 2,
+                    pl: '2rem',
                     color: 'text.primary',
                     display: 'flex',
                     '&::after': {
