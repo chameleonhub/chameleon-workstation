@@ -7,7 +7,7 @@
  * -------------------------- */
 @font-face {
   font-family: 'FontAwesome';
-  src: url('../fonts/fontawesome-webfont.woff?v=4.6.2') format('woff');
+  src: url('assets/fonts/fontawesome-webfont.woff?v=4.6.2') format('woff');
   font-weight: normal;
   font-style: normal;
 }
@@ -2931,14 +2931,14 @@
 
 @font-face {
   font-family: 'OpenSans';
-  src: url('../fonts/OpenSans-Regular-webfont.woff') format('woff');
+  src: url('assets/fonts/OpenSans-Regular-webfont.woff') format('woff');
   font-weight: normal;
   font-style: normal;
 }
 
 @font-face {
   font-family: 'OpenSans';
-  src: url('../fonts/OpenSans-Bold-webfont.woff') format('woff');
+  src: url('assets/fonts/OpenSans-Bold-webfont.woff') format('woff');
   font-weight: bold;
   font-style: normal;
 }
@@ -10675,7 +10675,7 @@ input:not([disabled]):not([readonly])
   width: 34px;
   height: 34px;
   background-color: #d15200;
-  background-image: url('../images/offline-enabled.png');
+  background-image: url('assets/images/offline-enabled.png');
   background-repeat: no-repeat;
   opacity: 1;
   -webkit-transition: opacity 3s ease-out;
