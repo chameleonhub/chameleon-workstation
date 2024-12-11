@@ -17,9 +17,10 @@ import { log } from '../helpers/log';
 import { ipcRenderer } from 'electron';
 import { AlertContent } from './SystemAlerts';
 import { grey } from '@mui/material/colors';
-import bahisLogo from '../assets/images/bahis_logo.png'
+import bahisLogo from '../assets/images/bahis_logo.png';
+import { LoadingSpinner } from './LoadingSpinner.tsx';
 
-interface userData {
+interface UserData {
     username: string;
     password: string;
 }
@@ -29,7 +30,7 @@ export const SignIn = () => {
     const [openChangeUserDialog, setOpenChangeUserDialog] = React.useState<boolean>(false);
     const [isSignedIn, setIsSignedIn] = React.useState<boolean>(false);
     const [isSignedInValid, setIsSignedInValid] = React.useState<boolean>(false);
-    const [userData, setUserData] = React.useState<userData>();
+    const [userData, setUserData] = React.useState<UserData>();
     const [userName, setUserName] = React.useState<string>('');
 
     const navigate = useNavigate();
@@ -39,6 +40,9 @@ export const SignIn = () => {
             log.info('User is signed in. Starting app sync.');
             ipcRenderer
                 .invoke('request-app-data-sync')
+                .then(() => {
+                    navigate('/menu/0');
+                })
                 .catch(() => {
                     setAlertContent({
                         severity: 'warning',
@@ -48,7 +52,6 @@ export const SignIn = () => {
                 })
                 .finally(() => {
                     log.info('App sync attempt complete. Navigating to menu.');
-                    navigate('/menu/0');
                 });
         }
     }, [navigate, isSignedIn]);
@@ -68,11 +71,13 @@ export const SignIn = () => {
 
     const handleChangeUserConfirmation = async (answer) => {
         if (answer === 'delete') {
+            setIsSignedInValid(false);
+            setUserName('No User');
             ipcRenderer.invoke('refresh-database').then(() => {
                 setOpenChangeUserDialog(false);
-                ipcRenderer.invoke('sign-in', userData).then(() => {
-                    setIsSignedIn(true);
-                });
+                if (userData) {
+                    checkCredentials(userData.username, userData.password);
+                }
             });
         } else {
             setAlertContent(null);
@@ -107,22 +112,7 @@ export const SignIn = () => {
         );
     };
 
-    const onSubmit = async (event) => {
-        log.info('Attempting client-side sign in');
-
-        event.preventDefault();
-        const data = new FormData(event.currentTarget);
-
-        const username = data.get('username') as string;
-        const password = data.get('password') as string;
-
-        if (!username || !password) {
-            setAlertContent({ severity: 'error', message: 'Please fill in both fields' });
-            return;
-        }
-
-        setUserData({ username, password });
-
+    const checkCredentials = (username: string, password: string) => {
         ipcRenderer.invoke('sign-in', { username, password }).then((response) => {
             log.info('Sign in response received');
             switch (response) {
@@ -141,6 +131,7 @@ export const SignIn = () => {
                         message: 'Failed to sign in. Please check your credentials and try again.',
                     });
                     log.info('Credentials error.');
+                    setIsSignedIn(false);
                     break;
                 case 'change-user':
                     setAlertContent({
@@ -148,6 +139,7 @@ export const SignIn = () => {
                         message: 'You requested a change of user database.',
                     });
                     setOpenChangeUserDialog(true);
+                    setIsSignedIn(false);
                     break;
                 case 'fresh-user-success':
                     setAlertContent({
@@ -162,15 +154,47 @@ export const SignIn = () => {
                         severity: 'error',
                         message: 'Failed to sign in. Please check your credentials and try again.',
                     });
+                    setIsSignedIn(false);
+                    break;
+                case 'unauthorized':
+                    setAlertContent({
+                        severity: 'error',
+                        message: 'Authentication Failed!! Please check your credentials and try again.',
+                    });
+                    setIsSignedIn(false);
+                    break;
+                case 'disconnected':
+                    setAlertContent({
+                        severity: 'error',
+                        message: 'Sign in Failed!! Please check your internet connection.',
+                    });
+                    setIsSignedIn(false);
                     break;
                 default:
                     setAlertContent({
                         severity: 'error',
                         message: `Possible unknown error while signing you in. Please close the app and try again.\n${response?.message}`,
                     });
+                    setIsSignedIn(false);
                     break;
             }
         });
+    };
+
+    const onSubmit = async (event) => {
+        log.info('Attempting client-side sign in');
+
+        event.preventDefault();
+        const data = new FormData(event.currentTarget);
+
+        const username = data.get('username') as string;
+        const password = data.get('password') as string;
+        if (!username || !password) {
+            setAlertContent({ severity: 'error', message: 'Please fill in both fields' });
+            return;
+        }
+        setUserData({ username, password });
+        checkCredentials(username, password);
     };
 
     const alertClose = () => {
@@ -255,6 +279,7 @@ export const SignIn = () => {
                         </Button>
                     </Box>
                     {alertContent && signInAlert(alertContent)}
+                    {alertContent && isSignedIn && <LoadingSpinner loadingText={alertContent.message} />}
                 </Box>
             </Box>
             <ChangeUserDialog open={openChangeUserDialog} handleClick={(event) => handleChangeUserConfirmation(event)} />

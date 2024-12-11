@@ -53,10 +53,10 @@ body {
     font-weight: lighter;
 }
 
-.footer-container :nth-child(n+2) {
+.footer-container :nth-child(n + 2) {
     flex: 0 1 auto;
-    margin-left: .5rem;
-    margin-right: .5rem;
+    margin-left: 0.5rem;
+    margin-right: 0.5rem;
     white-space: nowrap;
     text-overflow: ellipsis;
 }

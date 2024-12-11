@@ -351,8 +351,13 @@ const signIn = async (event, userData: UserData) => {
             .catch((error) => {
                 console.error(error.message);
                 log.error('Sign In Error');
-                log.error(error);
-                return 'error';
+                if (error.response) {
+                    return 'unauthorized';
+                } else if (error.code === 'ENOTFOUND') {
+                    return 'disconnected';
+                } else {
+                    return 'error';
+                }
             });
     }
 };
@@ -603,9 +608,9 @@ ipcMain.on('fetch-username', fetchUsername);
 
 // refactored & new
 ipcMain.handle('sign-in', signIn);
-ipcMain.handle('request-app-data-sync', getAppData); // still both BAHIS 2 and BAHIS 3
-ipcMain.handle('request-user-data-sync', postGetUserData); // still both BAHIS 2 and BAHIS 3
-ipcMain.handle('refresh-database', refreshDatabase); // still both BAHIS 2 and BAHIS 3 tables
+ipcMain.handle('request-app-data-sync', getAppData);
+ipcMain.handle('request-user-data-sync', postGetUserData);
+ipcMain.handle('refresh-database', refreshDatabase);
 
 ipcMain.handle('get-local-db', getLocalDB);
 ipcMain.handle('post-local-db', postLocalDB);

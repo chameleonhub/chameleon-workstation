@@ -62,7 +62,8 @@ export const getModules = async (db) => {
     const api_url = _url(BAHIS_MODULE_DEFINITION_ENDPOINT);
     log.info(`API URL: ${api_url}`);
 
-    auth.get(api_url)
+    await auth
+        .get(api_url)
         .then((response) => {
             if (response.data) {
                 log.info('Modules received from server');
@@ -112,7 +113,8 @@ export const getWorkflows = async (db) => {
     const api_url = _url(BAHIS_WORKFLOW_DEFINITION_ENDPOINT);
     log.info(`API URL: ${api_url}`);
 
-    auth.get(api_url)
+    await auth
+        .get(api_url)
         .then((response) => {
             if (response.data) {
                 log.info('Workflows received from server');
@@ -230,6 +232,7 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }, count
         'INSERT INTO formcloudsubmission (uuid, form_uid, xml) VALUES (?, ?, ?) ON CONFLICT(uuid) DO UPDATE SET xml = excluded.xml;',
     );
     console.log(`get cloud data from: ${url}`);
+    let data: CloudFormData[] = [];
     await auth
         .get(url)
         .then(async (response) => {
@@ -237,7 +240,6 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }, count
 
             const results = xpath.select('/root/results', doc, true) as Node;
 
-            const data: CloudFormData[] = [];
             if (results) {
                 const insertTransaction = db.transaction((data: CloudFormData[]) => {
                     for (const { uuid, form_id, xml } of data) {
@@ -293,6 +295,9 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }, count
             Toast(`${form?.name} form sync FAILED`, 'error');
             log.error('GET KoboToolbox Form Submissions FAILED with:');
             log.error(error);
+        })
+        .finally(() => {
+            data = [];
         });
 };
 
@@ -467,7 +472,8 @@ export const getAdministrativeRegions = async (db) => {
     const api_url = _url(BAHIS_ADMINISTRATIVE_REGIONS_ENDPOINT(administrativeRegionID));
     log.info(`API URL: ${api_url}`);
 
-    auth.get(api_url)
+    return await auth
+        .get(api_url)
         .then((response) => {
             if (response.data) {
                 log.info('Administrative Regions received from server');
@@ -487,9 +493,11 @@ export const getAdministrativeRegions = async (db) => {
                 }
             }
             log.info('GET getAdministrativeRegions Definitions SUCCESS');
+            return true;
         })
         .catch((error) => {
             log.error('GET getAdministrativeRegions Definitions FAILED with:');
             log.error(error);
+            return false;
         });
 };
