@@ -693,34 +693,6 @@ autoUpdater.on('update-downloaded', (event: UpdateDownloadedEvent) => {
     });
 });
 
-setTimeout(() => {
-    const simulatedEvent = {
-        releaseNotes:
-            '<p><strong>Full Changelog</strong>: <a class="commit-link" href="https://github.com/chameleonhub/chameleon-workstation/compare/v3.0.1...v3.0.2"><tt>v3.0.1...v3.0.2</tt></a></p>',
-        releaseName: 'Version 2.0.1',
-    };
-
-    // const htmlContent = process.platform === 'win32' ? simulatedEvent.releaseNotes : `<p>${simulatedEvent.releaseName}</p>`;
-    const htmlContent =
-        process.platform === 'win32'
-            ? `<h3 class="release-name">${simulatedEvent.releaseName}</h3><div>${simulatedEvent.releaseNotes}</div>`
-            : `<p>${simulatedEvent.releaseName}</p>`;
-
-    const updateDialog = createUpdateDialog(htmlContent);
-
-    ipcMain.on('restart-app', () => {
-        console.log('App will restart to apply updates.');
-        updateDialog.close();
-        // Simulate app quit and install
-        app.quit();
-    });
-
-    ipcMain.on('close-dialog', () => {
-        console.log('Update postponed.');
-        updateDialog.close();
-    });
-}, 3000);
-
 autoUpdater.on('update-available', (info) => {
     log.info('Update available:', info);
     Toast(
