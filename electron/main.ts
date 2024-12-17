@@ -645,7 +645,7 @@ function createUpdateDialog(htmlContent: string) {
         modal: true,
         resizable: false,
         minimizable: false,
-        frame: false,
+        // frame: false,
         autoHideMenuBar: true,
         icon: path.join(process.env.PUBLIC as string, 'icon.png'),
         parent: mainWindow!,
