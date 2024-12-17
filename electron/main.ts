@@ -644,6 +644,7 @@ function createUpdateDialog(htmlContent: string) {
         height: 500,
         modal: true,
         resizable: false,
+        minimizable: false,
         frame: false,
         autoHideMenuBar: true,
         icon: path.join(process.env.PUBLIC as string, 'icon.png'),
@@ -654,7 +655,18 @@ function createUpdateDialog(htmlContent: string) {
         },
     });
 
-    updateWindow.loadFile(path.join(__dirname, '../public/update.html'));
+    let updateHtmlPath: string;
+
+    if (MODE === 'production') {
+        updateHtmlPath = path.resolve('./public/update.html');
+    } else {
+        updateHtmlPath = path.join(__dirname, '../public/update.html');
+    }
+
+    updateWindow.loadFile(updateHtmlPath).catch((err) => {
+        console.error('Failed to load update.html:', err);
+        updateWindow.close();
+    });
 
     ipcMain.handle('get-release-notes', () => {
         return htmlContent;
