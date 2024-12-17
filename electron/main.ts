@@ -1,6 +1,6 @@
 import axios from 'axios';
 import csv from 'csv-parser';
-import { app, BrowserWindow, dialog, ipcMain, Menu, MessageBoxOptions } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
 import firstRun from 'electron-first-run'; // could this eventually be removed too?
 import { autoUpdater, UpdateDownloadedEvent } from 'electron-updater';
 import { createReadStream } from 'fs';
@@ -308,6 +308,19 @@ const signIn = async (event, userData: UserData) => {
 
     if (current_user && userData && current_user.username == userData.username && current_user.password == userData.password) {
         log.info('This is an offline-ready account.');
+
+        const data = {
+            username: userData.username,
+            password: userData.password,
+            bahis_desk_version: APP_VERSION,
+        };
+
+        axios.post(SIGN_IN_ENDPOINT, data, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+
         return 'offline-user-success';
     } else if (
         current_user &&
@@ -625,21 +638,82 @@ ipcMain.handle('read-user-administrative-region', readUserAdministrativeRegion);
 ipcMain.handle('read-app-version', readAppVersion);
 ipcMain.handle('get-user-data', getUserData);
 
-autoUpdater.on('update-downloaded', (event: UpdateDownloadedEvent) => {
-    const dialogOpts = {
-        type: 'info',
-        buttons: ['Restart', 'Later'],
-        title: 'Application Update',
-        message: process.platform === 'win32' ? (event.releaseNotes as string) : (event.releaseName as string),
-        detail: 'A new version has been downloaded. Restart the application to apply the updates.',
-    } as MessageBoxOptions;
+function createUpdateDialog(htmlContent: string) {
+    const updateWindow = new BrowserWindow({
+        width: 450,
+        height: 500,
+        modal: true,
+        resizable: false,
+        frame: false,
+        autoHideMenuBar: true,
+        icon: path.join(process.env.PUBLIC as string, 'icon.png'),
+        parent: mainWindow!,
+        webPreferences: {
+            contextIsolation: false,
+            nodeIntegration: true,
+        },
+    });
 
-    dialog.showMessageBox(dialogOpts).then((returnValue) => {
-        if (returnValue.response === 0) autoUpdater.quitAndInstall();
+    updateWindow.loadFile(path.join(__dirname, '../public/update.html'));
+
+    ipcMain.handle('get-release-notes', () => {
+        return htmlContent;
+    });
+
+    return updateWindow;
+}
+
+autoUpdater.on('update-downloaded', (event: UpdateDownloadedEvent) => {
+    const htmlContent =
+        process.platform === 'win32'
+            ? `<h3 class="release-name">${event.releaseName}</h3><div>${event.releaseNotes}</div>`
+            : `<p>${event.releaseName}</p>`;
+
+    const updateDialog = createUpdateDialog(htmlContent);
+
+    ipcMain.on('restart-app', () => {
+        updateDialog.close();
+        autoUpdater.quitAndInstall();
+    });
+
+    ipcMain.on('close-dialog', () => {
+        updateDialog.close();
     });
 });
 
+setTimeout(() => {
+    const simulatedEvent = {
+        releaseNotes:
+            '<p><strong>Full Changelog</strong>: <a class="commit-link" href="https://github.com/chameleonhub/chameleon-workstation/compare/v3.0.1...v3.0.2"><tt>v3.0.1...v3.0.2</tt></a></p>',
+        releaseName: 'Version 2.0.1',
+    };
+
+    // const htmlContent = process.platform === 'win32' ? simulatedEvent.releaseNotes : `<p>${simulatedEvent.releaseName}</p>`;
+    const htmlContent =
+        process.platform === 'win32'
+            ? `<h3 class="release-name">${simulatedEvent.releaseName}</h3><div>${simulatedEvent.releaseNotes}</div>`
+            : `<p>${simulatedEvent.releaseName}</p>`;
+
+    const updateDialog = createUpdateDialog(htmlContent);
+
+    ipcMain.on('restart-app', () => {
+        console.log('App will restart to apply updates.');
+        updateDialog.close();
+        // Simulate app quit and install
+        app.quit();
+    });
+
+    ipcMain.on('close-dialog', () => {
+        console.log('Update postponed.');
+        updateDialog.close();
+    });
+}, 3000);
+
 autoUpdater.on('update-available', (info) => {
     log.info('Update available:', info);
-    Toast('update-available', 'info', 7000);
+    Toast(
+        'A new update is available. When prompted with the Update dialog, click "Update" and confirm by selecting "Yes" to apply the update.',
+        'info',
+        10000,
+    );
 });

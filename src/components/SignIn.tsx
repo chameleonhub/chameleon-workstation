@@ -32,6 +32,7 @@ export const SignIn = () => {
     const [isSignedInValid, setIsSignedInValid] = React.useState<boolean>(false);
     const [userData, setUserData] = React.useState<UserData>();
     const [userName, setUserName] = React.useState<string>('');
+    const [isFreshSignedIn, setIsFreshSignedIn] = React.useState<boolean>(false);
 
     const navigate = useNavigate();
 
@@ -49,6 +50,9 @@ export const SignIn = () => {
                         message:
                             'Unable to automatically sync app data. Please ensure a good internet connection and use the Sync Now button on the next screen.',
                     });
+                    if (!isFreshSignedIn) {
+                        navigate('/menu/0');
+                    }
                 })
                 .finally(() => {
                     log.info('App sync attempt complete. Navigating to menu.');
@@ -115,6 +119,7 @@ export const SignIn = () => {
     const checkCredentials = (username: string, password: string) => {
         ipcRenderer.invoke('sign-in', { username, password }).then((response) => {
             log.info('Sign in response received');
+            setIsFreshSignedIn(false);
             switch (response) {
                 case 'offline-user-success':
                     setAlertContent({
@@ -148,6 +153,7 @@ export const SignIn = () => {
                             'You are logging in for the first time.\n Please wait as the app synchronises app data for offline use.',
                     });
                     setIsSignedIn(true);
+                    setIsFreshSignedIn(true);
                     break;
                 case 'fresh-user-fail':
                     setAlertContent({
@@ -279,7 +285,7 @@ export const SignIn = () => {
                         </Button>
                     </Box>
                     {alertContent && signInAlert(alertContent)}
-                    {alertContent && isSignedIn && <LoadingSpinner loadingText={alertContent.message} />}
+                    {alertContent && isSignedIn && isFreshSignedIn && <LoadingSpinner loadingText={alertContent.message} />}
                 </Box>
             </Box>
             <ChangeUserDialog open={openChangeUserDialog} handleClick={(event) => handleChangeUserConfirmation(event)} />
