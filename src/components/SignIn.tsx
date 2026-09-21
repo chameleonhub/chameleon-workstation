@@ -8,9 +8,12 @@ import {
     DialogContent,
     DialogContentText,
     DialogTitle,
+    IconButton,
+    InputAdornment,
     TextField,
     Typography,
 } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { log } from '../helpers/log';
@@ -33,6 +36,7 @@ export const SignIn = () => {
     const [userData, setUserData] = React.useState<UserData>();
     const [userName, setUserName] = React.useState<string>('');
     const [isFreshSignedIn, setIsFreshSignedIn] = React.useState<boolean>(false);
+    const [showPassword, setShowPassword] = React.useState<boolean>(false);
 
     const navigate = useNavigate();
 
@@ -276,9 +280,23 @@ export const SignIn = () => {
                             fullWidth
                             name="password"
                             label="Password"
-                            type="password"
+                            type={showPassword ? 'text' : 'password'}
                             id="password"
                             autoComplete="current-password"
+                            InputProps={{
+                                endAdornment: (
+                                    <InputAdornment position="end">
+                                        <IconButton
+                                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                            onClick={() => setShowPassword((show) => !show)}
+                                            onMouseDown={(event) => event.preventDefault()}
+                                            edge="end"
+                                        >
+                                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                                        </IconButton>
+                                    </InputAdornment>
+                                ),
+                            }}
                         />
                         <Button type="submit" fullWidth variant="contained" sx={{ marginTop: 3, marginBottom: 2 }}>
                             Sign In
