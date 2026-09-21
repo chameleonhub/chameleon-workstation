@@ -56,7 +56,7 @@ export const createUserInLocalDatabase = async (data, userData, db) => {
                                    VALUES (?, ?, ?, ?, ?)`);
     insertStmt.run(data.user.username, userData.password, data.user.name, data.token, data.upazila);
 
-    log.info(`Created db with user details for ${data.user_name}`);
+    log.info(`Created db with user details for ${data.user.username}`);
 };
 
 export const deleteLocalDatabase = (MODE, db) => {
