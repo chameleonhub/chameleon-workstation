@@ -30,3 +30,11 @@ export const log = createLogger({
         }),
     ],
 });
+
+// winston drops the message and stack when an Error is the only argument (prints "undefined"),
+// so flatten it to a string before it reaches the transports.
+const logError = log.error.bind(log) as (...args: unknown[]) => unknown;
+log.error = ((message: unknown, ...meta: unknown[]) =>
+    message instanceof Error
+        ? logError(`${message.name}: ${message.message}\n${message.stack}`, ...meta)
+        : logError(message, ...meta)) as typeof log.error;

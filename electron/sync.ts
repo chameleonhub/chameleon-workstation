@@ -55,6 +55,18 @@ function _xmlToJson(xml) {
     });
 }
 
+// The BAHIS 3 server paginates list endpoints as {count, next, previous, results}; collect every page.
+// A plain array response (unpaginated endpoint) is passed through unchanged.
+const _getAllPages = async (url: string) => {
+    const response = await auth.get(url);
+    if (Array.isArray(response.data)) {
+        return response.data;
+    }
+
+    const { results, next } = response.data;
+    return next ? [...results, ...(await _getAllPages(next))] : results;
+};
+
 export const getModules = async (db) => {
     log.info(`GET Module Definitions`);
 
@@ -62,10 +74,9 @@ export const getModules = async (db) => {
     const api_url = _url(BAHIS_MODULE_DEFINITION_ENDPOINT);
     log.info(`API URL: ${api_url}`);
 
-    await auth
-        .get(api_url)
-        .then((response) => {
-            if (response.data) {
+    await _getAllPages(api_url)
+        .then((data) => {
+            if (data) {
                 log.info('Modules received from server');
 
                 const upsertQuery = db.prepare(
@@ -77,7 +88,7 @@ export const getModules = async (db) => {
 
                 db.prepare('DELETE FROM module').run();
 
-                for (const module of response.data) {
+                for (const module of data) {
                     if (module.is_active) {
                         upsertQuery.run([
                             module.id,
@@ -113,10 +124,9 @@ export const getWorkflows = async (db) => {
     const api_url = _url(BAHIS_WORKFLOW_DEFINITION_ENDPOINT);
     log.info(`API URL: ${api_url}`);
 
-    await auth
-        .get(api_url)
-        .then((response) => {
-            if (response.data) {
+    await _getAllPages(api_url)
+        .then((data) => {
+            if (data) {
                 log.info('Workflows received from server');
 
                 const upsertQuery = db.prepare(
@@ -126,7 +136,7 @@ export const getWorkflows = async (db) => {
 
                 db.prepare('DELETE FROM workflow').run();
 
-                for (const workflow of response.data) {
+                for (const workflow of data) {
                     if (workflow.is_active) {
                         upsertQuery.run([
                             workflow.id,
@@ -383,11 +393,10 @@ export const getTaxonomies = async (db) => {
     log.info(`API URL: ${api_url}`);
 
     log.info('GET Taxonomy List from server');
-    const taxonomyList = await auth
-        .get(api_url)
-        .then((response) => {
+    const taxonomyList = await _getAllPages(api_url)
+        .then((data) => {
             log.info('GET Taxonomy List SUCCESS');
-            return response.data;
+            return data;
         })
         .catch((error) => {
             Toast('GET Taxonomy List FAILED!!', 'error');
@@ -440,16 +449,16 @@ export const getAdministrativeRegions = async (db) => {
     const api_levels_url = _url(BAHIS_ADMINISTRATIVE_REGION_LEVELS_ENDPOINT);
     log.info(`API URL: ${api_levels_url}`);
 
-    auth.get(api_levels_url)
-        .then((response) => {
-            if (response.data) {
+    _getAllPages(api_levels_url)
+        .then((data) => {
+            if (data) {
                 log.info('Administrative Region Levels received from server');
 
                 const upsertQuery = db.prepare(
                     'INSERT INTO administrativeregionlevel (id, title) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET title = excluded.title;',
                 );
 
-                for (const administrativeregionlevel of response.data) {
+                for (const administrativeregionlevel of data) {
                     upsertQuery.run([administrativeregionlevel.id, administrativeregionlevel.title]);
                     setStatus(administrativeregionlevel.title + ' Admin level updated');
                 }
