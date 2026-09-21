@@ -12,8 +12,14 @@ const parser = new Xml2Js.Parser();
 
 export const APP_VERSION = app.getVersion();
 export const BAHIS_SERVER_URL = import.meta.env.VITE_BAHIS_SERVER_URL || 'http://localhost:3001';
-const BAHIS_KOBOTOOLBOX_KF_API_URL = import.meta.env.VITE_BAHIS_KOBOTOOLBOX_KF_API_URL || 'http://kf.localhost:80/api/v2/';
-const BAHIS_KOBOTOOLBOX_KC_API_URL = import.meta.env.VITE_BAHIS_KOBOTOOLBOX_KC_API_URL || 'http://kc.localhost:80/api/v1/';
+// these are joined with plain string concatenation below, so they must end in a slash whatever .env says
+const _withTrailingSlash = (url: string) => (url.endsWith('/') ? url : `${url}/`);
+const BAHIS_KOBOTOOLBOX_KF_API_URL = _withTrailingSlash(
+    import.meta.env.VITE_BAHIS_KOBOTOOLBOX_KF_API_URL || 'http://kf.localhost:80/api/v2/',
+);
+const BAHIS_KOBOTOOLBOX_KC_API_URL = _withTrailingSlash(
+    import.meta.env.VITE_BAHIS_KOBOTOOLBOX_KC_API_URL || 'http://kc.localhost:80/api/v1/',
+);
 log.info(`BAHIS_SERVER_URL=${BAHIS_SERVER_URL} (BAHIS 3)`);
 
 const _url = (url, time?) => {
