@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import electron from 'vite-plugin-electron';
 import renderer from 'vite-plugin-electron-renderer';
 import react from '@vitejs/plugin-react';
+import path from 'node:path';
 
 export default function ViteConfig({ mode }) {
     process.env.NODE_ENV = mode;
@@ -9,6 +10,16 @@ export default function ViteConfig({ mode }) {
     const isProd = process.env.NODE_ENV === 'production';
 
     return defineConfig({
+        resolve: {
+            alias: {
+                // this package has no "main" field, only "module"/"browser", so esbuild can't
+                // resolve it under the Node platform rules that vite-plugin-electron-renderer applies
+                'leaflet.gridlayer.googlemutant': path.resolve(
+                    __dirname,
+                    'node_modules/leaflet.gridlayer.googlemutant/dist/Leaflet.GoogleMutant.js',
+                ),
+            },
+        },
         plugins: [
             react(),
             electron([
