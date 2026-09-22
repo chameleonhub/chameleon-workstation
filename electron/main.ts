@@ -97,6 +97,20 @@ let db = createOrReadLocalDatabase(MODE);
 
 export let mainWindow: BrowserWindow | null;
 
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+    app.exit(0);
+} else {
+    app.on('second-instance', () => {
+        if (mainWindow) {
+            if (mainWindow.isMinimized()) {
+                mainWindow.restore();
+            }
+            mainWindow.focus();
+        }
+    });
+}
+
 const createWindow = () => {
     log.info('created window');
 
@@ -117,10 +131,10 @@ const createWindow = () => {
         mainWindow.loadFile(path.join(process.env.DIST as string, 'index.html'));
     }
 
+    mainWindow.maximize();
+
     if (MODE === 'development') {
         mainWindow.webContents.openDevTools();
-    } else {
-        mainWindow.maximize();
     }
 
     //what does that do?
