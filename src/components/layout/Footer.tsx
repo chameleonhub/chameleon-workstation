@@ -1,8 +1,8 @@
 import { AppBar, Box, IconButton, Tooltip, Typography } from '@mui/material';
 import React, { useEffect, useRef, useState } from 'react';
-import { NetworkIndicator } from './NetworkIndicator';
+import { NetworkIndicator } from '../common/NetworkIndicator';
 import { ipcRenderer } from 'electron';
-import { ToastMessageType } from '../../electron/bahis.model.ts';
+import { ToastMessageType } from '../../../electron/bahis.model.ts';
 import { useSelector } from 'react-redux';
 import {
     selectStatus,
@@ -10,11 +10,11 @@ import {
     setStatus,
     setToastMessage,
     setToastOpen,
-} from '../stores/featues/NotificationSlice.ts';
-import { useAppDispatch } from '../stores/store.ts';
+} from '../../stores/featues/NotificationSlice.ts';
+import { useAppDispatch } from '../../stores/store.ts';
 import { useSnackbar } from 'notistack';
 import { Close as CloseIcon, Info as InfoIcon } from '@mui/icons-material';
-import chameleonLogo from '../assets/images/chameleon_white.png';
+import chameleonLogo from '../../assets/images/chameleon_white.png';
 
 export interface FooterProps {
     lastSyncTime?: string;

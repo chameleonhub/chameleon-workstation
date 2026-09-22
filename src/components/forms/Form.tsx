@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
-import { log } from '../helpers/log';
+import { log } from '../../helpers/log';
 import { ipcRenderer } from 'electron';
 import { EnketoForm } from './EnketoForm';
 import { Footer } from './EnketoFooter';
-import { LoadingSpinner } from './LoadingSpinner.tsx';
+import { LoadingSpinner } from '../common/LoadingSpinner.tsx';
 
 const readFormData = async (tableName: string, form_uid: string, instance_id?: string) => {
     log.info(`reading data from ${tableName} table...`);

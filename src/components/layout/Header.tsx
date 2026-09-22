@@ -32,15 +32,15 @@ import {
 } from '@mui/material';
 import React, { Fragment, ReactElement, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { log } from '../helpers/log';
+import { log } from '../../helpers/log';
 import { ipcRenderer } from 'electron';
 import { useSelector } from 'react-redux';
-import { fetchDraftCount, selectDraftCount } from '../stores/featues/draftCounterSlice.ts';
-import { useAppDispatch } from '../stores/store.ts';
-import { User } from '../app.model.ts';
-import { OpenToast } from '../stores/featues/NotificationSlice.ts';
-import bahisWhite from '../assets/images/bahis_white.png';
-import { LoadingSpinner } from './LoadingSpinner.tsx';
+import { fetchDraftCount, selectDraftCount } from '../../stores/featues/draftCounterSlice.ts';
+import { useAppDispatch } from '../../stores/store.ts';
+import { User } from '../../app.model.ts';
+import { OpenToast } from '../../stores/featues/NotificationSlice.ts';
+import bahisWhite from '../../assets/images/bahis_white.png';
+import { LoadingSpinner } from '../common/LoadingSpinner.tsx';
 
 export const Header = () => {
     const [isWaitingForDataSync, setWaitingForDataSync] = useState(false);

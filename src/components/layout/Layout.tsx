@@ -1,10 +1,10 @@
 import { Box, Container, Toolbar } from '@mui/material';
 import React, { useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { log } from '../helpers/log';
+import { log } from '../../helpers/log';
 import { Footer } from './Footer';
 import { Header } from './Header';
-import { SystemAlerts } from './SystemAlerts';
+import { SystemAlerts } from '../common/SystemAlerts';
 import { ipcRenderer } from 'electron';
 
 const getLastSyncTime = async (override?: string | undefined) => {

@@ -2,7 +2,7 @@ import { Box, TextField, Tooltip, Typography } from '@mui/material';
 import { DataGrid, GridActionsCellItem, GridColDef, GridColumnVisibilityModel, GridToolbar } from '@mui/x-data-grid';
 import PostAddIcon from '@mui/icons-material/PostAdd';
 import { useEffect, useState } from 'react';
-import { log } from '../helpers/log';
+import { log } from '../../helpers/log';
 import { ipcRenderer } from 'electron';
 import { useNavigate, useParams } from 'react-router-dom';
 

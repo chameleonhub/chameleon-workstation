@@ -2,11 +2,11 @@ import { Tooltip, Typography } from '@mui/material';
 import { DataGrid, GridActionsCellItem, GridColDef } from '@mui/x-data-grid';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useEffect, useState } from 'react';
-import { log } from '../helpers/log';
+import { log } from '../../helpers/log';
 import { ipcRenderer } from 'electron';
 import { useNavigate } from 'react-router-dom';
-import { fetchDraftCount } from '../stores/featues/draftCounterSlice.ts';
-import { useAppDispatch } from '../stores/store.ts';
+import { fetchDraftCount } from '../../stores/featues/draftCounterSlice.ts';
+import { useAppDispatch } from '../../stores/store.ts';
 
 const readDraftTableData = async () => {
     log.info(`reading data from formlocaldraft table...`);

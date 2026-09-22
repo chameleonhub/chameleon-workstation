@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { log } from '../helpers/log';
-import { LoadingSpinner } from './LoadingSpinner.tsx';
+import { log } from '../../helpers/log';
+import { LoadingSpinner } from '../common/LoadingSpinner.tsx';
 import { ipcRenderer } from 'electron';
 
 const encodeAdministrativeRegion = (administrativeRegionID) => {

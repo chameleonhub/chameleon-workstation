@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ipcRenderer } from 'electron';
 import { useNavigate } from 'react-router-dom';
 import { Alert } from '@mui/material';
-import { log } from '../helpers/log';
+import { log } from '../../helpers/log';
 
 export interface AlertContent {
     severity: 'error' | 'warning' | 'info' | 'success';

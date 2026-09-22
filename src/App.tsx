@@ -1,13 +1,13 @@
 import { createHashRouter, RouterProvider } from 'react-router-dom';
 
-import { ErrorPage } from './components/ErrorPage';
-import { Form } from './components/Form';
-import { DraftList } from './components/DraftList';
-import { IFrame } from './components/IFrame';
-import { Layout } from './components/Layout';
-import { List } from './components/List';
-import { Menu } from './components/Menu';
-import { SignIn } from './components/SignIn';
+import { ErrorPage } from './components/common/ErrorPage';
+import { Form } from './components/forms/Form';
+import { DraftList } from './components/list/DraftList';
+import { IFrame } from './components/layout/IFrame';
+import { Layout } from './components/layout/Layout';
+import { List } from './components/list/List';
+import { Menu } from './components/layout/Menu';
+import { SignIn } from './components/auth/SignIn';
 
 export const App = () => {
     const router = createHashRouter([

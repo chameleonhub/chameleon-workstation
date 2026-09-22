@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import SignalCellular4BarIcon from '@mui/icons-material/SignalCellular4Bar';
 import SignalCellularOffIcon from '@mui/icons-material/SignalCellularOff';
 import { Alert, Box, Snackbar, Tooltip, Typography } from '@mui/material';
-import { log } from '../helpers/log';
+import { log } from '../../helpers/log';
 
 export const NetworkIndicator = () => {
     const [online, setOnline] = useState(typeof window !== 'undefined' ? window.navigator.onLine : true);

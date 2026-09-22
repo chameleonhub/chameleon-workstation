@@ -16,12 +16,12 @@ import {
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { log } from '../helpers/log';
+import { log } from '../../helpers/log';
 import { ipcRenderer } from 'electron';
-import { AlertContent } from './SystemAlerts';
+import { AlertContent } from '../common/SystemAlerts';
 import { grey } from '@mui/material/colors';
-import bahisLogo from '../assets/images/bahis_logo.png';
-import { LoadingSpinner } from './LoadingSpinner.tsx';
+import bahisLogo from '../../assets/images/bahis_logo.png';
+import { LoadingSpinner } from '../common/LoadingSpinner.tsx';
 
 interface UserData {
     username: string;

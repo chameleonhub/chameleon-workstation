@@ -1,6 +1,6 @@
 import { Alert, Button, Card, CardContent, Grid, Icon, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { log } from '../helpers/log';
+import { log } from '../../helpers/log';
 import { ipcRenderer } from 'electron';
 import { Link, useParams } from 'react-router-dom';
 

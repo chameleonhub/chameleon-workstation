@@ -4,9 +4,9 @@ import { Form } from 'enketo-core';
 import { transform } from 'enketo-transformer/web';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { log } from '../helpers/log';
-import { fetchDraftCount } from '../stores/featues/draftCounterSlice.ts';
-import { useAppDispatch } from '../stores/store.ts';
+import { log } from '../../helpers/log';
+import { fetchDraftCount } from '../../stores/featues/draftCounterSlice.ts';
+import { useAppDispatch } from '../../stores/store.ts';
 
 interface EnketoFormProps {
     formUID: string; // The unique identifier for the form
