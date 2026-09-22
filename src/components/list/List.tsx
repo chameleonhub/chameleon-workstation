@@ -1,4 +1,4 @@
-import { Box, TextField, Tooltip, Typography } from '@mui/material';
+import { Box, Tooltip, Typography } from '@mui/material';
 import { DataGrid, GridActionsCellItem, GridColDef, GridColumnVisibilityModel, GridToolbar } from '@mui/x-data-grid';
 import PostAddIcon from '@mui/icons-material/PostAdd';
 import { useEffect, useState } from 'react';
@@ -312,12 +312,6 @@ export const List = () => {
         navigate(`/form/details/${form_uid}/${event.row.id}`);
     };
 
-    const [searchText, setSearchText] = useState('');
-
-    const filteredRows = rows.filter((row) =>
-        Object.values(row).some((value) => String(value).toLowerCase().includes(searchText.toLowerCase())),
-    );
-
     return (
         <>
             <Typography color="primary.dark" variant="h3" id="form-title" sx={{ marginBottom: '2rem' }}>
@@ -325,26 +319,21 @@ export const List = () => {
             </Typography>
             {columns && rows && (
                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                    <TextField
-                        sx={{ alignSelf: 'end' }}
-                        variant="standard"
-                        label="Search"
-                        onChange={(e) => setSearchText(e.target.value)}
-                        style={{ marginBottom: '.5rem' }}
-                    />
                     <DataGrid
                         columns={columns}
                         columnVisibilityModel={columnVisibility}
                         onColumnVisibilityModelChange={(newModel) => setColumnVisibility(newModel)}
-                        rows={filteredRows}
+                        rows={rows}
+                        showToolbar
                         slots={{ toolbar: GridToolbar }}
                         initialState={{
                             pagination: {
                                 paginationModel: {
-                                    pageSize: 25,
+                                    pageSize: 10,
                                 },
                             },
                         }}
+                        pageSizeOptions={[10, 25, 50, 100]}
                         logger={log}
                         onRowClick={onRowClick}
                         autoHeight
