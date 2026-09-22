@@ -21,7 +21,7 @@ export interface LayoutProps {
     hasHeader?: boolean;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ hasHeader }) => {
+export const Layout: React.FC<LayoutProps> = ({ hasHeader = true }) => {
     const navigate = useNavigate();
 
     const [lastSyncTime, setLastSyncTime] = React.useState<string>();
@@ -62,8 +62,4 @@ export const Layout: React.FC<LayoutProps> = ({ hasHeader }) => {
             <Footer lastSyncTime={lastSyncTime} />
         </>
     );
-};
-
-Layout.defaultProps = {
-    hasHeader: true,
 };

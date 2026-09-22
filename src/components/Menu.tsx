@@ -171,13 +171,9 @@ export const Menu = () => {
                 {menuModules.length > 0 ? (
                     menuModules.map((menuItem) => (
                         <Grid
-                            item
                             key={'menu-' + menuItem.id}
                             style={{ order: menuItem.sort_order }}
-                            lg={3}
-                            md={4}
-                            sm={6}
-                            xs={12}
+                            size={{ lg: 3, md: 4, sm: 6, xs: 12 }}
                         >
                             <MenuButton menuItem={menuItem} />
                         </Grid>

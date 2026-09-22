@@ -15,7 +15,7 @@ interface EnketoFormProps {
     editable?: boolean; // Whether the form should be editable
 }
 
-export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, instanceID, editable }) => {
+export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, instanceID, editable = true }) => {
     const formEl = useRef<HTMLDivElement>(null);
     const [form, setForm] = useState<Form | null>(null);
     const dispatch = useAppDispatch();
@@ -209,8 +209,4 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
             </Box>
         </Stack>
     );
-};
-
-EnketoForm.defaultProps = {
-    editable: true,
 };

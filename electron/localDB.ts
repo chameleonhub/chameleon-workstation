@@ -9,9 +9,12 @@ import { log } from './log';
 // 2023-08-21 the following options are a fix for using rollup (within vite) with better-sqlite3
 const __filename = fileURLToPath(import.meta.url);
 const requireMe = createRequire(pathToFileURL(__filename).href);
-const addon = requireMe(
-    path.resolve('./node_modules/better-sqlite3/build/Release/better_sqlite3.node').replace(/(\.node)?$/, '.node'),
-);
+// better-sqlite3 ships per-platform prebuilt binaries under prebuilds/ (see its own lib/binding.js)
+const isLinuxMusl = () =>
+    process.platform === 'linux' &&
+    !(process.report.getReport() as { header: { glibcVersionRuntime?: string } }).header.glibcVersionRuntime;
+const prebuildTarget = `${isLinuxMusl() ? 'linuxmusl' : process.platform}-${process.arch}`;
+const addon = requireMe(path.resolve(`./node_modules/better-sqlite3/prebuilds/${prebuildTarget}.node`));
 
 const DB_PATH = (MODE) => {
     if (MODE === 'production') {

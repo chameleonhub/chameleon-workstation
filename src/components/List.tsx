@@ -324,7 +324,7 @@ export const List = () => {
                 {form?.title}
             </Typography>
             {columns && rows && (
-                <Box display="flex" flexDirection="column">
+                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                     <TextField
                         sx={{ alignSelf: 'end' }}
                         variant="standard"

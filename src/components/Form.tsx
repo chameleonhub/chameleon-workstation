@@ -30,7 +30,7 @@ interface FormProps {
     draft?: boolean;
 }
 
-export const Form: React.FC<FormProps> = ({ draft }: FormProps) => {
+export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
     const [formXML, setFormXML] = useState<string>('');
     const [injectedData, setInjectedData] = useState<string>();
     const [prefilledFormXML, setPrefilledFormXML] = useState<string>('');
@@ -319,8 +319,4 @@ export const Form: React.FC<FormProps> = ({ draft }: FormProps) => {
             <Footer />
         </>
     );
-};
-
-Form.defaultProps = {
-    draft: false,
 };

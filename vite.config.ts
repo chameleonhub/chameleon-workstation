@@ -15,7 +15,7 @@ export default function ViteConfig({ mode }) {
                 // this package has no "main" field, only "module"/"browser", so esbuild can't
                 // resolve it under the Node platform rules that vite-plugin-electron-renderer applies
                 'leaflet.gridlayer.googlemutant': path.resolve(
-                    __dirname,
+                    import.meta.dirname,
                     'node_modules/leaflet.gridlayer.googlemutant/dist/Leaflet.GoogleMutant.js',
                 ),
             },

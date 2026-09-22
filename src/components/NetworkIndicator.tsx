@@ -41,7 +41,7 @@ export const NetworkIndicator = () => {
                 <Tooltip title="Poor network connection - you may have troubles syncing your data!">
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <SignalCellularOffIcon color="error" />
-                        <Typography fontWeight="bold" color="error">
+                        <Typography sx={{ fontWeight: 'bold' }} color="error">
                             Poor connection
                         </Typography>
                     </Box>

@@ -113,6 +113,7 @@ export const DraftList = () => {
             getActions: (params) => {
                 return [
                     <GridActionsCellItem
+                        key="delete"
                         label="Delete"
                         icon={<Tooltip title="Delete">{<DeleteIcon />}</Tooltip>}
                         onClick={() => {

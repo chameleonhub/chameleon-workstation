@@ -1,12 +1,6 @@
-import { IpcMainInvokeEvent } from 'electron';
-
 export interface UserData {
     username: string;
     password: string;
-}
-
-export interface BahisIpcMainInvokeEvent extends IpcMainInvokeEvent {
-    type: string;
 }
 
 interface xForm {

@@ -194,7 +194,7 @@ export const Header = () => {
             {isWaitingForDataSync && <LoadingSpinner loadingText={loadingMessage} zHeight={5000} />}
             <Toolbar sx={{ justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Box className="cursor-pointer" display="flex" onClick={onHomeHandler}>
+                    <Box className="cursor-pointer" sx={{ display: 'flex' }} onClick={onHomeHandler}>
                         <Box
                             component="img"
                             src={bahisWhite}

@@ -34,7 +34,7 @@ const BAHIS2_SERVER_URL = import.meta.env.VITE_BAHIS2_SERVER_URL || 'http://loca
 
 // default environment variables, i.e. for local development
 export const MODE = import.meta.env.MODE || 'development';
-process.env.NODE_ENV = MODE;
+process.env.NODE_ENV = MODE as typeof process.env.NODE_ENV;
 
 // set environment variables based on mode
 switch (MODE) {
