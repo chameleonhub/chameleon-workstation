@@ -441,8 +441,8 @@ export const getTaxonomies = async (db) => {
                 Toast(`GET Taxonomy CSV ${taxonomy.slug} SUCCESS`);
             })
             .catch((error) => {
-                Toast('GET Taxonomy CSV FAILED!!', 'error');
-                log.error('GET Taxonomy CSV FAILED with:');
+                Toast(`GET Taxonomy CSV ${taxonomy.slug} FAILED!!`, 'error');
+                log.error(`GET Taxonomy CSV ${taxonomy.slug} FAILED with:`);
                 log.error(error);
             });
     }
