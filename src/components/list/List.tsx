@@ -209,7 +209,11 @@ export const List = () => {
                 for (const element of collection) {
                     if (element.nodeName === 'group' || element.nodeName === 'repeat') {
                         recurseXML(element.children, fields);
-                    } else if (element.nodeName === 'input') {
+                    } else if (
+                        element.nodeName === 'input' ||
+                        element.nodeName === 'select1' ||
+                        element.nodeName === 'select'
+                    ) {
                         fields.push(element);
                     }
                 }
@@ -221,17 +225,17 @@ export const List = () => {
 
             const columnVisibilityInitial = {};
             fields.filter((element) => {
-                const ref = element.getAttribute('ref');
-                const parent_name = ref?.split('/')[2] || '';
-                const name = ref?.split('/')[3] || '';
+                const refSegments = element.getAttribute('ref')?.split('/') || [];
+                const parent_name = refSegments[refSegments.length - 2] || '';
+                const name = refSegments[refSegments.length - 1] || '';
                 columnVisibilityInitial[`${parent_name}_${name}`] = !FIELDS_TO_HIDE.includes(name);
             });
 
             // Map fields to column definition objects
             const parsedColumns: GridColDef[] = fields.map((element) => {
-                const ref = element.getAttribute('ref');
-                const parent_name = ref?.split('/')[2] || '';
-                const name = ref?.split('/')[3] || '';
+                const refSegments = element.getAttribute('ref')?.split('/') || [];
+                const parent_name = refSegments[refSegments.length - 2] || '';
+                const name = refSegments[refSegments.length - 1] || '';
                 // const headerName = element.getElementsByTagName('label')[0].textContent;
                 if (name.toLowerCase().includes('date')) {
                     return {
