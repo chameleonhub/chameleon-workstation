@@ -109,3 +109,10 @@ body {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+
+// Dashboard chart cards sit in a MUI Grid, each its own stacking context; a later card in the
+// grid can otherwise paint over an earlier card's open Highcharts export menu since it overflows
+// past that card's own boundary. Force it above any sibling card regardless.
+.highcharts-contextmenu {
+  z-index: 4000 !important;
+}

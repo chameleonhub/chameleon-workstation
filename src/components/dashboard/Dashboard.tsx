@@ -1,8 +1,8 @@
 import { Alert, Box, Card, CardContent, Grid, Typography } from '@mui/material';
-import { BarChart } from '@mui/x-charts/BarChart';
-import { LineChart } from '@mui/x-charts/LineChart';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import type Highcharts from '../../helpers/highchartsConfig';
+import { HighchartsChart } from './HighchartsChart';
 import { log } from '../../helpers/log';
 import {
     fieldNameParts,
@@ -14,10 +14,10 @@ import {
     titleCase,
 } from '../../helpers/formData';
 
-// Single sequential hue (dataviz skill: comparing magnitude across the categories
-// of ONE field is not "distinct series" - it's one measure, so one hue, not a
-// rainbow per bar/category).
-const SERIES_COLOR = '#2a78d6';
+// Bar/column widgets use the app-wide categorical palette (highchartsConfig.ts) via
+// plotOptions.bar/column.colorByPoint - one color per category/bin. The time-series line chart
+// keeps a single color since it's one continuous trend, not discrete categories.
+const LINE_SERIES_COLOR = '#2a78d6';
 
 const GEO_FIELD_NAMES = ['division', 'district', 'upazila'];
 const MAX_CATEGORIES = 7; // dataviz skill: fold the tail into "Other" past ~7 classes
@@ -71,7 +71,12 @@ const StatTile = ({ label, value }: { label: string; value: string }) => (
 );
 
 const ChartCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <Card sx={{ height: '100%' }}>
+    // MUI Card sets overflow: hidden by default (so rounded corners clip content cleanly) - that
+    // also clips the bottom of the Highcharts export menu once it's taller than the remaining
+    // card height, no matter how high its z-index is: z-index only controls paint order, it can't
+    // escape an ancestor's overflow clipping. Chart widgets never need their own overflow clipped,
+    // so it's safe to open it up here.
+    <Card sx={{ height: '100%', overflow: 'visible' }}>
         <CardContent>
             <Typography variant="subtitle1" sx={{ marginBottom: 1 }}>
                 {title}
@@ -104,10 +109,8 @@ const CategoricalWidget = ({
     fieldKey: string;
     rows: Record<string, unknown>[];
 }) => {
-    // MUI X Charts memoizes internally by prop reference (reselect) - series/xAxis/yAxis must be
-    // stable across renders, or its tooltip selectors re-run on every render (console warnings,
-    // wasted work). Compute the underlying data once per [rows, fieldKey], then build the chart
-    // prop arrays from that memoized data rather than as fresh inline literals every render.
+    // HighchartsChart calls Highcharts.update() with this options object on every change - a
+    // stable reference when the underlying data hasn't changed avoids needless chart rebuilds.
     const { labels, values } = useMemo(() => {
         const counts = new Map<string, number>();
         rows.forEach((row) => {
@@ -118,10 +121,15 @@ const CategoricalWidget = ({
         return counts.size === 0 ? { labels: [] as string[], values: [] as number[] } : foldIntoOther(counts);
     }, [rows, fieldKey]);
 
-    const series = useMemo(() => [{ data: values, color: SERIES_COLOR, label: 'Submissions' }], [values]);
-    const yAxis = useMemo(() => [{ data: labels, scaleType: 'band' as const }], [labels]);
-    const xAxis = useMemo(() => [{ min: 0 }], []);
-    const margin = useMemo(() => ({ left: 110 }), []);
+    const options = useMemo<Highcharts.Options>(
+        () => ({
+            chart: { type: 'bar', height: Math.max(120, labels.length * 40) },
+            xAxis: { categories: labels },
+            yAxis: { title: { text: undefined }, min: 0, allowDecimals: false },
+            series: [{ type: 'bar', name: 'Submissions', data: values }],
+        }),
+        [labels, values],
+    );
 
     if (labels.length === 0) {
         return (
@@ -135,16 +143,7 @@ const CategoricalWidget = ({
 
     return (
         <ChartCard title={title}>
-            <BarChart
-                layout="horizontal"
-                height={Math.max(120, labels.length * 40)}
-                yAxis={yAxis}
-                xAxis={xAxis}
-                series={series}
-                borderRadius={4}
-                hideLegend
-                margin={margin}
-            />
+            <HighchartsChart options={options} />
         </ChartCard>
     );
 };
@@ -173,8 +172,15 @@ const NumericWidget = ({ title, fieldKey, rows }: { title: string; fieldKey: str
         return { min, max, avg, bins, binLabels };
     }, [rows, fieldKey]);
 
-    const series = useMemo(() => [{ data: stats?.bins ?? [], color: SERIES_COLOR, label: 'Submissions' }], [stats]);
-    const xAxis = useMemo(() => [{ data: stats?.binLabels ?? [], scaleType: 'band' as const }], [stats]);
+    const options = useMemo<Highcharts.Options>(
+        () => ({
+            chart: { type: 'column', height: 220 },
+            xAxis: { categories: stats?.binLabels ?? [] },
+            yAxis: { title: { text: undefined }, allowDecimals: false },
+            series: [{ type: 'column', name: 'Submissions', data: stats?.bins ?? [] }],
+        }),
+        [stats],
+    );
 
     if (!stats) {
         return (
@@ -210,7 +216,7 @@ const NumericWidget = ({ title, fieldKey, rows }: { title: string; fieldKey: str
                     <Typography variant="body1">{max}</Typography>
                 </Grid>
             </Grid>
-            <BarChart height={220} xAxis={xAxis} series={series} borderRadius={4} hideLegend />
+            <HighchartsChart options={options} />
         </ChartCard>
     );
 };
@@ -228,8 +234,15 @@ const TimeSeriesWidget = ({ title, fieldKey, rows }: { title: string; fieldKey: 
         return { labels, values: labels.map((label) => counts.get(label) || 0) };
     }, [rows, fieldKey]);
 
-    const series = useMemo(() => [{ data: values, color: SERIES_COLOR, label: 'Submissions' }], [values]);
-    const xAxis = useMemo(() => [{ data: labels, scaleType: 'band' as const }], [labels]);
+    const options = useMemo<Highcharts.Options>(
+        () => ({
+            chart: { type: 'line', height: 220 },
+            xAxis: { categories: labels },
+            yAxis: { title: { text: undefined }, allowDecimals: false },
+            series: [{ type: 'line', name: 'Submissions', data: values, color: LINE_SERIES_COLOR }],
+        }),
+        [labels, values],
+    );
 
     if (labels.length === 0) {
         return (
@@ -243,7 +256,7 @@ const TimeSeriesWidget = ({ title, fieldKey, rows }: { title: string; fieldKey: 
 
     return (
         <ChartCard title={title}>
-            <LineChart height={220} xAxis={xAxis} series={series} hideLegend />
+            <HighchartsChart options={options} />
         </ChartCard>
     );
 };
