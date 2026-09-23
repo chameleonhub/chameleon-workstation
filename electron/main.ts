@@ -1,6 +1,7 @@
 import axios from 'axios';
 import csv from 'csv-parser';
 import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
+import { installExtension, REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import firstRun from 'electron-first-run'; // could this eventually be removed too?
 import { autoUpdater, UpdateDownloadedEvent } from 'electron-updater';
 import { createReadStream } from 'fs';
@@ -175,11 +176,19 @@ app.whenReady().then(() => {
         autoUpdateBahis();
     }
 
-    // if (MODE === 'development') {
-    //     installExtension(REACT_DEVELOPER_TOOLS)
-    //         .then((name) => log.info(`Added Extension: ${name}`))
-    //         .catch((error) => log.error('An error occurred: ', error));
-    // }
+    if (MODE === 'development') {
+        // installExtension can throw synchronously (e.g. no network access to the Chrome Web
+        // Store); since this whole app.whenReady().then() callback has no .catch(), an uncaught
+        // synchronous throw here would abort createWindow() below and the app would exit with no
+        // window and no error - wrap it so a broken devtools install never takes down the app.
+        try {
+            installExtension(REACT_DEVELOPER_TOOLS)
+                .then((extension) => log.info(`Added DevTools extension: ${extension.name}`))
+                .catch((error) => log.error('Failed to install DevTools extension: ', error));
+        } catch (error) {
+            log.error('Failed to install DevTools extension: ', error);
+        }
+    }
 
     createWindow();
 });
