@@ -49,6 +49,10 @@ export const createOrReadLocalDatabase = (MODE) => {
     } else {
         log.info(`Using existing local database at ${DB_PATH(MODE)}`);
         db = new Database(DB_PATH(MODE), { nativeBinding: addon });
+        // there's no migration system here, so tables added after a user's first install
+        // are created on top of their existing database as needed, rather than requiring
+        // a full (destructive) database reset.
+        initialiseDBFormMediaTable(db);
     }
 
     return db;
@@ -75,6 +79,7 @@ export const initialiseDBTables = (db) => {
     initialiseDBFormLocalDraftsTable(db);
     initialiseDBFormCloudSubmissionsTable(db);
     initialiseDBTaxonomiesTable(db);
+    initialiseDBFormMediaTable(db);
     initialiseDBAdministrativeRegionsTable(db);
     initialiseUserTable(db);
 };
@@ -150,6 +155,18 @@ const initialiseDBTaxonomiesTable = (db) => {
         'CREATE TABLE taxonomy (\
         slug TEXT NOT NULL PRIMARY KEY,\
         csv_file TEXT NOT NULL\
+    );',
+    ).run();
+};
+
+const initialiseDBFormMediaTable = (db) => {
+    log.info('Creating formmedia table');
+    db.prepare(
+        'CREATE TABLE IF NOT EXISTS formmedia (\
+        form_uid TEXT NOT NULL,\
+        filename TEXT NOT NULL,\
+        hash TEXT NULL,\
+        PRIMARY KEY (form_uid, filename)\
     );',
     ).run();
 };

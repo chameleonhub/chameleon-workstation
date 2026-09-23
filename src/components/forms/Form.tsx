@@ -181,6 +181,24 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
             }
         };
 
+        // Kobo's native external-CSV mechanism for pulldata(): <instance id="X" src="jr://file-csv/X.csv"/>,
+        // distinct from the deskTaxonomy.* instances above.
+        const readFormMediaChoices = (filename: string) => {
+            log.info(`Reading form media data for ${filename}`);
+            const parser = new DOMParser();
+
+            return ipcRenderer
+                .invoke('read-form-media-data', form_uid, filename)
+                .then((data: string) => {
+                    return parser.parseFromString(data, 'application/xml');
+                })
+                .catch((error) => {
+                    log.error(`Error reading form media data for ${filename}`);
+                    log.error(error);
+                    return null;
+                });
+        };
+
         const insertTaxonomyChoices = async (formXML: string) => {
             log.info('Inserting deskTaxonomy choices in form definition');
             const parser = new DOMParser();
@@ -224,6 +242,21 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
                         }
                         hasReplacements = true;
                     }
+                } else if (
+                    elements[i].tagName === 'instance' &&
+                    elements[i].getAttribute('src')?.startsWith('jr://file-csv/')
+                ) {
+                    const src = elements[i].getAttribute('src');
+                    const filename = src?.slice('jr://file-csv/'.length);
+                    log.info(`Found external CSV instance ${elements[i].getAttribute('id')} (${filename})`);
+
+                    const choiceOptions = filename ? await readFormMediaChoices(filename) : null;
+
+                    if (choiceOptions) {
+                        elements[i].replaceChildren(choiceOptions.documentElement);
+                        elements[i].removeAttribute('src');
+                        hasReplacements = true;
+                    }
                 }
             }
 
@@ -251,7 +284,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
                 setIsDeskTaxonomyInserted(true);
             }
         }
-    }, [formXML, instance_id, editable, injectedData]);
+    }, [formXML, instance_id, editable, injectedData, form_uid]);
 
     // if the form has been filled out previously, read the data
     // FIXME and then force it into the form as "default" data

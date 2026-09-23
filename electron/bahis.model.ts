@@ -8,6 +8,7 @@ interface xForm {
     name: string;
     descriptionText: string;
     downloadUrl: string;
+    manifestUrl?: string;
 }
 
 export interface Form {
@@ -15,6 +16,17 @@ export interface Form {
     name: string;
     description: string;
     xml_url: string;
+    manifest_url?: string;
+}
+
+interface MediaFile {
+    filename: string;
+    hash: string;
+    downloadUrl: string;
+}
+
+export interface ManifestObj {
+    manifest: { mediaFile: MediaFile[] };
 }
 
 export interface FormListObj {

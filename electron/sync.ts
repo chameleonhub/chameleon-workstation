@@ -5,7 +5,7 @@ import xpath from 'xpath';
 import { log } from './log';
 import { auth } from '../conf/axios.ts';
 import Xml2Js from 'xml2js';
-import { CloudFormData, Form, FormListObj } from './bahis.model.ts';
+import { CloudFormData, Form, FormListObj, ManifestObj } from './bahis.model.ts';
 import { setStatus, Toast } from './utils.ts';
 
 const parser = new Xml2Js.Parser();
@@ -194,6 +194,7 @@ export const getForms = async (db) => {
                                     name: form.name,
                                     description: form.descriptionText,
                                     xml_url: form.downloadUrl,
+                                    manifest_url: form.manifestUrl,
                                 };
                             });
                             log.info(`GET Form UIDs SUCCESS`);
@@ -235,11 +236,78 @@ export const getForms = async (db) => {
                     log.error('GET KoboToolbox Form Definitions FAILED with:');
                     log.error(error);
                 });
+
+            if (form.manifest_url) {
+                getFormMedia(db, form.uid, form.manifest_url).catch((error) => {
+                    log.error(`GET form media for ${form.uid} FAILED with:`);
+                    log.error(error);
+                });
+            }
         }
         Toast('Get Form Definitions SUCCESS');
         log.info(`GET KoboToolbox Form Definitions SUCCESS`);
     } else {
         Toast('No forms assigned', 'warning');
+    }
+};
+
+// Kobo lists each form's attached media (used by e.g. pulldata()) via an OpenRosa manifest;
+// only CSV media is relevant here since that's all pulldata() reads.
+const getFormMedia = async (db, formUid: string, manifestUrl: string) => {
+    log.info(`GET form media manifest for ${formUid}`);
+
+    const mediaFiles = await auth
+        .get(manifestUrl)
+        .then((response) => _xmlToJson(response.data))
+        .then((manifest) => {
+            const manifestObj = manifest as ManifestObj;
+            const files = manifestObj?.manifest?.mediaFile ?? [];
+            return files.map(_simplifyFormObj);
+        })
+        .catch((error) => {
+            log.error(`GET form media manifest for ${formUid} FAILED with:`);
+            log.error(error);
+            return [];
+        });
+
+    const csvFiles = mediaFiles.filter((file) => file.filename?.toLowerCase().endsWith('.csv'));
+
+    const upsertQuery = db.prepare(
+        'INSERT INTO formmedia (form_uid, filename, hash) VALUES (?, ?, ?) ON CONFLICT(form_uid, filename) DO UPDATE SET hash = excluded.hash;',
+    );
+    const existingHashQuery = db.prepare('SELECT hash FROM formmedia WHERE form_uid = ? AND filename = ?');
+
+    for (const file of csvFiles) {
+        const existing = existingHashQuery.get(formUid, file.filename);
+        if (existing && existing.hash === file.hash) {
+            log.info(`Form media ${formUid}/${file.filename} unchanged, skipping download`);
+            continue;
+        }
+
+        log.info(`GET form media ${formUid}/${file.filename} from server`);
+        auth.get(file.downloadUrl)
+            .then((response) => {
+                const uPath = app.getPath('userData');
+                const dir = `${uPath}/formmedia/${formUid}`;
+
+                try {
+                    if (!existsSync(dir)) {
+                        mkdirSync(dir, { recursive: true });
+                    }
+                    writeFileSync(`${dir}/${file.filename}`, response.data, 'utf-8');
+                } catch (error) {
+                    log.error(`GET form media ${formUid}/${file.filename} FAILED while saving with:`);
+                    log.error(error);
+                    return;
+                }
+                upsertQuery.run([formUid, file.filename, file.hash]);
+                log.info(`GET form media ${formUid}/${file.filename} SUCCESS`);
+            })
+            .catch((error) => {
+                Toast(`GET form media ${file.filename} FAILED!!`, 'error');
+                log.error(`GET form media ${formUid}/${file.filename} FAILED with:`);
+                log.error(error);
+            });
     }
 };
 

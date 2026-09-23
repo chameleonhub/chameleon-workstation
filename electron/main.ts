@@ -554,17 +554,9 @@ const readAdministrativeRegions = async (event) => {
     });
 };
 
-const readTaxonomy = async (event, taxonomySlug: string) => {
-    log.info(`READ ${taxonomySlug} taxonomy CSV`);
-    log.debug(`due to ${event.type}`);
-
-    const query = `SELECT csv_file
-                   FROM taxonomy
-                   where slug = '${taxonomySlug}'`;
-    const response = db.prepare(query).get();
-    const filePath = `${app.getPath('userData')}/${response.csv_file}`;
-
-    log.info(`Reading taxonomy CSV at ${filePath}`);
+// Reads a CSV file and converts it to the <root><item><col>val</col>...</item>...</root> XML
+// shape enketo-core's pulldata() support expects at instance('slug')/root/item.
+const csvFileToItemsXML = (filePath: string): Promise<string> => {
     const data: object[] = [];
     return new Promise<string>((resolve, reject) => {
         createReadStream(filePath)
@@ -580,16 +572,52 @@ const readTaxonomy = async (event, taxonomySlug: string) => {
                     });
                 });
 
-                const xmlString = doc.root().toString({ prettyPrint: false });
-                log.info(`READ taxonomy CSV at ${filePath} SUCCESS`);
-                resolve(xmlString);
+                resolve(doc.root().toString({ prettyPrint: false }));
             })
-            .on('error', (error) => {
-                log.error('READ taxonomy CSV at ${filePath} FAILED with:');
-                log.error(error);
-                reject(error);
-            });
+            .on('error', reject);
     });
+};
+
+const readTaxonomy = async (event, taxonomySlug: string) => {
+    log.info(`READ ${taxonomySlug} taxonomy CSV`);
+    log.debug(`due to ${event.type}`);
+
+    const query = `SELECT csv_file
+                   FROM taxonomy
+                   where slug = '${taxonomySlug}'`;
+    const response = db.prepare(query).get();
+    const filePath = `${app.getPath('userData')}/${response.csv_file}`;
+
+    log.info(`Reading taxonomy CSV at ${filePath}`);
+    return csvFileToItemsXML(filePath)
+        .then((xmlString) => {
+            log.info(`READ taxonomy CSV at ${filePath} SUCCESS`);
+            return xmlString;
+        })
+        .catch((error) => {
+            log.error(`READ taxonomy CSV at ${filePath} FAILED with:`);
+            log.error(error);
+            throw error;
+        });
+};
+
+const readFormMedia = async (event, formUid: string, filename: string) => {
+    log.info(`READ form media ${formUid}/${filename}`);
+    log.debug(`due to ${event.type}`);
+
+    const filePath = `${app.getPath('userData')}/formmedia/${formUid}/${filename}`;
+
+    log.info(`Reading form media CSV at ${filePath}`);
+    return csvFileToItemsXML(filePath)
+        .then((xmlString) => {
+            log.info(`READ form media CSV at ${filePath} SUCCESS`);
+            return xmlString;
+        })
+        .catch((error) => {
+            log.error(`READ form media CSV at ${filePath} FAILED with:`);
+            log.error(error);
+            throw error;
+        });
 };
 
 const refreshDatabase = async () => {
@@ -647,6 +675,7 @@ ipcMain.handle('request-form-sync', getForms);
 ipcMain.handle('request-taxonomy-sync', getTaxonomies);
 ipcMain.handle('request-administrative-region-sync', getAdministrativeRegions);
 ipcMain.handle('read-taxonomy-data', readTaxonomy);
+ipcMain.handle('read-form-media-data', readFormMedia);
 ipcMain.handle('read-administrative-region-data', readAdministrativeRegions);
 ipcMain.handle('read-user-administrative-region', readUserAdministrativeRegion);
 ipcMain.handle('read-app-version', readAppVersion);
