@@ -1,10 +1,13 @@
 import { Box, Tooltip, Typography } from '@mui/material';
 import { DataGrid, GridActionsCellItem, GridColDef, GridColumnVisibilityModel, GridToolbar } from '@mui/x-data-grid';
 import PostAddIcon from '@mui/icons-material/PostAdd';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { log } from '../../helpers/log';
 import {
+    ChoiceLabelMaps,
     Workflow,
+    applyChoiceLabels,
+    buildChoiceLabelMaps,
     fieldNameParts,
     parseSubmissionsAsRows,
     readFormData,
@@ -62,7 +65,8 @@ export const List = () => {
     const [workflows, setWorkflows] = useState<Workflow[]>([]);
     const [columns, setColumns] = useState<GridColDef[]>([]);
     const [columnVisibility, setColumnVisibility] = useState<GridColumnVisibilityModel>();
-    const [rows, setRows] = useState<[]>([]);
+    const [rawRows, setRawRows] = useState<Record<string, unknown>[]>([]);
+    const [choiceLabelMaps, setChoiceLabelMaps] = useState<ChoiceLabelMaps>({});
 
     const { form_uid } = useParams();
     const navigate = useNavigate();
@@ -75,6 +79,17 @@ export const List = () => {
             });
         }
     }, [form_uid]);
+
+    // resolve select/select1 field values (raw stored codes) to their human-readable choice
+    // labels, e.g. "3" -> "Anthrax" - see buildChoiceLabelMaps for the resolution rules
+    useEffect(() => {
+        if (form && form_uid) {
+            const fields = recurseFormBodyFields(form.body.children);
+            buildChoiceLabelMaps(form, form_uid, fields).then(setChoiceLabelMaps);
+        }
+    }, [form, form_uid]);
+
+    const rows = useMemo(() => rawRows.map((row) => applyChoiceLabels(row, choiceLabelMaps)), [rawRows, choiceLabelMaps]);
 
     // read workflow definitions
     useEffect(() => {
@@ -168,7 +183,7 @@ export const List = () => {
             readFormData(form_uid)
                 .then((data) => {
                     const jsonData = data.map((datum) => parseSubmissionsAsRows(datum));
-                    setRows(jsonData);
+                    setRawRows(jsonData);
                 })
                 .catch((error) => {
                     console.error(error);

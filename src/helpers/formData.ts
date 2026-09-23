@@ -166,3 +166,152 @@ export const fieldNameParts = (element: Element): { parent_name: string; name: s
 
 export const titleCase = (s: string) =>
     s.replace(/^_*(.)|_+(.)/g, (_s, c, d) => (c ? c.toUpperCase() : ' ' + d.toUpperCase()));
+
+export type ChoiceLabelMaps = Record<string, Map<string, string>>;
+
+const parseItemsAsLabelMap = (root: Element): Map<string, string> => {
+    const map = new Map<string, string>();
+    const items = root.getElementsByTagName('item');
+    for (const item of items) {
+        const name = item.getElementsByTagName('name')[0]?.textContent?.trim();
+        const label = item.getElementsByTagName('label')[0]?.textContent?.trim();
+        if (name && label) map.set(name, label);
+    }
+    return map;
+};
+
+// A select/select1 with no <itemset> at all (no secondary-instance indirection) instead has its
+// choices as direct <item><label>.../<label><value>.../<value></item> children right in the body -
+// note <value>, not <name>, unlike the secondary-instance <item> shape parseItemsAsLabelMap reads.
+const parseInlineBodyItems = (element: Element): Map<string, string> => {
+    const map = new Map<string, string>();
+    for (const child of element.children) {
+        if (child.nodeName !== 'item') continue;
+        const value = child.getElementsByTagName('value')[0]?.textContent?.trim();
+        const label = child.getElementsByTagName('label')[0]?.textContent?.trim();
+        if (value && label) map.set(value, label);
+    }
+    return map;
+};
+
+/**
+ * Builds a code -> label lookup per select/select1 field, so a submitted choice value like "3"
+ * can be shown as "Anthrax" instead of its raw stored code. Covers every itemset convention this
+ * app's forms use - the same three Form.tsx already resolves for the live, editable form, plus
+ * one more that needs no itemset at all:
+ *  - no `<itemset>` - choices are `<item><value>/<value><label>...</label></item>` right on the
+ *    select/select1 itself, resolved synchronously with no IPC call
+ *  - `instance('deskTaxonomy.<slug>')` -> the `taxonomy` table's synced CSV, via read-taxonomy-data
+ *    (or read-administrative-region-data for the administrative_region special case)
+ *  - `instance('id')` where that `<instance id="id" src="jr://file-csv/<file>">` -> this form's
+ *    own synced media CSV (formmedia table), via read-form-media-data
+ *  - anything else -> `<item><name>/<name><label>...</label></item>` choices already embedded
+ *    directly in this form's own `<model><instance>`, resolved synchronously with no IPC call
+ * This is read-only (just the label lookup) - unlike Form.tsx it never splices data back into the
+ * form XML, since List/Dashboard only display already-submitted values, they don't render a form.
+ */
+export const buildChoiceLabelMaps = async (
+    xmlDoc: Document,
+    form_uid: string,
+    fields: Element[],
+): Promise<ChoiceLabelMaps> => {
+    const maps: ChoiceLabelMaps = {};
+    const taxonomyCache = new Map<string, Promise<Map<string, string>>>();
+    const mediaCache = new Map<string, Promise<Map<string, string>>>();
+
+    const fetchTaxonomy = (slug: string): Promise<Map<string, string>> => {
+        if (!taxonomyCache.has(slug)) {
+            const invocation =
+                slug === 'administrative_region'
+                    ? ipcRenderer.invoke('read-administrative-region-data')
+                    : ipcRenderer.invoke('read-taxonomy-data', slug);
+            taxonomyCache.set(
+                slug,
+                invocation
+                    .then((xmlString: string) =>
+                        parseItemsAsLabelMap(new DOMParser().parseFromString(xmlString, 'application/xml').documentElement),
+                    )
+                    .catch((error: unknown) => {
+                        log.error(`Error reading taxonomy data for ${slug}: ${error}`);
+                        return new Map<string, string>();
+                    }),
+            );
+        }
+        return taxonomyCache.get(slug) as Promise<Map<string, string>>;
+    };
+
+    const fetchFormMedia = (filename: string): Promise<Map<string, string>> => {
+        if (!mediaCache.has(filename)) {
+            mediaCache.set(
+                filename,
+                ipcRenderer
+                    .invoke('read-form-media-data', form_uid, filename)
+                    .then((xmlString: string) =>
+                        parseItemsAsLabelMap(new DOMParser().parseFromString(xmlString, 'application/xml').documentElement),
+                    )
+                    .catch((error: unknown) => {
+                        log.error(`Error reading form media data for ${filename}: ${error}`);
+                        return new Map<string, string>();
+                    }),
+            );
+        }
+        return mediaCache.get(filename) as Promise<Map<string, string>>;
+    };
+
+    await Promise.all(
+        fields.map(async (element) => {
+            if (element.nodeName !== 'select1' && element.nodeName !== 'select') return;
+            const { parent_name, name } = fieldNameParts(element);
+            const fieldKey = `${parent_name}_${name}`;
+
+            const itemset = element.getElementsByTagName('itemset')[0];
+            const nodeset = itemset?.getAttribute('nodeset') || '';
+            const instanceId = nodeset.match(/instance\('([^']+)'\)/)?.[1];
+
+            if (!instanceId) {
+                const inlineMap = parseInlineBodyItems(element);
+                if (inlineMap.size > 0) maps[fieldKey] = inlineMap;
+                return;
+            }
+
+            if (instanceId.startsWith('deskTaxonomy.')) {
+                const slug = instanceId.slice('deskTaxonomy.'.length);
+                maps[fieldKey] = await fetchTaxonomy(slug);
+                return;
+            }
+
+            const instances = xmlDoc.getElementsByTagName('instance');
+            for (const inst of instances) {
+                if (inst.getAttribute('id') !== instanceId) continue;
+                const src = inst.getAttribute('src');
+                if (src?.startsWith('jr://file-csv/')) {
+                    maps[fieldKey] = await fetchFormMedia(src.slice('jr://file-csv/'.length));
+                } else {
+                    maps[fieldKey] = parseItemsAsLabelMap(inst);
+                }
+                break;
+            }
+        }),
+    );
+
+    return maps;
+};
+
+const resolveChoiceLabel = (rawValue: string, labelMap: Map<string, string>): string =>
+    rawValue
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((code) => labelMap.get(code) ?? code)
+        .join(', ');
+
+/** Applies buildChoiceLabelMaps' lookups to a row parsed by parseSubmissionsAsRows. */
+export const applyChoiceLabels = <T extends Record<string, unknown>>(row: T, maps: ChoiceLabelMaps): T => {
+    const resolved = { ...row };
+    for (const fieldKey of Object.keys(maps)) {
+        const value = resolved[fieldKey];
+        if (typeof value === 'string' && value) {
+            (resolved as Record<string, unknown>)[fieldKey] = resolveChoiceLabel(value, maps[fieldKey]);
+        }
+    }
+    return resolved;
+};

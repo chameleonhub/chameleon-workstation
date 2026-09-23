@@ -5,6 +5,9 @@ import type Highcharts from '../../helpers/highchartsConfig';
 import { HighchartsChart } from './HighchartsChart';
 import { log } from '../../helpers/log';
 import {
+    ChoiceLabelMaps,
+    applyChoiceLabels,
+    buildChoiceLabelMaps,
     fieldNameParts,
     getBindTypeMap,
     parseSubmissionsAsRows,
@@ -266,7 +269,8 @@ const TimeSeriesWidget = ({ title, fieldKey, rows }: { title: string; fieldKey: 
 
 export const Dashboard = () => {
     const [form, setForm] = useState<Document>();
-    const [rows, setRows] = useState<Record<string, unknown>[]>([]);
+    const [rawRows, setRawRows] = useState<Record<string, unknown>[]>([]);
+    const [choiceLabelMaps, setChoiceLabelMaps] = useState<ChoiceLabelMaps>({});
 
     const { form_uid } = useParams();
 
@@ -276,11 +280,22 @@ export const Dashboard = () => {
         }
     }, [form_uid]);
 
+    // resolve select/select1 field values (raw stored codes) to their human-readable choice
+    // labels, e.g. "3" -> "Anthrax" - see buildChoiceLabelMaps for the resolution rules
+    useEffect(() => {
+        if (form && form_uid) {
+            const fields = recurseFormBodyFields(form.body.children);
+            buildChoiceLabelMaps(form, form_uid, fields).then(setChoiceLabelMaps);
+        }
+    }, [form, form_uid]);
+
+    const rows = useMemo(() => rawRows.map((row) => applyChoiceLabels(row, choiceLabelMaps)), [rawRows, choiceLabelMaps]);
+
     useEffect(() => {
         if (form_uid) {
             readFormData(form_uid)
                 .then((data) => {
-                    setRows(data.map((datum) => parseSubmissionsAsRows(datum)));
+                    setRawRows(data.map((datum) => parseSubmissionsAsRows(datum)));
                 })
                 .catch((error) => {
                     log.error(`Error reading form data: ${error}`);
