@@ -127,8 +127,9 @@ const CategoricalWidget = ({
             xAxis: { categories: labels },
             yAxis: { title: { text: undefined }, min: 0, allowDecimals: false },
             series: [{ type: 'bar', name: 'Submissions', data: values }],
+            exporting: { tableCaption: title },
         }),
-        [labels, values],
+        [labels, values, title],
     );
 
     if (labels.length === 0) {
@@ -178,8 +179,9 @@ const NumericWidget = ({ title, fieldKey, rows }: { title: string; fieldKey: str
             xAxis: { categories: stats?.binLabels ?? [] },
             yAxis: { title: { text: undefined }, allowDecimals: false },
             series: [{ type: 'column', name: 'Submissions', data: stats?.bins ?? [] }],
+            exporting: { tableCaption: title },
         }),
-        [stats],
+        [stats, title],
     );
 
     if (!stats) {
@@ -240,8 +242,9 @@ const TimeSeriesWidget = ({ title, fieldKey, rows }: { title: string; fieldKey: 
             xAxis: { categories: labels },
             yAxis: { title: { text: undefined }, allowDecimals: false },
             series: [{ type: 'line', name: 'Submissions', data: values, color: LINE_SERIES_COLOR }],
+            exporting: { tableCaption: title },
         }),
-        [labels, values],
+        [labels, values, title],
     );
 
     if (labels.length === 0) {

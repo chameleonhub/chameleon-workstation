@@ -116,3 +116,51 @@ body {
 .highcharts-contextmenu {
   z-index: 4000 !important;
 }
+
+// Highcharts' "View data table" (export-data module) injects a bare, unstyled <table> - it ships
+// no default styling of its own and expects the host app to supply it (see the module's own
+// docs). Same color tokens as the chart chrome itself (highchartsConfig.ts) so it reads as part
+// of the same chart, not a raw HTML table dropped in.
+.highcharts-data-table table {
+  font-family: inherit;
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.highcharts-data-table caption {
+  color: #52514e;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+  padding-bottom: 0.5rem;
+}
+
+.highcharts-data-table th,
+.highcharts-data-table td {
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid #e1e0d9;
+  color: #0b0b0b;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.highcharts-data-table th:first-child,
+.highcharts-data-table td:first-child {
+  text-align: left;
+  font-variant-numeric: normal;
+}
+
+.highcharts-data-table th {
+  border-bottom: 2px solid #c3c2b7;
+  color: #52514e;
+  font-weight: 600;
+}
+
+.highcharts-data-table tr:nth-child(even) {
+  background: #fcfcfb;
+}
+
+.highcharts-data-table tr:hover {
+  background: #f0f5fb;
+}
