@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Highcharts from '../../helpers/highchartsConfig';
 
 // highcharts-react-official (the official wrapper) ships an old webpack UMD bundle that assigns
@@ -12,6 +13,7 @@ import Highcharts from '../../helpers/highchartsConfig';
 export const HighchartsChart = ({ options }: { options: Highcharts.Options }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<Highcharts.Chart | undefined>(undefined);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     useEffect(() => {
         if (!containerRef.current) return;
@@ -27,5 +29,47 @@ export const HighchartsChart = ({ options }: { options: Highcharts.Options }) =>
         chartRef.current.update(options, true, true);
     }, [options]);
 
-    return <div ref={containerRef} />;
+    // Highcharts' own fullscreen exit is reached by reopening the same small corner menu used to
+    // enter it and picking "Exit from full screen" - easy to miss since there's no other chrome
+    // in fullscreen to suggest that's where it lives. Add an unmistakable dedicated button instead.
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(document.fullscreenElement === containerRef.current);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
+    return (
+        <div ref={containerRef}>
+            {isFullscreen &&
+                containerRef.current &&
+                createPortal(
+                    <button
+                        type="button"
+                        onClick={() => document.exitFullscreen()}
+                        style={{
+                            position: 'fixed',
+                            top: 16,
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            zIndex: 10000,
+                            padding: '8px 16px',
+                            borderRadius: 20,
+                            border: 'none',
+                            background: '#2a78d6',
+                            color: '#ffffff',
+                            fontSize: 14,
+                            fontWeight: 600,
+                            fontFamily: 'inherit',
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                        }}
+                    >
+                        ✕ Exit full screen
+                    </button>,
+                    containerRef.current,
+                )}
+        </div>
+    );
 };
