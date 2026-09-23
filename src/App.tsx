@@ -1,5 +1,6 @@
 import { createHashRouter, RouterProvider } from 'react-router-dom';
 
+import { Dashboard } from './components/dashboard/Dashboard';
 import { ErrorPage } from './components/common/ErrorPage';
 import { Form } from './components/forms/Form';
 import { DraftList } from './components/list/DraftList';
@@ -53,6 +54,11 @@ export const App = () => {
                 {
                     path: 'list/drafts',
                     element: <DraftList />,
+                    errorElement: <ErrorPage />,
+                },
+                {
+                    path: 'dashboard/:form_uid',
+                    element: <Dashboard />,
                     errorElement: <ErrorPage />,
                 },
                 {

@@ -10,6 +10,7 @@ enum MenuItemTypes {
     module,
     iframe,
     submitted,
+    dashboard,
 }
 
 interface MenuItem {
@@ -40,6 +41,8 @@ export default function MenuButton(props: MenuButtonProps) {
         url = `/iframe?url=${props.menuItem.external_url}`;
     } else if (props.menuItem.module_type === MenuItemTypes.submitted) {
         url = `/formlist/${props.menuItem.form}/`;
+    } else if (props.menuItem.module_type === MenuItemTypes.dashboard) {
+        url = `/dashboard/${props.menuItem.form}/`;
     }
 
     return (
