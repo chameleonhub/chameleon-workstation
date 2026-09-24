@@ -3,6 +3,7 @@ import { DataGrid, GridActionsCellItem, GridColDef } from '@mui/x-data-grid';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useEffect, useState } from 'react';
 import { log } from '../../helpers/log';
+import { escapeSqlString } from '../../helpers/sql.ts';
 import { ipcRenderer } from 'electron';
 import { useNavigate } from 'react-router-dom';
 import { fetchDraftCount } from '../../stores/featues/draftCounterSlice.ts';
@@ -75,12 +76,19 @@ export const DraftList = () => {
     const deleteDraft = (uuid) => {
         const query = `DELETE
                        FROM formlocaldraft
-                       WHERE uuid = '${uuid}';`;
+                       WHERE uuid = '${escapeSqlString(uuid)}';`;
         ipcRenderer
             .invoke('post-local-db', query)
             .then((response) => {
                 if (response) {
                     log.info('Form draft deleted from local database successfully');
+                    // Removed locally rather than navigating away and back - the row list is only
+                    // ever loaded once on mount, so a navigate('/list/draft') here (the previous
+                    // approach) both targeted a route that doesn't exist (list/drafts is plural -
+                    // '/list/draft' actually matched the generic list/:form_uid route instead) and
+                    // wouldn't have refreshed the DataGrid anyway, since navigating to the same
+                    // route doesn't remount this component or its effects.
+                    setRows((current) => current?.filter((row) => row.id !== uuid));
                 }
             })
             .catch((error) => {
@@ -120,7 +128,6 @@ export const DraftList = () => {
                             if (params.row.id) {
                                 deleteDraft(params.row.id);
                             }
-                            navigate('/list/draft');
                         }}
                     />,
                 ];
