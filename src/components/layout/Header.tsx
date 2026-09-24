@@ -146,10 +146,12 @@ export const Header = () => {
             .invoke('request-user-data-sync')
             .then(() => {
                 log.info('Drafts successfully synced');
+                dispatch(OpenToast('Data sync SUCCESS'));
                 setWaitingForDataSync(false);
             })
             .catch((error) => {
                 log.error(`Error syncing drafts: ${error}`);
+                dispatch(OpenToast({ type: 'error', text: 'Unable to sync data: ' + error.message }));
                 setWaitingForDataSync(false);
             })
             .finally(() => {
@@ -191,7 +193,7 @@ export const Header = () => {
 
     return (
         <AppBar position="fixed">
-            {isWaitingForDataSync && <LoadingSpinner loadingText={loadingMessage} zHeight={5000} />}
+            {isWaitingForDataSync && <LoadingSpinner loadingText={loadingMessage} zHeight={5000} showSyncProgress />}
             <Toolbar sx={{ justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Box className="cursor-pointer" sx={{ display: 'flex' }} onClick={onHomeHandler}>

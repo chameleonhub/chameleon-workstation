@@ -47,3 +47,10 @@ export interface ToastMessageType {
     duration?: number;
     options?: object;
 }
+
+export interface SyncProgressState {
+    active: boolean;
+    completed: number;
+    total: number;
+    label: string;
+}

@@ -7,7 +7,7 @@ import { log } from './log';
 import { auth } from '../conf/axios.ts';
 import Xml2Js from 'xml2js';
 import { CloudFormData, Form, FormListObj, ManifestObj } from './bahis.model.ts';
-import { setStatus, Toast } from './utils.ts';
+import { addSyncProgressTotal, setStatus, tickSyncProgress, Toast } from './utils.ts';
 
 const parser = new Xml2Js.Parser();
 
@@ -81,6 +81,7 @@ export const getModules = async (db) => {
     const api_url = _url(BAHIS_MODULE_DEFINITION_ENDPOINT);
     log.info(`API URL: ${api_url}`);
 
+    addSyncProgressTotal(1);
     await _getAllPages(api_url)
         .then((data) => {
             if (data) {
@@ -113,9 +114,9 @@ export const getModules = async (db) => {
                         deleteQuery.run([module.id]);
                     }
                 }
-                Toast('GET Module Definitions SUCCESS');
                 log.info('GET Module Definitions SUCCESS');
             }
+            tickSyncProgress('Modules');
         })
         .catch((error) => {
             Toast('GET Module Definitions FAILED', 'error');
@@ -131,6 +132,7 @@ export const getWorkflows = async (db) => {
     const api_url = _url(BAHIS_WORKFLOW_DEFINITION_ENDPOINT);
     log.info(`API URL: ${api_url}`);
 
+    addSyncProgressTotal(1);
     await _getAllPages(api_url)
         .then((data) => {
             if (data) {
@@ -158,8 +160,8 @@ export const getWorkflows = async (db) => {
                     }
                 }
             }
-            Toast('GET Workflow Definitions SUCCESS');
             log.info('GET Workflow Definitions SUCCESS');
+            tickSyncProgress('Workflows');
         })
         .catch((error) => {
             Toast('GET Workflow Definitions FAILED', 'error');
@@ -222,6 +224,7 @@ export const getForms = async (db) => {
     );
 
     if (formList) {
+        addSyncProgressTotal((formList as Form[]).length);
         for (const form of formList as Form[]) {
             log.info(`GET form ${form.uid} from KoboToolbox`);
             log.debug(form.xml_url);
@@ -244,8 +247,8 @@ export const getForms = async (db) => {
                     log.error(error);
                 });
             }
+            tickSyncProgress(`Form: ${form.name}`);
         }
-        Toast('Get Form Definitions SUCCESS');
         log.info(`GET KoboToolbox Form Definitions SUCCESS`);
     } else {
         Toast('No forms assigned', 'warning');
@@ -284,6 +287,8 @@ const getFormMedia = async (db, formUid: string, manifestUrl: string) => {
     );
     const existingHashQuery = db.prepare('SELECT hash FROM formmedia WHERE form_uid = ? AND filename = ?');
 
+    addSyncProgressTotal(csvFiles.length);
+
     // Awaited (rather than fire-and-forget) so this function's own promise only resolves once
     // every file has actually been downloaded and written - callers that await getFormMedia
     // (see getForms below) can then rely on the media being on disk, not just requested.
@@ -292,6 +297,7 @@ const getFormMedia = async (db, formUid: string, manifestUrl: string) => {
             const existing = existingHashQuery.get(formUid, file.filename);
             if (existing && existing.hash === file.hash) {
                 log.info(`Form media ${formUid}/${file.filename} unchanged, skipping download`);
+                tickSyncProgress(`Media: ${file.filename}`);
                 return;
             }
 
@@ -320,6 +326,7 @@ const getFormMedia = async (db, formUid: string, manifestUrl: string) => {
                     log.error(`GET form media ${formUid}/${file.filename} FAILED with:`);
                     log.error(error);
                 });
+            tickSyncProgress(`Media: ${file.filename}`);
         }),
     );
 };
@@ -381,17 +388,14 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }, count
                 await insertCloudSubmission(db, next.textContent as string, form, count + data.length);
                 console.log(count);
             } else {
-                if (data.length) {
-                    Toast(`${form?.name} form sync SUCCESS`);
-                } else {
-                    Toast(`${form?.name} No new data to sync`, 'info', 5000);
-                }
+                tickSyncProgress(`Form data: ${form?.name}`);
             }
         })
         .catch((error) => {
             Toast(`${form?.name} form sync FAILED`, 'error');
             log.error('GET KoboToolbox Form Submissions FAILED with:');
             log.error(error);
+            tickSyncProgress(`Form data: ${form?.name}`);
         })
         .finally(() => {
             data = [];
@@ -419,6 +423,7 @@ export const getFormCloudSubmissions = async (db) => {
 
     // NOTE UUID on KoboToolbox actually might not be unique historically; but should be as of 2023
 
+    addSyncProgressTotal(formList.length);
     for (const form of formList) {
         log.info(`GET form ${form.uid} submissions from KoboToolbox`);
         const initialUrl = BAHIS_KOBOTOOLBOX_KF_API_URL + 'assets/' + form.uid + '/data/?format=xml' + syncUrlQuery;
@@ -443,6 +448,7 @@ export const postFormCloudSubmissions = async (db) => {
 
     const deleteQuery = db.prepare('DELETE FROM formlocaldraft WHERE uuid = ?');
 
+    addSyncProgressTotal(formcloudsubmissionList.length);
     for (const form of formcloudsubmissionList) {
         log.info(`POST form ${form.uuid} submissions from KoboToolbox`);
         const selectedFile = new Blob([form.xml], { type: 'text/xml' });
@@ -461,12 +467,13 @@ export const postFormCloudSubmissions = async (db) => {
                     log.error(`POST form ${form.uid} submissions FAILED with status ${response.status}`);
                     log.error(response);
                 }
-                Toast('Submitted submissions successfully');
+                tickSyncProgress(`Uploading: ${form.uuid}`);
             })
             .catch((error) => {
                 Toast('Data submitted FAILED!!', 'error');
                 log.error('POST KoboToolbox Form Submissions FAILED with:');
                 log.error(error);
+                tickSyncProgress(`Uploading: ${form.uuid}`);
             });
     }
     log.info(`POST KoboToolbox Form Submissions SUCCESS`);
@@ -496,6 +503,7 @@ export const getTaxonomies = async (db) => {
     );
     const BAHIS_TAXONOMY_CSV_ENDPOINT = (filename) => `${BAHIS_SERVER_URL}/media/${filename}`;
 
+    addSyncProgressTotal(taxonomyList?.length ?? 0);
     for (const taxonomy of taxonomyList) {
         log.info(`GET Taxonomy CSV ${taxonomy.slug} from server`);
         auth.get(BAHIS_TAXONOMY_CSV_ENDPOINT(taxonomy.csv_file_stub))
@@ -519,12 +527,13 @@ export const getTaxonomies = async (db) => {
                 }
                 upsertQuery.run([taxonomy.slug, taxonomy.csv_file_stub]);
                 log.info(`GET Taxonomy CSV ${taxonomy.slug} SUCCESS`);
-                Toast(`GET Taxonomy CSV ${taxonomy.slug} SUCCESS`);
+                tickSyncProgress(`Taxonomy: ${taxonomy.slug}`);
             })
             .catch((error) => {
                 Toast(`GET Taxonomy CSV ${taxonomy.slug} FAILED!!`, 'error');
                 log.error(`GET Taxonomy CSV ${taxonomy.slug} FAILED with:`);
                 log.error(error);
+                tickSyncProgress(`Taxonomy: ${taxonomy.slug}`);
             });
     }
 };
@@ -536,6 +545,7 @@ export const getAdministrativeRegions = async (db) => {
     const api_levels_url = _url(BAHIS_ADMINISTRATIVE_REGION_LEVELS_ENDPOINT);
     log.info(`API URL: ${api_levels_url}`);
 
+    addSyncProgressTotal(2);
     _getAllPages(api_levels_url)
         .then((data) => {
             if (data) {
@@ -551,11 +561,13 @@ export const getAdministrativeRegions = async (db) => {
                 }
             }
             log.info('GET getAdministrativeRegionLevels Definitions SUCCESS');
+            tickSyncProgress('Administrative region levels');
         })
         .catch((error) => {
             log.error('GET getAdministrativeRegionLevels Definitions FAILED with:');
             Toast('GET getAdministrativeRegionLevels Definitions FAILED', 'error');
             log.error(error);
+            tickSyncProgress('Administrative region levels');
         });
 
     log.info(`GET getAdministrativeRegions Definitions`);
@@ -589,11 +601,13 @@ export const getAdministrativeRegions = async (db) => {
                 }
             }
             log.info('GET getAdministrativeRegions Definitions SUCCESS');
+            tickSyncProgress('Administrative regions');
             return true;
         })
         .catch((error) => {
             log.error('GET getAdministrativeRegions Definitions FAILED with:');
             log.error(error);
+            tickSyncProgress('Administrative regions');
             return false;
         });
 };

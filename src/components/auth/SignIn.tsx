@@ -22,6 +22,8 @@ import { AlertContent } from '../common/SystemAlerts';
 import { grey } from '@mui/material/colors';
 import bahisLogo from '../../assets/images/bahis_logo.png';
 import { LoadingSpinner } from '../common/LoadingSpinner.tsx';
+import { OpenToast } from '../../stores/featues/NotificationSlice.ts';
+import { useAppDispatch } from '../../stores/store.ts';
 
 interface UserData {
     username: string;
@@ -37,15 +39,19 @@ export const SignIn = () => {
     const [userName, setUserName] = React.useState<string>('');
     const [isFreshSignedIn, setIsFreshSignedIn] = React.useState<boolean>(false);
     const [showPassword, setShowPassword] = React.useState<boolean>(false);
+    const [isSyncing, setIsSyncing] = React.useState<boolean>(false);
 
     const navigate = useNavigate();
+    const dispatch = useAppDispatch();
 
     useEffect(() => {
         if (isSignedIn) {
             log.info('User is signed in. Starting app sync.');
+            setIsSyncing(true);
             ipcRenderer
                 .invoke('request-app-data-sync')
                 .then(() => {
+                    dispatch(OpenToast('Data sync SUCCESS'));
                     navigate('/menu/0');
                 })
                 .catch(() => {
@@ -54,12 +60,14 @@ export const SignIn = () => {
                         message:
                             'Unable to automatically sync app data. Please ensure a good internet connection and use the Sync Now button on the next screen.',
                     });
+                    dispatch(OpenToast({ type: 'warning', text: 'Unable to sync data automatically' }));
                     if (!isFreshSignedIn) {
                         navigate('/menu/0');
                     }
                 })
                 .finally(() => {
                     log.info('App sync attempt complete. Navigating to menu.');
+                    setIsSyncing(false);
                 });
         }
     }, [navigate, isSignedIn]);
@@ -221,6 +229,7 @@ export const SignIn = () => {
 
     return (
         <>
+            {isSyncing && <LoadingSpinner loadingText="Syncing your data" zHeight={5000} showSyncProgress />}
             <Box>
                 <Typography color="text.secondary" gutterBottom>
                     Last Logged in as:

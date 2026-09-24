@@ -1,12 +1,39 @@
-import { Box, CircularProgress, keyframes, Typography } from '@mui/material';
-import React from 'react';
+import { Box, CircularProgress, keyframes, LinearProgress, Typography } from '@mui/material';
+import { ipcRenderer } from 'electron';
+import React, { useEffect, useState } from 'react';
+import { SyncProgressState } from '../../../electron/bahis.model.ts';
 
 interface LoadingProps {
     loadingText?: string;
     zHeight?: number;
+    /** Subscribes to the main process's sync-progress IPC channel and shows a determinate
+     * progress bar once it reports a total, instead of the plain indeterminate spinner. Only
+     * pass this where the loading state really is a sync (SignIn, Header) - Form.tsx/IFrame.tsx
+     * use this same component for unrelated loading and shouldn't show sync progress. */
+    showSyncProgress?: boolean;
 }
 
-export const LoadingSpinner: React.FC<LoadingProps> = ({ loadingText = 'Loading', zHeight = null }) => {
+export const LoadingSpinner: React.FC<LoadingProps> = ({
+    loadingText = 'Loading',
+    zHeight = null,
+    showSyncProgress = false,
+}) => {
+    const [progress, setProgress] = useState<SyncProgressState | null>(null);
+
+    useEffect(() => {
+        if (!showSyncProgress) return;
+
+        const handleProgress = (_event, state: SyncProgressState) => {
+            setProgress(state.active ? state : null);
+        };
+        ipcRenderer.on('sendSyncProgress', handleProgress);
+        return () => {
+            ipcRenderer.removeListener('sendSyncProgress', handleProgress);
+        };
+    }, [showSyncProgress]);
+
+    const hasDeterminateProgress = Boolean(progress && progress.total > 0);
+
     const dotAnimation = keyframes`
         0% {
             content: '';
@@ -44,7 +71,16 @@ export const LoadingSpinner: React.FC<LoadingProps> = ({ loadingText = 'Loading'
                 ...(zHeight ? { zIndex: zHeight } : {}),
             }}
         >
-            <CircularProgress color="primary" />
+            {hasDeterminateProgress ? (
+                <Box sx={{ width: '24rem', maxWidth: '80vw' }}>
+                    <LinearProgress
+                        variant="determinate"
+                        value={Math.min(100, (progress!.completed / progress!.total) * 100)}
+                    />
+                </Box>
+            ) : (
+                <CircularProgress color="primary" />
+            )}
             <Typography
                 variant="caption"
                 sx={{
@@ -53,7 +89,7 @@ export const LoadingSpinner: React.FC<LoadingProps> = ({ loadingText = 'Loading'
                     display: 'flex',
                 }}
             >
-                Please wait
+                {hasDeterminateProgress ? `${progress!.completed}/${progress!.total} – ${progress!.label}` : 'Please wait'}
             </Typography>
             <Typography
                 variant="h5"

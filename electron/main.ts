@@ -22,7 +22,7 @@ import {
 import { UserData } from './bahis.model.ts';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { Toast } from './utils.ts';
+import { endSyncProgress, startSyncProgress, Toast } from './utils.ts';
 
 // SETUP
 const __filename = fileURLToPath(import.meta.url);
@@ -522,6 +522,7 @@ const getAppData = async (event) => {
     log.info('GET app data from server');
     log.debug(`due to ${event.type}`);
 
+    startSyncProgress('Starting sync…');
     return await Promise.all([
         getModules(db),
         getWorkflows(db),
@@ -537,6 +538,9 @@ const getAppData = async (event) => {
             log.error('GET app data FAILED with:');
             log.error(error);
             throw error;
+        })
+        .finally(() => {
+            endSyncProgress();
         });
 };
 
@@ -544,9 +548,14 @@ const postGetUserData = async (event) => {
     log.info('POST local data to server');
     log.debug(`due to ${event.type}`);
 
-    // BAHIS 3 data
-    await postFormCloudSubmissions(db);
-    await getFormCloudSubmissions(db);
+    startSyncProgress('Starting sync…');
+    try {
+        // BAHIS 3 data
+        await postFormCloudSubmissions(db);
+        await getFormCloudSubmissions(db);
+    } finally {
+        endSyncProgress();
+    }
 };
 
 const readAdministrativeRegions = async (event) => {
