@@ -82,7 +82,7 @@ export const getModules = async (db): Promise<number> => {
     log.info(`API URL: ${api_url}`);
 
     let syncedCount = 0;
-    addSyncProgressTotal(1);
+    addSyncProgressTotal('Modules', 1);
     await _getAllPages(api_url)
         .then((data) => {
             if (data) {
@@ -136,7 +136,7 @@ export const getWorkflows = async (db): Promise<number> => {
     log.info(`API URL: ${api_url}`);
 
     let syncedCount = 0;
-    addSyncProgressTotal(1);
+    addSyncProgressTotal('Workflows', 1);
     await _getAllPages(api_url)
         .then((data) => {
             if (data) {
@@ -230,7 +230,7 @@ export const getForms = async (db): Promise<number> => {
     );
 
     if (formList) {
-        addSyncProgressTotal((formList as Form[]).length);
+        addSyncProgressTotal('Forms', (formList as Form[]).length);
         for (const form of formList as Form[]) {
             log.info(`GET form ${form.uid} from KoboToolbox`);
             log.debug(form.xml_url);
@@ -253,7 +253,7 @@ export const getForms = async (db): Promise<number> => {
                     log.error(error);
                 });
             }
-            tickSyncProgress(`Form: ${form.name}`);
+            tickSyncProgress('Forms', form.name);
         }
         log.info(`GET KoboToolbox Form Definitions SUCCESS`);
         return (formList as Form[]).length;
@@ -295,7 +295,7 @@ const getFormMedia = async (db, formUid: string, manifestUrl: string) => {
     );
     const existingHashQuery = db.prepare('SELECT hash FROM formmedia WHERE form_uid = ? AND filename = ?');
 
-    addSyncProgressTotal(csvFiles.length);
+    addSyncProgressTotal('Form media', csvFiles.length);
 
     // Awaited (rather than fire-and-forget) so this function's own promise only resolves once
     // every file has actually been downloaded and written - callers that await getFormMedia
@@ -305,7 +305,7 @@ const getFormMedia = async (db, formUid: string, manifestUrl: string) => {
             const existing = existingHashQuery.get(formUid, file.filename);
             if (existing && existing.hash === file.hash) {
                 log.info(`Form media ${formUid}/${file.filename} unchanged, skipping download`);
-                tickSyncProgress(`Media: ${file.filename}`);
+                tickSyncProgress('Form media', file.filename);
                 return;
             }
 
@@ -334,7 +334,7 @@ const getFormMedia = async (db, formUid: string, manifestUrl: string) => {
                     log.error(`GET form media ${formUid}/${file.filename} FAILED with:`);
                     log.error(error);
                 });
-            tickSyncProgress(`Media: ${file.filename}`);
+            tickSyncProgress('Form media', file.filename);
         }),
     );
 };
@@ -398,14 +398,14 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }, count
                 console.log(count);
             } else {
                 finalCount = count + data.length;
-                tickSyncProgress(`Form data: ${form?.name}`);
+                tickSyncProgress('Records', form?.name || '');
             }
         })
         .catch((error) => {
             Toast(`${form?.name} form sync FAILED`, 'error');
             log.error('GET KoboToolbox Form Submissions FAILED with:');
             log.error(error);
-            tickSyncProgress(`Form data: ${form?.name}`);
+            tickSyncProgress('Records', form?.name || '');
         })
         .finally(() => {
             data = [];
@@ -435,7 +435,7 @@ export const getFormCloudSubmissions = async (db): Promise<number> => {
     // NOTE UUID on KoboToolbox actually might not be unique historically; but should be as of 2023
 
     let totalRecords = 0;
-    addSyncProgressTotal(formList.length);
+    addSyncProgressTotal('Records', formList.length);
     for (const form of formList) {
         log.info(`GET form ${form.uid} submissions from KoboToolbox`);
         const initialUrl = BAHIS_KOBOTOOLBOX_KF_API_URL + 'assets/' + form.uid + '/data/?format=xml' + syncUrlQuery;
@@ -462,7 +462,7 @@ export const postFormCloudSubmissions = async (db): Promise<number> => {
     const deleteQuery = db.prepare('DELETE FROM formlocaldraft WHERE uuid = ?');
 
     let uploadedCount = 0;
-    addSyncProgressTotal(formcloudsubmissionList.length);
+    addSyncProgressTotal('Uploading drafts', formcloudsubmissionList.length);
     for (const form of formcloudsubmissionList) {
         log.info(`POST form ${form.uuid} submissions from KoboToolbox`);
         const selectedFile = new Blob([form.xml], { type: 'text/xml' });
@@ -482,13 +482,13 @@ export const postFormCloudSubmissions = async (db): Promise<number> => {
                     log.error(`POST form ${form.uid} submissions FAILED with status ${response.status}`);
                     log.error(response);
                 }
-                tickSyncProgress(`Uploading: ${form.uuid}`);
+                tickSyncProgress('Uploading drafts', form.uuid);
             })
             .catch((error) => {
                 Toast('Data submitted FAILED!!', 'error');
                 log.error('POST KoboToolbox Form Submissions FAILED with:');
                 log.error(error);
-                tickSyncProgress(`Uploading: ${form.uuid}`);
+                tickSyncProgress('Uploading drafts', form.uuid);
             });
     }
     log.info(`POST KoboToolbox Form Submissions SUCCESS`);
@@ -521,7 +521,7 @@ export const getTaxonomies = async (db): Promise<number> => {
     const BAHIS_TAXONOMY_CSV_ENDPOINT = (filename) => `${BAHIS_SERVER_URL}/media/${filename}`;
 
     let syncedCount = 0;
-    addSyncProgressTotal(taxonomyList?.length ?? 0);
+    addSyncProgressTotal('Taxonomies', taxonomyList?.length ?? 0);
     await Promise.all(
         (taxonomyList ?? []).map(async (taxonomy) => {
             log.info(`GET Taxonomy CSV ${taxonomy.slug} from server`);
@@ -554,7 +554,7 @@ export const getTaxonomies = async (db): Promise<number> => {
                     log.error(`GET Taxonomy CSV ${taxonomy.slug} FAILED with:`);
                     log.error(error);
                 });
-            tickSyncProgress(`Taxonomy: ${taxonomy.slug}`);
+            tickSyncProgress('Taxonomies', taxonomy.slug);
         }),
     );
     return syncedCount;
@@ -567,7 +567,8 @@ export const getAdministrativeRegions = async (db): Promise<number> => {
     const api_levels_url = _url(BAHIS_ADMINISTRATIVE_REGION_LEVELS_ENDPOINT);
     log.info(`API URL: ${api_levels_url}`);
 
-    addSyncProgressTotal(2);
+    addSyncProgressTotal('Administrative region levels', 1);
+    addSyncProgressTotal('Administrative regions', 1);
     _getAllPages(api_levels_url)
         .then((data) => {
             if (data) {

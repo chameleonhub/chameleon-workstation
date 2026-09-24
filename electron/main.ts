@@ -526,7 +526,7 @@ const getAppData = async (event) => {
     log.info('GET app data from server');
     log.debug(`due to ${event.type}`);
 
-    startSyncProgress('Starting sync…');
+    startSyncProgress();
     return await Promise.all([
         getModules(db),
         getWorkflows(db),
@@ -561,7 +561,7 @@ const postGetUserData = async (event) => {
     log.info('POST local data to server');
     log.debug(`due to ${event.type}`);
 
-    startSyncProgress('Starting sync…');
+    startSyncProgress();
     try {
         // BAHIS 3 data
         const uploadedCount = await postFormCloudSubmissions(db);

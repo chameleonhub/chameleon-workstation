@@ -48,9 +48,16 @@ export interface ToastMessageType {
     options?: object;
 }
 
-export interface SyncProgressState {
-    active: boolean;
+export interface SyncCategoryProgress {
     completed: number;
     total: number;
-    label: string;
+    currentItem: string;
+}
+
+export interface SyncProgressState {
+    active: boolean;
+    /** Name of the category (table) most recently touched - which one to show on a single-line
+     * "which table, how many records" indicator, since several sync concurrently. */
+    current: string;
+    categories: Record<string, SyncCategoryProgress>;
 }

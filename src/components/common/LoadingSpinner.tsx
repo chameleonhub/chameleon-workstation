@@ -7,9 +7,9 @@ interface LoadingProps {
     loadingText?: string;
     zHeight?: number;
     /** Subscribes to the main process's sync-progress IPC channel and shows a determinate
-     * progress bar once it reports a total, instead of the plain indeterminate spinner. Only
-     * pass this where the loading state really is a sync (SignIn, Header) - Form.tsx/IFrame.tsx
-     * use this same component for unrelated loading and shouldn't show sync progress. */
+     * progress bar for whichever table is currently syncing, instead of the plain indeterminate
+     * spinner. Only pass this where the loading state really is a sync (SignIn, Header) -
+     * Form.tsx/IFrame.tsx use this same component for unrelated loading and shouldn't show it. */
     showSyncProgress?: boolean;
 }
 
@@ -32,7 +32,8 @@ export const LoadingSpinner: React.FC<LoadingProps> = ({
         };
     }, [showSyncProgress]);
 
-    const hasDeterminateProgress = Boolean(progress && progress.total > 0);
+    const current = progress?.current ? progress.categories[progress.current] : undefined;
+    const hasDeterminateProgress = Boolean(current && current.total > 0);
 
     const dotAnimation = keyframes`
         0% {
@@ -73,10 +74,7 @@ export const LoadingSpinner: React.FC<LoadingProps> = ({
         >
             {hasDeterminateProgress ? (
                 <Box sx={{ width: '24rem', maxWidth: '80vw' }}>
-                    <LinearProgress
-                        variant="determinate"
-                        value={Math.min(100, (progress!.completed / progress!.total) * 100)}
-                    />
+                    <LinearProgress variant="determinate" value={Math.min(100, (current!.completed / current!.total) * 100)} />
                 </Box>
             ) : (
                 <CircularProgress color="primary" />
@@ -89,7 +87,9 @@ export const LoadingSpinner: React.FC<LoadingProps> = ({
                     display: 'flex',
                 }}
             >
-                {hasDeterminateProgress ? `${progress!.completed}/${progress!.total} – ${progress!.label}` : 'Please wait'}
+                {hasDeterminateProgress
+                    ? `${progress!.current}${current!.currentItem ? `: ${current!.currentItem}` : ''} (${current!.completed}/${current!.total})`
+                    : 'Please wait'}
             </Typography>
             <Typography
                 variant="h5"
