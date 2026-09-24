@@ -1,8 +1,10 @@
-import { Alert, Button, Card, CardContent, Grid, Icon, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Grid, Icon, IconButton, Typography } from '@mui/material';
+import { PushPin, PushPinOutlined } from '@mui/icons-material';
 import { useEffect, useState } from 'react';
 import { log } from '../../helpers/log';
 import { ipcRenderer } from 'electron';
 import { Link, useParams } from 'react-router-dom';
+import { getPinnedModuleIds, togglePinnedModuleId } from '../../helpers/pinnedModules.ts';
 
 enum MenuItemTypes {
     form = 1,
@@ -27,6 +29,8 @@ interface MenuItem {
 
 interface MenuButtonProps {
     menuItem: MenuItem;
+    isPinned?: boolean;
+    onTogglePin?: (id: number) => void;
 }
 
 export default function MenuButton(props: MenuButtonProps) {
@@ -49,6 +53,7 @@ export default function MenuButton(props: MenuButtonProps) {
         <Link to={url} style={{ textDecoration: 'none' }}>
             <Card
                 sx={{
+                    position: 'relative',
                     minWidth: 150,
                     height: 150,
                     margin: 2,
@@ -60,6 +65,20 @@ export default function MenuButton(props: MenuButtonProps) {
                 }}
                 className="hover:bg-gray-100"
             >
+                {props.onTogglePin && (
+                    <IconButton
+                        size="small"
+                        aria-label={props.isPinned ? 'Unpin from home' : 'Pin to home'}
+                        onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            props.onTogglePin?.(props.menuItem.id);
+                        }}
+                        sx={{ position: 'absolute', top: 4, right: 4 }}
+                    >
+                        {props.isPinned ? <PushPin fontSize="small" color="primary" /> : <PushPinOutlined fontSize="small" />}
+                    </IconButton>
+                )}
                 <CardContent>
                     <Typography variant="h6" color={'primary'}>
                         {props.menuItem.title}
@@ -74,11 +93,25 @@ export default function MenuButton(props: MenuButtonProps) {
     );
 }
 
+// How many cards the Quick Access strip aims to show: pinned modules first, backfilled with the
+// most-used forms (by combined draft + synced-submission count) up to this many.
+const QUICK_ACCESS_TARGET = 5;
+
+interface PersonalStats {
+    thisMonth: number;
+    allTime: number;
+}
+
 export const Menu = () => {
     const [menuModules, setmenuModules] = useState<MenuItem[]>([]);
+    const [pinnedIds, setPinnedIds] = useState<number[]>(() => getPinnedModuleIds());
+    const [quickAccessItems, setQuickAccessItems] = useState<MenuItem[]>([]);
+    const [stats, setStats] = useState<PersonalStats | null>(null);
 
     const { menu_id } = useParams();
     log.info(`menu_id: ${menu_id}`);
+
+    const isHome = !menu_id || menu_id === '0';
 
     const readModulesWithParent = (parent_module) => {
         log.info(`reading modules with parent_module: ${parent_module}`);
@@ -102,6 +135,68 @@ export const Menu = () => {
     useEffect(() => {
         readModulesWithParent(menu_id);
     }, [menu_id]);
+
+    // Quick Access: pinned modules (any type, resolved by id) shown first, backfilled with the
+    // most-used forms up to QUICK_ACCESS_TARGET. Only loaded on the home screen (menu_id 0).
+    useEffect(() => {
+        if (!isHome) return;
+
+        const pinnedQuery = pinnedIds.length > 0 ? `SELECT * FROM module WHERE id IN (${pinnedIds.join(',')})` : null;
+
+        Promise.resolve(pinnedQuery ? ipcRenderer.invoke('get-local-db', pinnedQuery) : Promise.resolve([]))
+            .then((pinnedModules: MenuItem[]) => {
+                const remaining = QUICK_ACCESS_TARGET - pinnedModules.length;
+                if (remaining <= 0) {
+                    setQuickAccessItems(pinnedModules);
+                    return;
+                }
+
+                const excludeIds = pinnedIds.length > 0 ? pinnedIds.join(',') : '0';
+                const mostUsedQuery = `
+                    SELECT module.* FROM module
+                    INNER JOIN (
+                        SELECT form_uid, COUNT(*) as cnt FROM (
+                            SELECT form_uid FROM formcloudsubmission
+                            UNION ALL
+                            SELECT form_uid FROM formlocaldraft
+                        ) GROUP BY form_uid
+                    ) usage ON module.form = usage.form_uid
+                    WHERE module.module_type = 1 AND module.id NOT IN (${excludeIds})
+                    ORDER BY usage.cnt DESC
+                    LIMIT ${remaining}
+                `;
+                return ipcRenderer.invoke('get-local-db', mostUsedQuery).then((mostUsedModules: MenuItem[]) => {
+                    setQuickAccessItems([...pinnedModules, ...mostUsedModules]);
+                });
+            })
+            .catch((error) => {
+                log.error(`Error reading Quick Access modules: ${error}`);
+            });
+    }, [isHome, pinnedIds]);
+
+    // Personal stats: reports synced this calendar month vs. all-time, from this device's own
+    // formcloudsubmission table - there's no visibility into other agents' data from this client.
+    useEffect(() => {
+        if (!isHome) return;
+
+        const query = `
+            SELECT
+                (SELECT COUNT(*) FROM formcloudsubmission) as allTime,
+                (SELECT COUNT(*) FROM formcloudsubmission WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')) as thisMonth
+        `;
+        ipcRenderer
+            .invoke('get-local-db', query)
+            .then((response: PersonalStats[]) => {
+                if (response[0]) setStats(response[0]);
+            })
+            .catch((error) => {
+                log.error(`Error reading personal stats: ${error}`);
+            });
+    }, [isHome]);
+
+    const handleTogglePin = (id: number) => {
+        setPinnedIds(togglePinnedModuleId(id));
+    };
 
     return (
         <>
@@ -170,6 +265,51 @@ export const Menu = () => {
             </Accordion>
      */}
 
+            {isHome && (
+                <Box sx={{ marginTop: 2 }}>
+                    {stats && (
+                        <Card sx={{ display: 'inline-block', padding: 1, marginBottom: 1 }}>
+                            <CardContent sx={{ display: 'flex', gap: 3, '&:last-child': { paddingBottom: 1 } }}>
+                                <Box>
+                                    <Typography variant="h5" color="primary">
+                                        {stats.thisMonth.toLocaleString()}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        reports this month
+                                    </Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="h5" color="primary">
+                                        {stats.allTime.toLocaleString()}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        reports all-time
+                                    </Typography>
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    )}
+                    {quickAccessItems.length > 0 && (
+                        <>
+                            <Typography variant="subtitle1" color="text.secondary">
+                                Quick Access
+                            </Typography>
+                            <Grid container>
+                                {quickAccessItems.map((menuItem) => (
+                                    <Grid key={'quick-' + menuItem.id} size={{ lg: 3, md: 4, sm: 6, xs: 12 }}>
+                                        <MenuButton
+                                            menuItem={menuItem}
+                                            isPinned={pinnedIds.includes(menuItem.id)}
+                                            onTogglePin={handleTogglePin}
+                                        />
+                                    </Grid>
+                                ))}
+                            </Grid>
+                        </>
+                    )}
+                </Box>
+            )}
+
             <Grid container sx={{ marginTop: 2 }}>
                 {menuModules.length > 0 ? (
                     menuModules.map((menuItem) => (
@@ -178,7 +318,11 @@ export const Menu = () => {
                             style={{ order: menuItem.sort_order }}
                             size={{ lg: 3, md: 4, sm: 6, xs: 12 }}
                         >
-                            <MenuButton menuItem={menuItem} />
+                            <MenuButton
+                                menuItem={menuItem}
+                                isPinned={pinnedIds.includes(menuItem.id)}
+                                onTogglePin={handleTogglePin}
+                            />
                         </Grid>
                     ))
                 ) : (
