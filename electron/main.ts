@@ -518,6 +518,10 @@ const postLocalDB = async (event, query) => {
     });
 };
 
+// Formats a count with its label, e.g. _plural(1, 'form') -> "1 form", _plural(3, 'form') -> "3 forms" -
+// used to build the human-readable "N synced" summary Toast shown after a sync completes.
+const _plural = (count: number, singular: string, plural = `${singular}s`) => `${count} ${count === 1 ? singular : plural}`;
+
 const getAppData = async (event) => {
     log.info('GET app data from server');
     log.debug(`due to ${event.type}`);
@@ -526,12 +530,21 @@ const getAppData = async (event) => {
     return await Promise.all([
         getModules(db),
         getWorkflows(db),
-        getForms(db).then(() => getFormCloudSubmissions(db)),
+        getForms(db).then(async (formsCount) => ({ formsCount, recordsCount: await getFormCloudSubmissions(db) })),
         getTaxonomies(db),
         getAdministrativeRegions(db),
     ])
-        .then(() => {
+        .then(([modulesCount, workflowsCount, { formsCount, recordsCount }, taxonomiesCount, adminRegionsCount]) => {
             log.info('GET app data SUCCESS');
+            const summary = [
+                _plural(modulesCount, 'module'),
+                _plural(workflowsCount, 'workflow'),
+                _plural(formsCount, 'form'),
+                _plural(recordsCount, 'record'),
+                _plural(taxonomiesCount, 'taxonomy', 'taxonomies'),
+                _plural(adminRegionsCount, 'administrative region'),
+            ].join(', ');
+            Toast(`Sync complete: ${summary}`, 'success', 8000);
             return true;
         })
         .catch((error) => {
@@ -551,8 +564,10 @@ const postGetUserData = async (event) => {
     startSyncProgress('Starting sync…');
     try {
         // BAHIS 3 data
-        await postFormCloudSubmissions(db);
-        await getFormCloudSubmissions(db);
+        const uploadedCount = await postFormCloudSubmissions(db);
+        const recordsCount = await getFormCloudSubmissions(db);
+        const summary = [_plural(uploadedCount, 'draft'), _plural(recordsCount, 'record')].join(', ');
+        Toast(`Sync complete: ${summary} synced`, 'success', 8000);
     } finally {
         endSyncProgress();
     }

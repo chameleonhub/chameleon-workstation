@@ -48,10 +48,12 @@ export const SignIn = () => {
         if (isSignedIn) {
             log.info('User is signed in. Starting app sync.');
             setIsSyncing(true);
+            // The main process sends its own detailed "Sync complete: N forms, N records, ..."
+            // Toast once counts are known (see getAppData in electron/main.ts) - only the
+            // invoke-level rejection (the whole IPC call failing) needs a toast dispatched here.
             ipcRenderer
                 .invoke('request-app-data-sync')
                 .then(() => {
-                    dispatch(OpenToast('Data sync SUCCESS'));
                     navigate('/menu/0');
                 })
                 .catch(() => {

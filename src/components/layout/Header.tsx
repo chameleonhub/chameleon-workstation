@@ -142,11 +142,13 @@ export const Header = () => {
         setLoadingMessage('Synchronizing data');
         setWaitingForDataSync(true);
 
+        // The main process sends its own detailed "Sync complete: N forms, N records, ..." Toast
+        // once counts are known (see getAppData/postGetUserData in electron/main.ts) - only the
+        // invoke-level rejection (the whole IPC call failing) needs a toast dispatched from here.
         await ipcRenderer
             .invoke('request-user-data-sync')
             .then(() => {
                 log.info('Drafts successfully synced');
-                dispatch(OpenToast('Data sync SUCCESS'));
                 setWaitingForDataSync(false);
             })
             .catch((error) => {
@@ -166,9 +168,6 @@ export const Header = () => {
         setWaitingForDataSync(true);
         ipcRenderer
             .invoke('request-app-data-sync')
-            .then(() => {
-                dispatch(OpenToast('Update data SUCCESS'));
-            })
             .catch((error) => {
                 dispatch(OpenToast({ type: 'error', text: 'Unable to update data' + error.message }));
             })

@@ -74,13 +74,14 @@ const _getAllPages = async (url: string) => {
     return next ? [...results, ...(await _getAllPages(next))] : results;
 };
 
-export const getModules = async (db) => {
+export const getModules = async (db): Promise<number> => {
     log.info(`GET Module Definitions`);
 
     const BAHIS_MODULE_DEFINITION_ENDPOINT = `${BAHIS_SERVER_URL}/api/desk/modules`;
     const api_url = _url(BAHIS_MODULE_DEFINITION_ENDPOINT);
     log.info(`API URL: ${api_url}`);
 
+    let syncedCount = 0;
     addSyncProgressTotal(1);
     await _getAllPages(api_url)
         .then((data) => {
@@ -109,6 +110,7 @@ export const getModules = async (db) => {
                             module.parent_module,
                             module.module_type,
                         ]);
+                        syncedCount++;
                     } else {
                         log.info(`Deleting module ${module.id} from local database as no longer active`);
                         deleteQuery.run([module.id]);
@@ -123,15 +125,17 @@ export const getModules = async (db) => {
             log.error('GET Module Definitions FAILED with:');
             log.error(error);
         });
+    return syncedCount;
 };
 
-export const getWorkflows = async (db) => {
+export const getWorkflows = async (db): Promise<number> => {
     log.info(`GET Workflow Definitions`);
 
     const BAHIS_WORKFLOW_DEFINITION_ENDPOINT = `${BAHIS_SERVER_URL}/api/desk/workflows`;
     const api_url = _url(BAHIS_WORKFLOW_DEFINITION_ENDPOINT);
     log.info(`API URL: ${api_url}`);
 
+    let syncedCount = 0;
     addSyncProgressTotal(1);
     await _getAllPages(api_url)
         .then((data) => {
@@ -154,6 +158,7 @@ export const getWorkflows = async (db) => {
                             workflow.destination_form,
                             JSON.stringify(workflow.definition),
                         ]);
+                        syncedCount++;
                     } else {
                         log.warn(`Deleting workflow ${workflow.id} from local database as no longer active`);
                         deleteQuery.run([workflow.id]);
@@ -168,9 +173,10 @@ export const getWorkflows = async (db) => {
             log.error('GET Workflow Definitions FAILED with:');
             log.error(error);
         });
+    return syncedCount;
 };
 
-export const getForms = async (db) => {
+export const getForms = async (db): Promise<number> => {
     log.info(`GET KoboToolbox Form Definitions`);
 
     log.info(`KOBOTOOLBOX KF API URL: ${BAHIS_KOBOTOOLBOX_KF_API_URL}`);
@@ -250,8 +256,10 @@ export const getForms = async (db) => {
             tickSyncProgress(`Form: ${form.name}`);
         }
         log.info(`GET KoboToolbox Form Definitions SUCCESS`);
+        return (formList as Form[]).length;
     } else {
         Toast('No forms assigned', 'warning');
+        return 0;
     }
 };
 
@@ -331,12 +339,13 @@ const getFormMedia = async (db, formUid: string, manifestUrl: string) => {
     );
 };
 
-const insertCloudSubmission = async (db, url: string, form = { name: '' }, count = 0) => {
+const insertCloudSubmission = async (db, url: string, form = { name: '' }, count = 0): Promise<number> => {
     const upsertQuery = db.prepare(
         'INSERT INTO formcloudsubmission (uuid, form_uid, xml) VALUES (?, ?, ?) ON CONFLICT(uuid) DO UPDATE SET xml = excluded.xml;',
     );
     console.log(`get cloud data from: ${url}`);
     let data: CloudFormData[] = [];
+    let finalCount = count;
     await auth
         .get(url)
         .then(async (response) => {
@@ -385,9 +394,10 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }, count
             }
             const next = xpath.select('/root/next', doc, true) as Node;
             if (next && next.textContent != 'None') {
-                await insertCloudSubmission(db, next.textContent as string, form, count + data.length);
+                finalCount = await insertCloudSubmission(db, next.textContent as string, form, count + data.length);
                 console.log(count);
             } else {
+                finalCount = count + data.length;
                 tickSyncProgress(`Form data: ${form?.name}`);
             }
         })
@@ -400,9 +410,10 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }, count
         .finally(() => {
             data = [];
         });
+    return finalCount;
 };
 
-export const getFormCloudSubmissions = async (db) => {
+export const getFormCloudSubmissions = async (db): Promise<number> => {
     const formList = db.prepare('SELECT uid, name FROM form').all();
 
     const lastSync = db
@@ -423,17 +434,19 @@ export const getFormCloudSubmissions = async (db) => {
 
     // NOTE UUID on KoboToolbox actually might not be unique historically; but should be as of 2023
 
+    let totalRecords = 0;
     addSyncProgressTotal(formList.length);
     for (const form of formList) {
         log.info(`GET form ${form.uid} submissions from KoboToolbox`);
         const initialUrl = BAHIS_KOBOTOOLBOX_KF_API_URL + 'assets/' + form.uid + '/data/?format=xml' + syncUrlQuery;
-        await insertCloudSubmission(db, initialUrl, form);
+        totalRecords += await insertCloudSubmission(db, initialUrl, form);
     }
 
     log.info(`GET KoboToolbox Form Submissions SUCCESS`);
+    return totalRecords;
 };
 
-export const postFormCloudSubmissions = async (db) => {
+export const postFormCloudSubmissions = async (db): Promise<number> => {
     log.info(`POST KoboToolbox Form Submissions`);
 
     log.info(`KOBOTOOLBOX KC API URL: ${BAHIS_KOBOTOOLBOX_KC_API_URL}`);
@@ -448,6 +461,7 @@ export const postFormCloudSubmissions = async (db) => {
 
     const deleteQuery = db.prepare('DELETE FROM formlocaldraft WHERE uuid = ?');
 
+    let uploadedCount = 0;
     addSyncProgressTotal(formcloudsubmissionList.length);
     for (const form of formcloudsubmissionList) {
         log.info(`POST form ${form.uuid} submissions from KoboToolbox`);
@@ -463,6 +477,7 @@ export const postFormCloudSubmissions = async (db) => {
                 if (response.status === 201 || response.status === 202) {
                     deleteQuery.run([form.uuid]);
                     log.info(`POST form ${form.uid} submissions SUCCESS`);
+                    uploadedCount++;
                 } else {
                     log.error(`POST form ${form.uid} submissions FAILED with status ${response.status}`);
                     log.error(response);
@@ -477,9 +492,10 @@ export const postFormCloudSubmissions = async (db) => {
             });
     }
     log.info(`POST KoboToolbox Form Submissions SUCCESS`);
+    return uploadedCount;
 };
 
-export const getTaxonomies = async (db) => {
+export const getTaxonomies = async (db): Promise<number> => {
     log.info(`GET Taxonomy Definitions`);
 
     const BAHIS_TAXONOMY_DEFINITION_ENDPOINT = `${BAHIS_SERVER_URL}/api/taxonomy/taxonomies`;
@@ -496,6 +512,7 @@ export const getTaxonomies = async (db) => {
             Toast('GET Taxonomy List FAILED!!', 'error');
             log.error('GET Taxonomy List FAILED with:');
             log.error(error);
+            return [];
         });
 
     const upsertQuery = db.prepare(
@@ -503,42 +520,47 @@ export const getTaxonomies = async (db) => {
     );
     const BAHIS_TAXONOMY_CSV_ENDPOINT = (filename) => `${BAHIS_SERVER_URL}/media/${filename}`;
 
+    let syncedCount = 0;
     addSyncProgressTotal(taxonomyList?.length ?? 0);
-    for (const taxonomy of taxonomyList) {
-        log.info(`GET Taxonomy CSV ${taxonomy.slug} from server`);
-        auth.get(BAHIS_TAXONOMY_CSV_ENDPOINT(taxonomy.csv_file_stub))
-            .then((response) => {
-                const uPath = app.getPath('userData');
+    await Promise.all(
+        (taxonomyList ?? []).map(async (taxonomy) => {
+            log.info(`GET Taxonomy CSV ${taxonomy.slug} from server`);
+            await auth
+                .get(BAHIS_TAXONOMY_CSV_ENDPOINT(taxonomy.csv_file_stub))
+                .then((response) => {
+                    const uPath = app.getPath('userData');
 
-                try {
-                    if (!existsSync(`${uPath}/taxonomies/`)) {
-                        log.info('Creating taxonomies directory');
-                        mkdirSync(`${uPath}/taxonomies/`);
+                    try {
+                        if (!existsSync(`${uPath}/taxonomies/`)) {
+                            log.info('Creating taxonomies directory');
+                            mkdirSync(`${uPath}/taxonomies/`);
+                        }
+                        if (existsSync(`${uPath}/${taxonomy.csv_file_stub}`)) {
+                            log.info('Deleting old taxonomy');
+                            rmSync(`${uPath}/${taxonomy.csv_file_stub}`);
+                        }
+                        writeFileSync(`${uPath}/${taxonomy.csv_file_stub}`, response.data, 'utf-8');
+                        setStatus(taxonomy.csv_file_stub + ' updated');
+                    } catch (error) {
+                        log.error('GET Taxonomy CSV FAILED while saving with:');
+                        log.error(error);
                     }
-                    if (existsSync(`${uPath}/${taxonomy.csv_file_stub}`)) {
-                        log.info('Deleting old taxonomy');
-                        rmSync(`${uPath}/${taxonomy.csv_file_stub}`);
-                    }
-                    writeFileSync(`${uPath}/${taxonomy.csv_file_stub}`, response.data, 'utf-8');
-                    setStatus(taxonomy.csv_file_stub + ' updated');
-                } catch (error) {
-                    log.error('GET Taxonomy CSV FAILED while saving with:');
+                    upsertQuery.run([taxonomy.slug, taxonomy.csv_file_stub]);
+                    log.info(`GET Taxonomy CSV ${taxonomy.slug} SUCCESS`);
+                    syncedCount++;
+                })
+                .catch((error) => {
+                    Toast(`GET Taxonomy CSV ${taxonomy.slug} FAILED!!`, 'error');
+                    log.error(`GET Taxonomy CSV ${taxonomy.slug} FAILED with:`);
                     log.error(error);
-                }
-                upsertQuery.run([taxonomy.slug, taxonomy.csv_file_stub]);
-                log.info(`GET Taxonomy CSV ${taxonomy.slug} SUCCESS`);
-                tickSyncProgress(`Taxonomy: ${taxonomy.slug}`);
-            })
-            .catch((error) => {
-                Toast(`GET Taxonomy CSV ${taxonomy.slug} FAILED!!`, 'error');
-                log.error(`GET Taxonomy CSV ${taxonomy.slug} FAILED with:`);
-                log.error(error);
-                tickSyncProgress(`Taxonomy: ${taxonomy.slug}`);
-            });
-    }
+                });
+            tickSyncProgress(`Taxonomy: ${taxonomy.slug}`);
+        }),
+    );
+    return syncedCount;
 };
 
-export const getAdministrativeRegions = async (db) => {
+export const getAdministrativeRegions = async (db): Promise<number> => {
     log.info(`GET getAdministrativeRegionLevels Definitions`);
 
     const BAHIS_ADMINISTRATIVE_REGION_LEVELS_ENDPOINT = `${BAHIS_SERVER_URL}/api/taxonomy/administrative-region-levels`;
@@ -602,12 +624,12 @@ export const getAdministrativeRegions = async (db) => {
             }
             log.info('GET getAdministrativeRegions Definitions SUCCESS');
             tickSyncProgress('Administrative regions');
-            return true;
+            return response.data?.length ?? 0;
         })
         .catch((error) => {
             log.error('GET getAdministrativeRegions Definitions FAILED with:');
             log.error(error);
             tickSyncProgress('Administrative regions');
-            return false;
+            return 0;
         });
 };
