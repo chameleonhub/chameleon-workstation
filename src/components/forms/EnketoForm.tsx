@@ -1,10 +1,21 @@
-import { Box, Button, Stack } from '@mui/material';
+import {
+    Box,
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
+    Stack,
+    Typography,
+} from '@mui/material';
 import { ipcRenderer } from 'electron';
 import { Form } from 'enketo-core';
 import { transform } from 'enketo-transformer/web';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { log } from '../../helpers/log';
+import { escapeSqlString } from '../../helpers/sql.ts';
 import { fetchDraftCount } from '../../stores/featues/draftCounterSlice.ts';
 import { useAppDispatch } from '../../stores/store.ts';
 
@@ -18,6 +29,17 @@ interface EnketoFormProps {
 export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, instanceID, editable = true }) => {
     const formEl = useRef<HTMLDivElement>(null);
     const [form, setForm] = useState<Form | null>(null);
+    // Reset wipes every answer on the current form (form.resetView()) and Cancel discards it by
+    // navigating away, neither previously asked for confirmation - unlike Logout/Reset-database
+    // elsewhere in the app, both of which do. On forms with 20+ groups (see Patient Registry), an
+    // accidental click here loses a lot of work.
+    const [confirmAction, setConfirmAction] = useState<'reset' | 'cancel' | null>(null);
+    // Top-level section (group) labels, for the "N of M: <label>" indicator - see the focusin
+    // effect below. None of this app's forms enable Enketo's own built-in pagination (that only
+    // activates when the XForm's <h:body> has a "pages" class - checked, none of the 8 real forms
+    // do), so every group renders on one continuous scroll with nothing indicating progress.
+    const [sectionLabels, setSectionLabels] = useState<string[]>([]);
+    const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
     const dispatch = useAppDispatch();
 
     const navigate = useNavigate();
@@ -26,8 +48,10 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
         const parser = new DOMParser();
         const doc = parser.parseFromString(data, 'application/xml');
         const uuid = doc.getElementsByTagName('instanceID')[0].textContent;
+        // data is the full form XML, including every free-text answer - unescaped, a single
+        // apostrophe (a name, a note) breaks the query's quoting and silently fails the save.
         const query = `INSERT INTO formlocaldraft (uuid, form_uid, xml)
-                       VALUES ('${uuid}', '${formUID}', '${data}')
+                       VALUES ('${escapeSqlString(uuid ?? '')}', '${escapeSqlString(formUID)}', '${escapeSqlString(data)}')
                        ON CONFLICT (uuid) DO UPDATE SET xml = excluded.xml;`;
 
         ipcRenderer
@@ -49,7 +73,7 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
     const deleteDraft = (uuid) => {
         const query = `DELETE
                        FROM formlocaldraft
-                       WHERE uuid = '${uuid}';`;
+                       WHERE uuid = '${escapeSqlString(uuid)}';`;
         ipcRenderer
             .invoke('post-local-db', query)
             .then((response) => {
@@ -141,6 +165,21 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
                 const loadErrors = frm.init();
                 loadErrors.length && console.warn(loadErrors);
 
+                // Top-level, non-repeat groups define the form's section outline - repeats are
+                // excluded since their groups repeat per instance (e.g. "Product 1".."Product 5")
+                // rather than being distinct sections of the form.
+                const groupEls = Array.from(formEl.current.querySelectorAll<HTMLElement>('.or-group, .or-group-data')).filter(
+                    (el) => !el.parentElement?.closest('.or-group, .or-group-data') && !el.closest('.or-repeat'),
+                );
+                const labels = groupEls
+                    .map((el) => {
+                        const heading = el.querySelector<HTMLElement>(':scope > h3, :scope > h4');
+                        const activeLabel = heading?.querySelector<HTMLElement>('.question-label.active');
+                        return (activeLabel ?? heading)?.textContent?.trim() || '';
+                    })
+                    .filter((label) => label.length > 0);
+                setSectionLabels(labels);
+
                 log.info('Form HTML and XML generated successfully');
             })
             .catch((error) => {
@@ -148,6 +187,26 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
                 log.error(error);
             });
     }, [formODKXML]);
+
+    // Tracks which top-level section currently has focus, for the "N of M: <label>" indicator.
+    // Keyed off focus rather than scroll position - it's exact (no rootMargin/threshold tuning)
+    // and matches where the agent is actually interacting, not just what's scrolled into view.
+    useEffect(() => {
+        if (sectionLabels.length === 0 || !formEl.current) return;
+
+        const groupEls = Array.from(formEl.current.querySelectorAll<HTMLElement>('.or-group, .or-group-data')).filter(
+            (el) => !el.parentElement?.closest('.or-group, .or-group-data') && !el.closest('.or-repeat'),
+        );
+
+        const container = formEl.current;
+        const handleFocusIn = (event: FocusEvent) => {
+            const idx = groupEls.findIndex((group) => group.contains(event.target as Node));
+            if (idx >= 0) setCurrentSectionIndex(idx);
+        };
+
+        container.addEventListener('focusin', handleFocusIn);
+        return () => container.removeEventListener('focusin', handleFocusIn);
+    }, [sectionLabels]);
 
     const onSubmit = () => {
         if (form) {
@@ -172,13 +231,24 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
     };
 
     const onReset = () => {
-        if (form) {
-            form.resetView();
-        }
+        setConfirmAction('reset');
     };
 
     const onCancel = () => {
-        navigate(`/list/${formUID}`);
+        setConfirmAction('cancel');
+    };
+
+    const onConfirmActionClose = () => {
+        setConfirmAction(null);
+    };
+
+    const onConfirmActionProceed = () => {
+        if (confirmAction === 'reset' && form) {
+            form.resetView();
+        } else if (confirmAction === 'cancel') {
+            navigate(`/list/${formUID}`);
+        }
+        setConfirmAction(null);
     };
 
     const onDelete = () => {
@@ -190,6 +260,24 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
 
     return (
         <Stack className="ek-form" sx={{ margin: '2rem 3rem' }}>
+            {editable && sectionLabels.length > 0 && (
+                <Box
+                    sx={{
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 1,
+                        backgroundColor: 'background.paper',
+                        py: 1,
+                        mb: 1,
+                        borderBottom: '1px solid',
+                        borderColor: 'divider',
+                    }}
+                >
+                    <Typography variant="subtitle2" color="text.secondary">
+                        Section {currentSectionIndex + 1} of {sectionLabels.length}: {sectionLabels[currentSectionIndex]}
+                    </Typography>
+                </Box>
+            )}
             <div ref={formEl}></div>
             <Box sx={{ display: 'flex', gap: '1rem' }}>
                 {editable && (
@@ -207,6 +295,24 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
                     </>
                 )}
             </Box>
+            <Dialog open={confirmAction !== null} onClose={onConfirmActionClose} aria-labelledby="confirm-action-title">
+                <DialogTitle id="confirm-action-title">Are you sure?</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        {confirmAction === 'reset'
+                            ? 'This will clear everything entered on this form. This cannot be undone.'
+                            : 'This will discard everything entered on this form. This cannot be undone.'}
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={onConfirmActionProceed} color="error">
+                        Yes
+                    </Button>
+                    <Button onClick={onConfirmActionClose} autoFocus>
+                        No
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Stack>
     );
 };
