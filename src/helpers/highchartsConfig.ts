@@ -1,16 +1,13 @@
 import Highcharts from 'highcharts';
 import 'highcharts/modules/accessibility';
 import 'highcharts/modules/exporting';
-import 'highcharts/modules/offline-exporting'; // client-side export (canvas-based) - no export server, works offline
-import 'highcharts/modules/export-data'; // adds "View data table" / CSV / XLS to the export menu
+import 'highcharts/modules/offline-exporting';
+import 'highcharts/modules/export-data';
 
-// Matches MUI's default font stack (theme.ts doesn't override typography.fontFamily),
-// so charts read as part of the same app chrome rather than a foreign widget.
+
 const APP_FONT_FAMILY = '"Roboto","Helvetica","Arial",sans-serif';
 
-// Standard 8-color categorical palette, one distinct color per bar/category. Bar and column
-// widgets here cap at 7 categories + "Other" (see Dashboard.tsx MAX_CATEGORIES), so this never
-// runs out and has to repeat a color.
+
 export const CATEGORICAL_PALETTE = [
     '#2a78d6', // blue
     '#eb6834', // orange
@@ -28,10 +25,6 @@ Highcharts.setOptions({
         style: {
             fontFamily: APP_FONT_FAMILY,
         },
-        // Opaque, not 'transparent': the browser's native Fullscreen API (used by the export
-        // menu's "View in full screen") renders the chart outside the card entirely, on a plain
-        // black backdrop, so a transparent chart background shows through as black. This looks
-        // identical to before against the card's own white background, but also fixes fullscreen.
         backgroundColor: '#ffffff',
     },
     credits: {
@@ -46,9 +39,6 @@ Highcharts.setOptions({
     exporting: {
         enabled: true,
     },
-    // Every widget here is a single series ("Submissions"), so the legend only ever repeats that
-    // one label per chart - no identifying information, just chrome. Category identity is carried
-    // by the axis labels instead (see plotOptions.bar/column colorByPoint below).
     legend: {
         enabled: false,
     },

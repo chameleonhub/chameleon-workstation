@@ -38,3 +38,20 @@ log.error = ((message: unknown, ...meta: unknown[]) =>
     message instanceof Error
         ? logError(`${message.name}: ${message.message}\n${message.stack}`, ...meta)
         : logError(message, ...meta)) as typeof log.error;
+
+export const rendererLog = createLogger({
+    transports: [
+        new transports.File({
+            filename: 'react-debug.log',
+            level: 'silly',
+            maxsize: 1048576,
+            maxFiles: 1,
+            format: format.combine(
+                format.timestamp({
+                    format: 'YYYY-MM-DD HH:mm:ss.SSS',
+                }),
+                format.printf((info) => `${info.timestamp} [${info.level}] ${info.message}`),
+            ),
+        }),
+    ],
+});

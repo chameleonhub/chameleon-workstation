@@ -31,6 +31,9 @@ export default function ViteConfig({ mode }) {
                             minify: isProd,
                         },
                     },
+                    onstart(options) {
+                        setTimeout(() => options.startup(), 1000);
+                    },
                 },
                 {
                     entry: 'electron/preload.ts',

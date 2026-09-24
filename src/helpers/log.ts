@@ -1,28 +1,27 @@
-import { createLogger, format, transports } from 'winston';
+import { ipcRenderer } from 'electron';
 
-export const log = createLogger({
-    transports: [
-        new transports.Console({
-            level: 'info',
-            format: format.combine(
-                format.colorize(),
-                format.timestamp({
-                    format: 'HH:mm:ss.SSS',
-                }),
-                format.printf((info) => `${info.timestamp} [${info.level}] ${info.message}`),
-            ),
-        }),
-        new transports.File({
-            filename: 'react-debug.log',
-            level: 'silly',
-            maxsize: 1048576,
-            maxFiles: 1,
-            format: format.combine(
-                format.timestamp({
-                    format: 'YYYY-MM-DD HH:mm:ss.SSS',
-                }),
-                format.printf((info) => `${info.timestamp} [${info.level}] ${info.message}`),
-            ),
-        }),
-    ],
-});
+type LogLevel = 'error' | 'warn' | 'info' | 'debug';
+
+const stringify = (arg: unknown): string =>
+    arg instanceof Error ? `${arg.name}: ${arg.message}\n${arg.stack}` : typeof arg === 'string' ? arg : JSON.stringify(arg);
+
+const consoleMethod: Record<LogLevel, (...args: unknown[]) => void> = {
+    error: console.error,
+    warn: console.warn,
+    info: console.info,
+    debug: console.debug,
+};
+
+const write =
+    (level: LogLevel) =>
+    (...args: unknown[]) => {
+        consoleMethod[level](...args);
+        ipcRenderer.send('renderer-log', level, args.map(stringify).join(' '));
+    };
+
+export const log = {
+    error: write('error'),
+    warn: write('warn'),
+    info: write('info'),
+    debug: write('debug'),
+};

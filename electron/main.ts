@@ -8,7 +8,7 @@ import { createReadStream } from 'fs';
 import path from 'node:path';
 import { create } from 'xmlbuilder2';
 import { createLocalDatabase, createOrReadLocalDatabase, createUserInLocalDatabase, deleteLocalDatabase } from './localDB';
-import { log } from './log';
+import { log, rendererLog } from './log';
 import {
     BAHIS_SERVER_URL,
     getAdministrativeRegions,
@@ -128,6 +128,21 @@ const createWindow = () => {
 
     if (process.env['VITE_DEV_SERVER_URL']) {
         mainWindow.loadURL(process.env['VITE_DEV_SERVER_URL']);
+
+        // vite-plugin-electron starts this window as soon as the dev server's port is listening,
+        // which can race Vite's first dependency-optimizer pass - a module request landing in that
+        // gap fails with a raw, unrecoverable "504 (Outdated Optimize Dep)" console error (the
+        // browser's native ES module loader has no retry/reload logic like @vite/client's HMR path
+        // does). Reloading once the optimizer is done recovers cleanly; retry (debounced) in case the
+        // reload itself lands in the same gap again.
+        let lastReload = 0;
+        mainWindow.webContents.on('console-message', (event) => {
+            if (event.message.includes('Outdated Optimize Dep') && Date.now() - lastReload > 2000) {
+                lastReload = Date.now();
+                log.warn('Detected stale Vite optimize-dep response on startup, reloading window');
+                mainWindow?.webContents.reloadIgnoringCache();
+            }
+        });
     } else {
         mainWindow.loadFile(path.join(process.env.DIST as string, 'index.html'));
     }
@@ -568,7 +583,11 @@ const readAdministrativeRegions = async (event) => {
 const csvFileToItemsXML = (filePath: string): Promise<string> => {
     const data: object[] = [];
     return new Promise<string>((resolve, reject) => {
+        // pipe() does not forward 'error' events from the source stream to the destination, so the
+        // fs ReadStream needs its own 'error' listener - otherwise an ENOENT (or other read error)
+        // has no listener, which Node treats as an uncaught exception and crashes the main process.
         createReadStream(filePath)
+            .on('error', reject)
             .pipe(csv())
             .on('data', (row: object) => data.push(row))
             .on('end', () => {
@@ -606,6 +625,7 @@ const readTaxonomy = async (event, taxonomySlug: string) => {
         .catch((error) => {
             log.error(`READ taxonomy CSV at ${filePath} FAILED with:`);
             log.error(error);
+            Toast(`Unable to load ${taxonomySlug} choices - try syncing app data again`, 'error');
             throw error;
         });
 };
@@ -625,6 +645,7 @@ const readFormMedia = async (event, formUid: string, filename: string) => {
         .catch((error) => {
             log.error(`READ form media CSV at ${filePath} FAILED with:`);
             log.error(error);
+            Toast(`Unable to load ${filename} choices - try syncing app data again`, 'error');
             throw error;
         });
 };
@@ -669,6 +690,7 @@ const getUserData = async () => {
 // subscribes the listeners to channels
 //original
 ipcMain.on('fetch-username', fetchUsername);
+ipcMain.on('renderer-log', (_event, level: string, message: string) => rendererLog.log(level, message));
 
 // refactored & new
 ipcMain.handle('sign-in', signIn);
