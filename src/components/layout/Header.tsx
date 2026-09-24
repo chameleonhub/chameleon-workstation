@@ -1,6 +1,7 @@
 import {
     AccountCircle as AccountCircleIcon,
     ArrowBack as ArrowBackIcon,
+    Close as CloseIcon,
     Home as HomeIcon,
     Preview as PreviewIcon,
     Sync as SyncIcon,
@@ -49,6 +50,8 @@ export const Header = () => {
     const [dialogEl, setDialogEl] = useState<ReactElement[]>([]);
     const [user, setUser] = useState<User>({});
     const [open, setOpen] = useState(false);
+    const [dataSummaryOpen, setDataSummaryOpen] = useState(false);
+    const [formReportCounts, setFormReportCounts] = useState<{ form_name: string; report_count: number }[]>([]);
     const dispatch = useAppDispatch();
     const draftCount = useSelector(selectDraftCount);
 
@@ -76,7 +79,9 @@ export const Header = () => {
         <Fragment key="profileFragKey">
             <DialogTitle id="alert-dialog-title">{'Profile'}</DialogTitle>
             <DialogContent>
-                <DialogContentText id="alert-dialog-description">
+                {/* Not wrapped in DialogContentText (renders a <p>) - a <table> can't nest inside
+                one, which React flags as an invalid-HTML hydration error. */}
+                <div id="alert-dialog-description">
                     <TableContainer component={Paper}>
                         <Table sx={{ minWidth: 300 }}>
                             <TableBody>
@@ -95,7 +100,7 @@ export const Header = () => {
                             </TableBody>
                         </Table>
                     </TableContainer>
-                </DialogContentText>
+                </div>
             </DialogContent>
             <DialogActions>
                 <Button onClick={() => setOpen(false)} autoFocus>
@@ -112,15 +117,58 @@ export const Header = () => {
     const handleMenuClose = () => {
         setAnchorEl(null);
     };
+
+    // Closing this Menu and opening a Dialog in the same click leaves the just-clicked <li>
+    // MenuItem focused while MUI marks the closing Menu's popover aria-hidden - blurring it first
+    // moves focus off that element before the Menu applies aria-hidden, avoiding the
+    // "Blocked aria-hidden on an element because its descendant retained focus" console warning.
+    const closeMenu = () => {
+        (document.activeElement as HTMLElement | null)?.blur();
+        setAnchorEl(null);
+    };
+
     const handleLogoutDialog = () => {
         setDialogEl(logoutEl);
-        setAnchorEl(null);
+        closeMenu();
         setOpen(true);
     };
     const handleProfile = () => {
         setDialogEl(profileEl);
-        setAnchorEl(null);
+        closeMenu();
         setOpen(true);
+    };
+
+    // Its own dialog/state pair (rather than reusing dialogEl/open like Profile/Logout) since its
+    // content is fetched fresh on each open - dialogEl holds a static ReactElement snapshot from
+    // click-time, which would show stale counts on a later re-render.
+    const handleDataSummary = () => {
+        closeMenu();
+        // Opened synchronously, in the same tick as closeMenu(), matching Profile/Logout - MUI's
+        // shared modal stack can otherwise briefly manage the closing Menu and an opening Dialog
+        // at the same time if the Dialog opens later (e.g. after an await), which re-triggers the
+        // "Blocked aria-hidden ... retained focus" warning even with the menu item properly
+        // blurred first. Data fills in once the query resolves; setFormReportCounts([]) first so a
+        // reopen doesn't briefly flash the previous form's counts.
+        setFormReportCounts([]);
+        setDataSummaryOpen(true);
+        // LEFT JOIN so a form with zero synced submissions still shows up with a count of 0,
+        // rather than being silently absent from the list.
+        const formReportCountsQuery = `
+            SELECT form.name as form_name, COUNT(formcloudsubmission.uuid) as report_count
+            FROM form
+            LEFT JOIN formcloudsubmission ON formcloudsubmission.form_uid = form.uid
+            GROUP BY form.uid, form.name
+            ORDER BY form.name
+        `;
+        ipcRenderer
+            .invoke('get-local-db', formReportCountsQuery)
+            .then((formReports) => {
+                setFormReportCounts(formReports);
+            })
+            .catch((error) => {
+                log.error(`Error reading data summary: ${error}`);
+                dispatch(OpenToast({ type: 'error', text: 'Unable to read data summary' }));
+            });
     };
 
     const navigate = useNavigate();
@@ -266,7 +314,6 @@ export const Header = () => {
                                 vertical: 'bottom',
                                 horizontal: 'right',
                             }}
-                            keepMounted
                             transformOrigin={{
                                 vertical: 'top',
                                 horizontal: 'right',
@@ -275,6 +322,7 @@ export const Header = () => {
                             onClose={handleMenuClose}
                         >
                             <MenuItem onClick={handleProfile}>Profile</MenuItem>
+                            <MenuItem onClick={handleDataSummary}>Data Summary</MenuItem>
                             <MenuItem onClick={handleLogoutDialog}>Logout</MenuItem>
                         </Menu>
                     </div>
@@ -282,6 +330,32 @@ export const Header = () => {
             </Toolbar>
             <Dialog open={open} aria-labelledby="alert-dialog-title" aria-describedby="alert-dialog-description">
                 {dialogEl}
+            </Dialog>
+            <Dialog
+                open={dataSummaryOpen}
+                onClose={() => setDataSummaryOpen(false)}
+                aria-labelledby="data-summary-dialog-title"
+            >
+                <DialogTitle id="data-summary-dialog-title" sx={{ position: 'relative' }}>
+                    Reports per form
+                    <IconButton onClick={() => setDataSummaryOpen(false)} sx={{ position: 'absolute', right: 8, top: 8 }}>
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent>
+                    <TableContainer component={Paper}>
+                        <Table sx={{ minWidth: 300 }}>
+                            <TableBody>
+                                {formReportCounts.map(({ form_name, report_count }) => (
+                                    <TableRow key={form_name}>
+                                        <TableCell>{form_name}</TableCell>
+                                        <TableCell align="right">{report_count.toLocaleString()}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </DialogContent>
             </Dialog>
         </AppBar>
     );
