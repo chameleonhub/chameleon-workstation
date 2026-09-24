@@ -12,10 +12,16 @@ const consoleMethod: Record<LogLevel, (...args: unknown[]) => void> = {
     debug: console.debug,
 };
 
+// 'debug' is intentionally console-silent (matches the previous winston Console transport, which
+// was pinned to level: 'info') - it still reaches react-debug.log via the IPC send below, just not
+// DevTools, since debug call sites (row clicks, module loads, field replacements, ...) can be noisy
+// and occasionally log data a field agent watching an open console shouldn't see by default.
+const CONSOLE_LEVELS: LogLevel[] = ['error', 'warn', 'info'];
+
 const write =
     (level: LogLevel) =>
     (...args: unknown[]) => {
-        consoleMethod[level](...args);
+        if (CONSOLE_LEVELS.includes(level)) consoleMethod[level](...args);
         ipcRenderer.send('renderer-log', level, args.map(stringify).join(' '));
     };
 

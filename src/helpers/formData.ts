@@ -61,8 +61,6 @@ export const readFormWorkflows = async (form_uid: string) => {
         });
 };
 
-const FIELDS_TO_HIDE = ['division', 'district', 'upazila']; // FIXME move out to some sort of config
-
 export const parseSubmissionsAsRows = (submission) => {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(submission.xml, 'application/xml');
@@ -83,30 +81,28 @@ export const parseSubmissionsAsRows = (submission) => {
     const fields: Element[] = [];
     recurseXML(form, fields);
 
-    // Map fields to a row object
+    // Map fields to a row object. Callers that want to hide specific fields (e.g. List's
+    // geo-location columns, which are hidden by default but stay toggleable) do so on their own
+    // view of this data (column visibility model, widget selection, etc.), not by dropping the
+    // value here - Dashboard's geo widgets, for one, need these values present.
     const row = {};
-    fields
-        .filter((element) => {
-            const name = element.nodeName || '';
-            return !FIELDS_TO_HIDE.includes(name);
-        })
-        .map((element) => {
-            const parent_name = element.parentElement?.nodeName || '';
-            const name = element.nodeName || '';
-            const field_name = `${parent_name}_${name}`;
-            const value = element.textContent || '';
-            if (name.toLowerCase().includes('date')) {
-                try {
-                    row[field_name] = new Date(value);
-                } catch (error) {
-                    log.error('Error parsing date:');
-                    log.error(error);
-                }
+    fields.map((element) => {
+        const parent_name = element.parentElement?.nodeName || '';
+        const name = element.nodeName || '';
+        const field_name = `${parent_name}_${name}`;
+        const value = element.textContent || '';
+        if (name.toLowerCase().includes('date')) {
+            try {
                 row[field_name] = new Date(value);
-            } else {
-                row[field_name] = value;
+            } catch (error) {
+                log.error('Error parsing date:');
+                log.error(error);
             }
-        });
+            row[field_name] = new Date(value);
+        } else {
+            row[field_name] = value;
+        }
+    });
 
     row['id'] = submission.uuid;
     const subDate = xmlDoc.documentElement.getElementsByTagName('start');

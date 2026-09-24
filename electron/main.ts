@@ -634,7 +634,9 @@ const readFormMedia = async (event, formUid: string, filename: string) => {
     log.info(`READ form media ${formUid}/${filename}`);
     log.debug(`due to ${event.type}`);
 
-    const filePath = `${app.getPath('userData')}/formmedia/${formUid}/${filename}`;
+    // filename is parsed from a synced form's own <instance src="jr://file-csv/...">, so
+    // path.basename() guards against a '..'-containing value escaping the formmedia directory.
+    const filePath = `${app.getPath('userData')}/formmedia/${formUid}/${path.basename(filename)}`;
 
     log.info(`Reading form media CSV at ${filePath}`);
     return csvFileToItemsXML(filePath)

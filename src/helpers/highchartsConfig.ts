@@ -4,9 +4,7 @@ import 'highcharts/modules/exporting';
 import 'highcharts/modules/offline-exporting';
 import 'highcharts/modules/export-data';
 
-
 const APP_FONT_FAMILY = '"Roboto","Helvetica","Arial",sans-serif';
-
 
 export const CATEGORICAL_PALETTE = [
     '#2a78d6', // blue

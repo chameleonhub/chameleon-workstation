@@ -60,6 +60,10 @@ const monthLabel = (date: Date): string => {
     return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short' });
 };
 
+// Sortable "YYYY-MM" key for a given month, so chart x-axes can be ordered chronologically
+// regardless of the order submissions were read from the DB (readFormData has no ORDER BY).
+const monthSortKey = (date: Date): string => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
 const StatTile = ({ label, value }: { label: string; value: string }) => (
     <Card sx={{ height: '100%' }}>
         <CardContent>
@@ -228,15 +232,17 @@ const NumericWidget = ({ title, fieldKey, rows }: { title: string; fieldKey: str
 
 const TimeSeriesWidget = ({ title, fieldKey, rows }: { title: string; fieldKey: string; rows: Record<string, unknown>[] }) => {
     const { labels, values } = useMemo(() => {
-        const counts = new Map<string, number>();
+        const counts = new Map<string, { label: string; total: number }>();
         rows.forEach((row) => {
             const date = row[fieldKey] as Date;
             if (!date || Number.isNaN(new Date(date).getTime())) return;
-            const label = monthLabel(new Date(date));
-            counts.set(label, (counts.get(label) || 0) + 1);
+            const parsed = new Date(date);
+            const sortKey = monthSortKey(parsed);
+            const existing = counts.get(sortKey);
+            counts.set(sortKey, { label: monthLabel(parsed), total: (existing?.total || 0) + 1 });
         });
-        const labels = [...counts.keys()];
-        return { labels, values: labels.map((label) => counts.get(label) || 0) };
+        const ordered = [...counts.entries()].sort(([a], [b]) => a.localeCompare(b));
+        return { labels: ordered.map(([, { label }]) => label), values: ordered.map(([, { total }]) => total) };
     }, [rows, fieldKey]);
 
     const options = useMemo<Highcharts.Options>(

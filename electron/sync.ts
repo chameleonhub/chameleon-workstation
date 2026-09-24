@@ -1,5 +1,6 @@
 import { app } from 'electron';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
+import path from 'node:path';
 import { DOMParser } from 'xmldom';
 import xpath from 'xpath';
 import { log } from './log';
@@ -238,7 +239,7 @@ export const getForms = async (db) => {
                 });
 
             if (form.manifest_url) {
-                getFormMedia(db, form.uid, form.manifest_url).catch((error) => {
+                await getFormMedia(db, form.uid, form.manifest_url).catch((error) => {
                     log.error(`GET form media for ${form.uid} FAILED with:`);
                     log.error(error);
                 });
@@ -270,45 +271,57 @@ const getFormMedia = async (db, formUid: string, manifestUrl: string) => {
             return [];
         });
 
-    const csvFiles = mediaFiles.filter((file) => file.filename?.toLowerCase().endsWith('.csv'));
+    // path.basename() strips any directory traversal (e.g. '../../foo.csv') the manifest's
+    // filename field might contain, since it's server-supplied (a compromised Kobo account, or a
+    // malicious/misconfigured form owner) and would otherwise be written verbatim into a
+    // filesystem path.
+    const csvFiles = mediaFiles
+        .filter((file) => file.filename?.toLowerCase().endsWith('.csv'))
+        .map((file) => ({ ...file, filename: path.basename(file.filename) }));
 
     const upsertQuery = db.prepare(
         'INSERT INTO formmedia (form_uid, filename, hash) VALUES (?, ?, ?) ON CONFLICT(form_uid, filename) DO UPDATE SET hash = excluded.hash;',
     );
     const existingHashQuery = db.prepare('SELECT hash FROM formmedia WHERE form_uid = ? AND filename = ?');
 
-    for (const file of csvFiles) {
-        const existing = existingHashQuery.get(formUid, file.filename);
-        if (existing && existing.hash === file.hash) {
-            log.info(`Form media ${formUid}/${file.filename} unchanged, skipping download`);
-            continue;
-        }
+    // Awaited (rather than fire-and-forget) so this function's own promise only resolves once
+    // every file has actually been downloaded and written - callers that await getFormMedia
+    // (see getForms below) can then rely on the media being on disk, not just requested.
+    await Promise.all(
+        csvFiles.map(async (file) => {
+            const existing = existingHashQuery.get(formUid, file.filename);
+            if (existing && existing.hash === file.hash) {
+                log.info(`Form media ${formUid}/${file.filename} unchanged, skipping download`);
+                return;
+            }
 
-        log.info(`GET form media ${formUid}/${file.filename} from server`);
-        auth.get(file.downloadUrl)
-            .then((response) => {
-                const uPath = app.getPath('userData');
-                const dir = `${uPath}/formmedia/${formUid}`;
+            log.info(`GET form media ${formUid}/${file.filename} from server`);
+            await auth
+                .get(file.downloadUrl)
+                .then((response) => {
+                    const uPath = app.getPath('userData');
+                    const dir = `${uPath}/formmedia/${formUid}`;
 
-                try {
-                    if (!existsSync(dir)) {
-                        mkdirSync(dir, { recursive: true });
+                    try {
+                        if (!existsSync(dir)) {
+                            mkdirSync(dir, { recursive: true });
+                        }
+                        writeFileSync(`${dir}/${file.filename}`, response.data, 'utf-8');
+                    } catch (error) {
+                        log.error(`GET form media ${formUid}/${file.filename} FAILED while saving with:`);
+                        log.error(error);
+                        return;
                     }
-                    writeFileSync(`${dir}/${file.filename}`, response.data, 'utf-8');
-                } catch (error) {
-                    log.error(`GET form media ${formUid}/${file.filename} FAILED while saving with:`);
+                    upsertQuery.run([formUid, file.filename, file.hash]);
+                    log.info(`GET form media ${formUid}/${file.filename} SUCCESS`);
+                })
+                .catch((error) => {
+                    Toast(`GET form media ${file.filename} FAILED!!`, 'error');
+                    log.error(`GET form media ${formUid}/${file.filename} FAILED with:`);
                     log.error(error);
-                    return;
-                }
-                upsertQuery.run([formUid, file.filename, file.hash]);
-                log.info(`GET form media ${formUid}/${file.filename} SUCCESS`);
-            })
-            .catch((error) => {
-                Toast(`GET form media ${file.filename} FAILED!!`, 'error');
-                log.error(`GET form media ${formUid}/${file.filename} FAILED with:`);
-                log.error(error);
-            });
-    }
+                });
+        }),
+    );
 };
 
 const insertCloudSubmission = async (db, url: string, form = { name: '' }, count = 0) => {
