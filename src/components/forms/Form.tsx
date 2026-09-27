@@ -274,17 +274,18 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
                 log.info('This appears to be a fresh form, replacing deskUser and deskTaxonomy tags.');
                 replaceUserValues(formXML);
                 insertTaxonomyChoices(formXML);
-            } else if (editable) {
-                log.info('This appears to be an editable but filled-in form, only replacing deskTaxonomy tags.');
+            } else {
+                // deskUser prefill only matters for a brand-new form, but taxonomy/media choice lists
+                // are still needed here regardless of editability - a select/select1 backed by a
+                // deskTaxonomy.* or file-csv instance has no <option>s to match its saved value
+                // against until this runs, so it rendered "none selected" for a read-only report even
+                // though the model's value was correctly loaded (see replacePrefilledValues below).
+                log.info('This appears to be a filled-in form, only replacing deskTaxonomy tags.');
                 setIsDeskUserReplaced(true);
                 insertTaxonomyChoices(formXML);
-            } else {
-                log.info('This appears to be a filled-in form, not replacing any tags.');
-                setIsDeskUserReplaced(true);
-                setIsDeskTaxonomyInserted(true);
             }
         }
-    }, [formXML, instance_id, editable, injectedData, form_uid]);
+    }, [formXML, instance_id, injectedData, form_uid]);
 
     // if the form has been filled out previously, read the data
     // FIXME and then force it into the form as "default" data
