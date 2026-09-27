@@ -59,7 +59,7 @@ export default function MenuButton(props: MenuButtonProps) {
                     minWidth: compact ? 120 : 150,
                     width: compact ? 180 : undefined,
                     height: compact ? 100 : 150,
-                    margin: compact ? 1 : 2,
+                    margin: compact ? 0 : 2,
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center',
@@ -206,10 +206,6 @@ export const Menu = () => {
         readModulesWithParent(menu_id);
     }, [menu_id]);
 
-    // Favorites: purely user-pinned modules (any type, resolved by id) - no auto-backfill with
-    // most-used forms. Empty until the agent pins something, and "Clear all" actually empties it,
-    // rather than most-used suggestions reappearing to fill the gap. Only loaded on the home
-    // screen (menu_id 0).
     useEffect(() => {
         if (!isHome) return;
 
@@ -365,22 +361,17 @@ export const Menu = () => {
                                 )
                             }
                         >
-                            <Grid container>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 2 }}>
                                 {favoriteItems.map((menuItem) => (
-                                    <Grid
-                                        sx={{ gap: 2 }}
+                                    <MenuButton
                                         key={'favorite-' + menuItem.id}
-                                        size={{ lg: 2, md: 3, sm: 4, xs: 6 }}
-                                    >
-                                        <MenuButton
-                                            menuItem={menuItem}
-                                            isPinned={pinnedIds.includes(menuItem.id)}
-                                            onTogglePin={handleTogglePin}
-                                            compact
-                                        />
-                                    </Grid>
+                                        menuItem={menuItem}
+                                        isPinned={pinnedIds.includes(menuItem.id)}
+                                        onTogglePin={handleTogglePin}
+                                        compact
+                                    />
                                 ))}
-                            </Grid>
+                            </Box>
                         </CollapsibleSection>
                     )}
                 </Box>
