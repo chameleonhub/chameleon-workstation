@@ -1,5 +1,27 @@
-import { Alert, Box, Button, Card, CardContent, Collapse, Grid, Icon, IconButton, Tooltip, Typography } from '@mui/material';
-import { ExpandLess, ExpandMore, InfoOutlined, PushPin, PushPinOutlined } from '@mui/icons-material';
+import {
+    Alert,
+    Box,
+    Button,
+    Card,
+    CardContent,
+    Collapse,
+    Dialog,
+    DialogContent,
+    DialogTitle,
+    Grid,
+    Icon,
+    IconButton,
+    Paper,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Tooltip,
+    Typography,
+} from '@mui/material';
+import { Close as CloseIcon, ExpandLess, ExpandMore, InfoOutlined, PushPin, PushPinOutlined } from '@mui/icons-material';
 import React, { useEffect, useState } from 'react';
 import { log } from '../../helpers/log';
 import { ipcRenderer } from 'electron';
@@ -105,6 +127,12 @@ interface PersonalStats {
     allTime: number;
 }
 
+interface FormReportStats {
+    form_name: string;
+    total: number;
+    thisMonth: number;
+}
+
 interface CollapsibleSectionProps {
     title: string;
     /** Persists the expanded/collapsed state in localStorage under this key, per section - a
@@ -178,6 +206,8 @@ export const Menu = () => {
     const [pinnedIds, setPinnedIds] = useState<number[]>(() => getPinnedModuleIds());
     const [favoriteItems, setFavoriteItems] = useState<MenuItem[]>([]);
     const [stats, setStats] = useState<PersonalStats | null>(null);
+    const [formStats, setFormStats] = useState<FormReportStats[]>([]);
+    const [formStatsDialogOpen, setFormStatsDialogOpen] = useState(false);
 
     const { menu_id } = useParams();
 
@@ -269,6 +299,34 @@ export const Menu = () => {
 
     const handleClearAllPinned = () => {
         setPinnedIds(clearPinnedModuleIds());
+    };
+
+    // Per-form breakdown for the stats tile - same "this month" logic (by the submission's own
+    // embedded <end> tag) as the overall stats query above, just grouped per form. LEFT JOIN so a
+    // form with zero submissions still shows up with 0s rather than being silently absent.
+    const handleOpenFormStats = () => {
+        const query = `
+            SELECT
+                form.name as form_name,
+                COUNT(formcloudsubmission.uuid) as total,
+                COALESCE(SUM(
+                    CASE WHEN substr(formcloudsubmission.xml, instr(formcloudsubmission.xml, '<end>') + 5, 7) = strftime('%Y-%m', 'now')
+                    THEN 1 ELSE 0 END
+                ), 0) as thisMonth
+            FROM form
+            LEFT JOIN formcloudsubmission ON formcloudsubmission.form_uid = form.uid
+            GROUP BY form.uid, form.name
+            ORDER BY form.name
+        `;
+        ipcRenderer
+            .invoke('get-local-db', query)
+            .then((response: FormReportStats[]) => {
+                setFormStats(response);
+                setFormStatsDialogOpen(true);
+            })
+            .catch((error) => {
+                log.error(`Error reading per-form report stats: ${error}`);
+            });
     };
 
     return (
@@ -400,7 +458,10 @@ export const Menu = () => {
             </CollapsibleSection>
 
             {isHome && stats && (
-                <Card sx={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', marginTop: 1 }}>
+                <Card
+                    onClick={handleOpenFormStats}
+                    sx={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', marginTop: 1, cursor: 'pointer' }}
+                >
                     <Typography variant="caption" color="text.secondary">
                         {stats.allTime.toLocaleString()} reports all-time &middot; {stats.thisMonth.toLocaleString()} this
                         month
@@ -416,6 +477,41 @@ export const Menu = () => {
                     </Tooltip>
                 </Card>
             )}
+
+            <Dialog
+                open={formStatsDialogOpen}
+                onClose={() => setFormStatsDialogOpen(false)}
+                aria-labelledby="form-stats-dialog-title"
+            >
+                <DialogTitle id="form-stats-dialog-title" sx={{ position: 'relative' }}>
+                    Reports per form
+                    <IconButton onClick={() => setFormStatsDialogOpen(false)} sx={{ position: 'absolute', right: 8, top: 8 }}>
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent>
+                    <TableContainer component={Paper}>
+                        <Table sx={{ minWidth: 320 }} size="small">
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell>Form</TableCell>
+                                    <TableCell align="right">This month</TableCell>
+                                    <TableCell align="right">Total</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {formStats.map(({ form_name, thisMonth, total }) => (
+                                    <TableRow key={form_name}>
+                                        <TableCell>{form_name}</TableCell>
+                                        <TableCell align="right">{thisMonth.toLocaleString()}</TableCell>
+                                        <TableCell align="right">{total.toLocaleString()}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </DialogContent>
+            </Dialog>
         </>
     );
 };
