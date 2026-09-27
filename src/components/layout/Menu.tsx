@@ -460,7 +460,18 @@ export const Menu = () => {
             {isHome && stats && (
                 <Card
                     onClick={handleOpenFormStats}
-                    sx={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', marginTop: 1, cursor: 'pointer' }}
+                    sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '2px 8px',
+                        cursor: 'pointer',
+                        position: 'fixed',
+                        // Sit just above the fixed Footer, whose height is reserved by Layout's own
+                        // spacer <Toolbar /> - use the same theme mixin so this stays in sync with it.
+                        bottom: (theme) => `calc(${theme.mixins.toolbar.minHeight}px + 16px)`,
+                        right: 16,
+                        zIndex: (theme) => theme.zIndex.appBar,
+                    }}
                 >
                     <Typography variant="caption" color="text.secondary">
                         {stats.allTime.toLocaleString()} reports all-time &middot; {stats.thisMonth.toLocaleString()} this
