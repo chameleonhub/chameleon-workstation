@@ -1,5 +1,5 @@
-import { Alert, Box, Button, Card, CardContent, Collapse, Grid, Icon, IconButton, Typography } from '@mui/material';
-import { ExpandLess, ExpandMore, PushPin, PushPinOutlined } from '@mui/icons-material';
+import { Alert, Box, Button, Card, CardContent, Collapse, Grid, Icon, IconButton, Tooltip, Typography } from '@mui/material';
+import { ExpandLess, ExpandMore, InfoOutlined, PushPin, PushPinOutlined } from '@mui/icons-material';
 import React, { useEffect, useState } from 'react';
 import { log } from '../../helpers/log';
 import { ipcRenderer } from 'electron';
@@ -229,16 +229,29 @@ export const Menu = () => {
             });
     }, [isHome, pinnedIds]);
 
-    // Personal stats: reports synced this calendar month vs. all-time, from this device's own
+    // Personal stats: reports completed this calendar month vs. all-time, from this device's own
     // formcloudsubmission table - there's no visibility into other agents' data from this client.
+    // "This month" is judged by each submission's own embedded <end> tag (when data entry on the
+    // report finished - the closest thing to an actual submission time this app has; KoboToolbox's
+    // own server-recorded _submission_time isn't in what sync.ts fetches, which pulls the OpenRosa
+    // XML format rather than the JSON REST API - checked a real submission's raw XML, no such field
+    // anywhere in it), not the created_at column (when this device happened to sync/insert it) -
+    // created_at is meaningless for this on a fresh install or after a database reset, since
+    // everything gets (re-)inserted at once regardless of when it was originally submitted.
+    // instr()/substr() pull "YYYY-MM" straight out of the stored XML in SQL - fast (a few ms even
+    // over thousands of rows) since it runs in-process, without pulling any of that XML across the
+    // IPC boundary just to compute a count.
     useEffect(() => {
         if (!isHome) return;
 
         const query = `
-            SELECT (SELECT COUNT(*) FROM formcloudsubmission)                       as allTime,
-                   (SELECT COUNT(*)
-                    FROM formcloudsubmission
-                    WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')) as thisMonth
+            SELECT
+                COUNT(*) as allTime,
+                COALESCE(SUM(
+                    CASE WHEN substr(xml, instr(xml, '<end>') + 5, 7) = strftime('%Y-%m', 'now')
+                    THEN 1 ELSE 0 END
+                ), 0) as thisMonth
+            FROM formcloudsubmission
         `;
         ipcRenderer
             .invoke('get-local-db', query)
@@ -327,28 +340,6 @@ export const Menu = () => {
 
             {isHome && (
                 <Box sx={{ marginTop: 2 }}>
-                    {stats && (
-                        <Card sx={{ display: 'inline-block', padding: 1, marginBottom: 1 }}>
-                            <CardContent sx={{ display: 'flex', gap: 3, '&:last-child': { paddingBottom: 1 } }}>
-                                <Box>
-                                    <Typography variant="h5" color="primary">
-                                        {stats.thisMonth.toLocaleString()}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        reports this month
-                                    </Typography>
-                                </Box>
-                                <Box>
-                                    <Typography variant="h5" color="primary">
-                                        {stats.allTime.toLocaleString()}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        reports all-time
-                                    </Typography>
-                                </Box>
-                            </CardContent>
-                        </Card>
-                    )}
                     {favoriteItems.length > 0 && (
                         <CollapsibleSection
                             title="Favorites"
@@ -407,6 +398,24 @@ export const Menu = () => {
                     )}
                 </Grid>
             </CollapsibleSection>
+
+            {isHome && stats && (
+                <Card sx={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', marginTop: 1 }}>
+                    <Typography variant="caption" color="text.secondary">
+                        {stats.allTime.toLocaleString()} reports all-time &middot; {stats.thisMonth.toLocaleString()} this
+                        month
+                    </Typography>
+                    <Tooltip
+                        title={
+                            'Counted by when the data was entered, not when the patient/farm visit actually happened' +
+                            ' - e.g. a visit from a month ago that only gets entered today counts as entered this' +
+                            ' month, not last month.'
+                        }
+                    >
+                        <InfoOutlined fontSize="inherit" sx={{ marginLeft: 0.5, color: 'text.secondary' }} />
+                    </Tooltip>
+                </Card>
+            )}
         </>
     );
 };
