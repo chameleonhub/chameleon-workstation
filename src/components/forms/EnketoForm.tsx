@@ -6,6 +6,7 @@ import {
     DialogContent,
     DialogContentText,
     DialogTitle,
+    LinearProgress,
     Stack,
     Typography,
 } from '@mui/material';
@@ -264,7 +265,11 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
                 <Box
                     sx={{
                         position: 'sticky',
-                        top: 0,
+                        // Stick just below the fixed Header (top: 0 put it directly behind the
+                        // header's higher z-index, since Layout's own Header spacer <Toolbar />
+                        // already occupies that space) - same theme mixin Layout uses to size that
+                        // spacer, so this stays in sync with the header's actual height.
+                        top: (theme) => theme.mixins.toolbar.minHeight,
                         zIndex: 1,
                         backgroundColor: 'background.paper',
                         py: 1,
@@ -276,6 +281,11 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
                     <Typography variant="subtitle2" color="text.secondary">
                         Section {currentSectionIndex + 1} of {sectionLabels.length}: {sectionLabels[currentSectionIndex]}
                     </Typography>
+                    <LinearProgress
+                        variant="determinate"
+                        value={((currentSectionIndex + 1) / sectionLabels.length) * 100}
+                        sx={{ mt: 0.5, borderRadius: 1 }}
+                    />
                 </Box>
             )}
             <div ref={formEl}></div>
