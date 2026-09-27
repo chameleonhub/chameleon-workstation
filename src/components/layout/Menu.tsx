@@ -468,7 +468,7 @@ export const Menu = () => {
                         position: 'fixed',
                         // Sit just above the fixed Footer, whose height is reserved by Layout's own
                         // spacer <Toolbar /> - use the same theme mixin so this stays in sync with it.
-                        bottom: (theme) => `calc(${theme.mixins.toolbar.minHeight}px + 16px)`,
+                        bottom: (theme) => `calc(${theme.mixins.toolbar.minHeight}px)`,
                         right: 16,
                         zIndex: (theme) => theme.zIndex.appBar,
                     }}
