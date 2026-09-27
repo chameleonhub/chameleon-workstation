@@ -56,7 +56,8 @@ export default function MenuButton(props: MenuButtonProps) {
             <Card
                 sx={{
                     position: 'relative',
-                    minWidth: compact ? 100 : 150,
+                    minWidth: compact ? 120 : 150,
+                    width: compact ? 180 : undefined,
                     height: compact ? 100 : 150,
                     margin: compact ? 1 : 2,
                     display: 'flex',
@@ -143,15 +144,27 @@ const CollapsibleSection = ({ title, storageKey, headerAction, children }: Colla
 
     return (
         <Box sx={{ marginBottom: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box
-                    onClick={toggleExpanded}
-                    sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', width: 'fit-content' }}
-                >
-                    <Typography variant="subtitle1" color="text.secondary">
+            <Box
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    backgroundColor: 'primary.light',
+                    color: 'primary.main',
+                    borderRadius: 1,
+                    paddingX: 1.5,
+                    paddingY: 0.5,
+                    cursor: 'pointer',
+                }}
+                onClick={toggleExpanded}
+            >
+                <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', width: 'fit-content' }}>
+                    <Typography variant="subtitle1" color="inherit">
                         {title}
                     </Typography>
-                    <IconButton size="small">{expanded ? <ExpandLess /> : <ExpandMore />}</IconButton>
+                    <IconButton size="small" sx={{ color: 'inherit' }}>
+                        {expanded ? <ExpandLess /> : <ExpandMore />}
+                    </IconButton>
                 </Box>
                 {headerAction}
             </Box>
@@ -167,7 +180,6 @@ export const Menu = () => {
     const [stats, setStats] = useState<PersonalStats | null>(null);
 
     const { menu_id } = useParams();
-    log.info(`menu_id: ${menu_id}`);
 
     const isHome = !menu_id || menu_id === '0';
 
@@ -207,7 +219,12 @@ export const Menu = () => {
         }
 
         ipcRenderer
-            .invoke('get-local-db', `SELECT * FROM module WHERE id IN (${pinnedIds.join(',')})`)
+            .invoke(
+                'get-local-db',
+                `SELECT *
+                 FROM module
+                 WHERE id IN (${pinnedIds.join(',')})`,
+            )
             .then((pinnedModules: MenuItem[]) => {
                 setFavoriteItems(pinnedModules);
             })
@@ -222,9 +239,10 @@ export const Menu = () => {
         if (!isHome) return;
 
         const query = `
-            SELECT
-                (SELECT COUNT(*) FROM formcloudsubmission) as allTime,
-                (SELECT COUNT(*) FROM formcloudsubmission WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')) as thisMonth
+            SELECT (SELECT COUNT(*) FROM formcloudsubmission)                       as allTime,
+                   (SELECT COUNT(*)
+                    FROM formcloudsubmission
+                    WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')) as thisMonth
         `;
         ipcRenderer
             .invoke('get-local-db', query)
@@ -349,7 +367,11 @@ export const Menu = () => {
                         >
                             <Grid container>
                                 {favoriteItems.map((menuItem) => (
-                                    <Grid key={'favorite-' + menuItem.id} size={{ lg: 2, md: 3, sm: 4, xs: 6 }}>
+                                    <Grid
+                                        sx={{ gap: 2 }}
+                                        key={'favorite-' + menuItem.id}
+                                        size={{ lg: 2, md: 3, sm: 4, xs: 6 }}
+                                    >
                                         <MenuButton
                                             menuItem={menuItem}
                                             isPinned={pinnedIds.includes(menuItem.id)}
