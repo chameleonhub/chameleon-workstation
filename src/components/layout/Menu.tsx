@@ -1,10 +1,10 @@
-import { Alert, Box, Button, Card, CardContent, Grid, Icon, IconButton, Typography } from '@mui/material';
-import { PushPin, PushPinOutlined } from '@mui/icons-material';
-import { useEffect, useState } from 'react';
+import { Alert, Box, Button, Card, CardContent, Collapse, Grid, Icon, IconButton, Typography } from '@mui/material';
+import { ExpandLess, ExpandMore, PushPin, PushPinOutlined } from '@mui/icons-material';
+import React, { useEffect, useState } from 'react';
 import { log } from '../../helpers/log';
 import { ipcRenderer } from 'electron';
 import { Link, useParams } from 'react-router-dom';
-import { getPinnedModuleIds, togglePinnedModuleId } from '../../helpers/pinnedModules.ts';
+import { clearPinnedModuleIds, getPinnedModuleIds, togglePinnedModuleId } from '../../helpers/pinnedModules.ts';
 
 enum MenuItemTypes {
     form = 1,
@@ -31,9 +31,11 @@ interface MenuButtonProps {
     menuItem: MenuItem;
     isPinned?: boolean;
     onTogglePin?: (id: number) => void;
+    compact?: boolean;
 }
 
 export default function MenuButton(props: MenuButtonProps) {
+    const { compact = false } = props;
     let url = '';
     if (props.menuItem.module_type === MenuItemTypes.module) {
         url = `/menu/${props.menuItem.id}/`;
@@ -54,9 +56,9 @@ export default function MenuButton(props: MenuButtonProps) {
             <Card
                 sx={{
                     position: 'relative',
-                    minWidth: 150,
-                    height: 150,
-                    margin: 2,
+                    minWidth: compact ? 100 : 150,
+                    height: compact ? 100 : 150,
+                    margin: compact ? 1 : 2,
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center',
@@ -74,38 +76,98 @@ export default function MenuButton(props: MenuButtonProps) {
                             event.stopPropagation();
                             props.onTogglePin?.(props.menuItem.id);
                         }}
-                        sx={{ position: 'absolute', top: 4, right: 4 }}
+                        sx={{ position: 'absolute', top: 2, right: 2, padding: '2px' }}
                     >
-                        {props.isPinned ? <PushPin fontSize="small" color="primary" /> : <PushPinOutlined fontSize="small" />}
+                        {props.isPinned ? (
+                            <PushPin sx={{ fontSize: '1rem' }} color="primary" />
+                        ) : (
+                            <PushPinOutlined sx={{ fontSize: '1rem' }} />
+                        )}
                     </IconButton>
                 )}
-                <CardContent>
-                    <Typography variant="h6" color={'primary'}>
+                <CardContent sx={compact ? { padding: 1, '&:last-child': { paddingBottom: 1 } } : undefined}>
+                    <Typography variant={compact ? 'body2' : 'h6'} color={'primary'}>
                         {props.menuItem.title}
                     </Typography>
-                    <Icon fontSize="large" color={'primary'} sx={{ margin: 1 }}>
+                    <Icon fontSize={compact ? 'medium' : 'large'} color={'primary'} sx={{ margin: compact ? 0.5 : 1 }}>
                         {props.menuItem.icon}
                     </Icon>
-                    <Typography>{props.menuItem.description ?? ''}</Typography>
+                    {!compact && <Typography>{props.menuItem.description ?? ''}</Typography>}
                 </CardContent>
             </Card>
         </Link>
     );
 }
 
-// How many cards the Quick Access strip aims to show: pinned modules first, backfilled with the
+// How many cards the Favorites section aims to show: pinned modules first, backfilled with the
 // most-used forms (by combined draft + synced-submission count) up to this many.
-const QUICK_ACCESS_TARGET = 5;
+const FAVORITES_TARGET = 5;
 
 interface PersonalStats {
     thisMonth: number;
     allTime: number;
 }
 
+interface CollapsibleSectionProps {
+    title: string;
+    /** Persists the expanded/collapsed state in localStorage under this key, per section - a
+     * per-device viewing preference, not synced data. */
+    storageKey: string;
+    headerAction?: React.ReactNode;
+    children: React.ReactNode;
+}
+
+const collapsedStateKey = (storageKey: string) => `bahis.menuSectionExpanded.${storageKey}`;
+
+// Default expanded - collapsing is a per-viewing convenience (a long module list taking up
+// space), not something that should hide content by default.
+const getStoredExpanded = (storageKey: string): boolean => {
+    try {
+        const raw = localStorage.getItem(collapsedStateKey(storageKey));
+        return raw === null ? true : raw === 'true';
+    } catch {
+        return true;
+    }
+};
+
+const CollapsibleSection = ({ title, storageKey, headerAction, children }: CollapsibleSectionProps) => {
+    const [expanded, setExpanded] = useState(() => getStoredExpanded(storageKey));
+
+    const toggleExpanded = () => {
+        setExpanded((prev) => {
+            const next = !prev;
+            try {
+                localStorage.setItem(collapsedStateKey(storageKey), String(next));
+            } catch {
+                // per-viewer convenience only - fine if it doesn't persist.
+            }
+            return next;
+        });
+    };
+
+    return (
+        <Box sx={{ marginBottom: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                    onClick={toggleExpanded}
+                    sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', width: 'fit-content' }}
+                >
+                    <Typography variant="subtitle1" color="text.secondary">
+                        {title}
+                    </Typography>
+                    <IconButton size="small">{expanded ? <ExpandLess /> : <ExpandMore />}</IconButton>
+                </Box>
+                {headerAction}
+            </Box>
+            <Collapse in={expanded}>{children}</Collapse>
+        </Box>
+    );
+};
+
 export const Menu = () => {
     const [menuModules, setmenuModules] = useState<MenuItem[]>([]);
     const [pinnedIds, setPinnedIds] = useState<number[]>(() => getPinnedModuleIds());
-    const [quickAccessItems, setQuickAccessItems] = useState<MenuItem[]>([]);
+    const [favoriteItems, setFavoriteItems] = useState<MenuItem[]>([]);
     const [stats, setStats] = useState<PersonalStats | null>(null);
 
     const { menu_id } = useParams();
@@ -136,8 +198,9 @@ export const Menu = () => {
         readModulesWithParent(menu_id);
     }, [menu_id]);
 
-    // Quick Access: pinned modules (any type, resolved by id) shown first, backfilled with the
-    // most-used forms up to QUICK_ACCESS_TARGET. Only loaded on the home screen (menu_id 0).
+    // Favorites: pinned modules (any type, resolved by id) shown first, backfilled with the
+    // most-used forms (by combined draft + synced-submission count) up to FAVORITES_TARGET. Only
+    // loaded on the home screen (menu_id 0).
     useEffect(() => {
         if (!isHome) return;
 
@@ -145,9 +208,9 @@ export const Menu = () => {
 
         Promise.resolve(pinnedQuery ? ipcRenderer.invoke('get-local-db', pinnedQuery) : Promise.resolve([]))
             .then((pinnedModules: MenuItem[]) => {
-                const remaining = QUICK_ACCESS_TARGET - pinnedModules.length;
+                const remaining = FAVORITES_TARGET - pinnedModules.length;
                 if (remaining <= 0) {
-                    setQuickAccessItems(pinnedModules);
+                    setFavoriteItems(pinnedModules);
                     return;
                 }
 
@@ -166,11 +229,11 @@ export const Menu = () => {
                     LIMIT ${remaining}
                 `;
                 return ipcRenderer.invoke('get-local-db', mostUsedQuery).then((mostUsedModules: MenuItem[]) => {
-                    setQuickAccessItems([...pinnedModules, ...mostUsedModules]);
+                    setFavoriteItems([...pinnedModules, ...mostUsedModules]);
                 });
             })
             .catch((error) => {
-                log.error(`Error reading Quick Access modules: ${error}`);
+                log.error(`Error reading Favorites modules: ${error}`);
             });
     }, [isHome, pinnedIds]);
 
@@ -196,6 +259,10 @@ export const Menu = () => {
 
     const handleTogglePin = (id: number) => {
         setPinnedIds(togglePinnedModuleId(id));
+    };
+
+    const handleClearAllPinned = () => {
+        setPinnedIds(clearPinnedModuleIds());
     };
 
     return (
@@ -289,55 +356,65 @@ export const Menu = () => {
                             </CardContent>
                         </Card>
                     )}
-                    {quickAccessItems.length > 0 && (
-                        <>
-                            <Typography variant="subtitle1" color="text.secondary">
-                                Quick Access
-                            </Typography>
+                    {favoriteItems.length > 0 && (
+                        <CollapsibleSection
+                            title="Favorites"
+                            storageKey="favorites"
+                            headerAction={
+                                pinnedIds.length > 0 && (
+                                    <Button size="small" color="inherit" onClick={handleClearAllPinned}>
+                                        Clear all
+                                    </Button>
+                                )
+                            }
+                        >
                             <Grid container>
-                                {quickAccessItems.map((menuItem) => (
-                                    <Grid key={'quick-' + menuItem.id} size={{ lg: 3, md: 4, sm: 6, xs: 12 }}>
+                                {favoriteItems.map((menuItem) => (
+                                    <Grid key={'favorite-' + menuItem.id} size={{ lg: 2, md: 3, sm: 4, xs: 6 }}>
                                         <MenuButton
                                             menuItem={menuItem}
                                             isPinned={pinnedIds.includes(menuItem.id)}
                                             onTogglePin={handleTogglePin}
+                                            compact
                                         />
                                     </Grid>
                                 ))}
                             </Grid>
-                        </>
+                        </CollapsibleSection>
                     )}
                 </Box>
             )}
 
-            <Grid container sx={{ marginTop: 2 }}>
-                {menuModules.length > 0 ? (
-                    menuModules.map((menuItem) => (
-                        <Grid
-                            key={'menu-' + menuItem.id}
-                            style={{ order: menuItem.sort_order }}
-                            size={{ lg: 3, md: 4, sm: 6, xs: 12 }}
+            <CollapsibleSection title="All Modules" storageKey="all-modules">
+                <Grid container>
+                    {menuModules.length > 0 ? (
+                        menuModules.map((menuItem) => (
+                            <Grid
+                                key={'menu-' + menuItem.id}
+                                style={{ order: menuItem.sort_order }}
+                                size={{ lg: 3, md: 4, sm: 6, xs: 12 }}
+                            >
+                                <MenuButton
+                                    menuItem={menuItem}
+                                    isPinned={pinnedIds.includes(menuItem.id)}
+                                    onTogglePin={handleTogglePin}
+                                />
+                            </Grid>
+                        ))
+                    ) : (
+                        <Alert
+                            severity="error"
+                            action={
+                                <Button color="inherit" size="small" onClick={() => window.location.reload()}>
+                                    REFRESH
+                                </Button>
+                            }
                         >
-                            <MenuButton
-                                menuItem={menuItem}
-                                isPinned={pinnedIds.includes(menuItem.id)}
-                                onTogglePin={handleTogglePin}
-                            />
-                        </Grid>
-                    ))
-                ) : (
-                    <Alert
-                        severity="error"
-                        action={
-                            <Button color="inherit" size="small" onClick={() => window.location.reload()}>
-                                REFRESH
-                            </Button>
-                        }
-                    >
-                        No modules found - try refreshing the app.
-                    </Alert>
-                )}
-            </Grid>
+                            No modules found - try refreshing the app.
+                        </Alert>
+                    )}
+                </Grid>
+            </CollapsibleSection>
         </>
     );
 };

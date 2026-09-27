@@ -24,3 +24,12 @@ export const togglePinnedModuleId = (id: number): number[] => {
     }
     return next;
 };
+
+export const clearPinnedModuleIds = (): number[] => {
+    try {
+        localStorage.removeItem(STORAGE_KEY);
+    } catch {
+        // see togglePinnedModuleId - non-fatal if this fails.
+    }
+    return [];
+};
