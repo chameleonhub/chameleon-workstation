@@ -31,7 +31,7 @@ export const theme = createTheme({
             main: primary_main,
             light: primary_light,
             dark: primary_dark,
-            contrastText: 'white',
+            contrastText: '#fff',
         },
         secondary: {
             main: secondary_main,
@@ -49,13 +49,13 @@ export const theme = createTheme({
         },
         success: {
             main: '#4caf50',
-            contrastText: 'white',
+            contrastText: '#fff',
         },
         accent: {
             main: accent_main,
             light: accent_light,
             dark: accent_dark,
-            contrastText: 'white',
+            contrastText: '#fff',
         },
         text: {
             primary: primary_main,
