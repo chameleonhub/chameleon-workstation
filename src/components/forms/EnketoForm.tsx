@@ -121,6 +121,15 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
     useEffect(() => {
         if (!formODKXML) return;
 
+        // Form.tsx feeds formODKXML in through a multi-pass convergence (deskUser/taxonomy/prefill
+        // tag resolution, each pass re-triggering itself until nothing's left to replace) - it can
+        // update several times in quick succession for a single form open, each still-resolving
+        // intermediate value included. Without this guard, every one of those intermediate values
+        // would get its own real Form object built and initialized, each logging its own (often
+        // spurious - e.g. "Can't find X.csv." for an instance the *next* pass was about to resolve)
+        // load errors, even though only the last, fully-resolved value ends up actually shown.
+        let cancelled = false;
+
         // when the component mounts, transform the form ODK XML to enketo XML and HTML
         // checking whether or not the form should be editable
         // and converting the form to read-only if necessary
@@ -134,6 +143,7 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
             theme: 'kobo',
         })
             .then((result) => {
+                if (cancelled) return;
                 if (formEl.current === null) return;
                 // check model
                 if (!result.model || !result.form) return;
@@ -184,9 +194,14 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
                 log.info('Form HTML and XML generated successfully');
             })
             .catch((error) => {
+                if (cancelled) return;
                 log.error('Error transforming form ODK XML to enketo XML and HTML:');
                 log.error(error);
             });
+
+        return () => {
+            cancelled = true;
+        };
     }, [formODKXML]);
 
     // Tracks which top-level section currently has focus, for the "N of M: <label>" indicator.

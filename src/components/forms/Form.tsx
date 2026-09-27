@@ -100,6 +100,16 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
     useEffect(() => {
         log.info('Form definition changed');
 
+        // Guards the async work below against a superseded run of this same effect - React 18
+        // StrictMode double-invokes effects in dev (mount, cleanup, mount again), and a real
+        // double-render can happen in production too (e.g. quickly opening a second report before
+        // the first one's taxonomy lookups finish). Without this, two overlapping calls each parse
+        // their own copy of the same starting formXML and each call setFormXML with their own
+        // result when they finish - whichever finishes last wins and silently discards the other's
+        // replacements (this is how a form's medicinesv2 pulldata instance could end up unresolved
+        // - Enketo logs "Can't find medicinesv2.csv." - even though the read itself succeeded).
+        let cancelled = false;
+
         const replaceUserValues = (formXML: string) => {
             log.info('Replacing deskUser tags in form definition');
             const parser = new DOMParser();
@@ -138,6 +148,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
                     }
                 })
                 .finally(() => {
+                    if (cancelled) return;
                     if (hasReplacements) {
                         setFormXML(serializer.serializeToString(doc));
                         log.info('deskUser tags replaced successfully');
@@ -260,6 +271,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
                 }
             }
 
+            if (cancelled) return;
             if (hasReplacements) {
                 setFormXML(serializer.serializeToString(doc));
                 log.info('deskTaxonomy choices replaced successfully');
@@ -285,6 +297,10 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
                 insertTaxonomyChoices(formXML);
             }
         }
+
+        return () => {
+            cancelled = true;
+        };
     }, [formXML, instance_id, injectedData, form_uid]);
 
     // if the form has been filled out previously, read the data
