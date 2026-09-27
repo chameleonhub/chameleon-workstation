@@ -99,10 +99,6 @@ export default function MenuButton(props: MenuButtonProps) {
     );
 }
 
-// How many cards the Favorites section aims to show: pinned modules first, backfilled with the
-// most-used forms (by combined draft + synced-submission count) up to this many.
-const FAVORITES_TARGET = 5;
-
 interface PersonalStats {
     thisMonth: number;
     allTime: number;
@@ -198,39 +194,22 @@ export const Menu = () => {
         readModulesWithParent(menu_id);
     }, [menu_id]);
 
-    // Favorites: pinned modules (any type, resolved by id) shown first, backfilled with the
-    // most-used forms (by combined draft + synced-submission count) up to FAVORITES_TARGET. Only
-    // loaded on the home screen (menu_id 0).
+    // Favorites: purely user-pinned modules (any type, resolved by id) - no auto-backfill with
+    // most-used forms. Empty until the agent pins something, and "Clear all" actually empties it,
+    // rather than most-used suggestions reappearing to fill the gap. Only loaded on the home
+    // screen (menu_id 0).
     useEffect(() => {
         if (!isHome) return;
 
-        const pinnedQuery = pinnedIds.length > 0 ? `SELECT * FROM module WHERE id IN (${pinnedIds.join(',')})` : null;
+        if (pinnedIds.length === 0) {
+            setFavoriteItems([]);
+            return;
+        }
 
-        Promise.resolve(pinnedQuery ? ipcRenderer.invoke('get-local-db', pinnedQuery) : Promise.resolve([]))
+        ipcRenderer
+            .invoke('get-local-db', `SELECT * FROM module WHERE id IN (${pinnedIds.join(',')})`)
             .then((pinnedModules: MenuItem[]) => {
-                const remaining = FAVORITES_TARGET - pinnedModules.length;
-                if (remaining <= 0) {
-                    setFavoriteItems(pinnedModules);
-                    return;
-                }
-
-                const excludeIds = pinnedIds.length > 0 ? pinnedIds.join(',') : '0';
-                const mostUsedQuery = `
-                    SELECT module.* FROM module
-                    INNER JOIN (
-                        SELECT form_uid, COUNT(*) as cnt FROM (
-                            SELECT form_uid FROM formcloudsubmission
-                            UNION ALL
-                            SELECT form_uid FROM formlocaldraft
-                        ) GROUP BY form_uid
-                    ) usage ON module.form = usage.form_uid
-                    WHERE module.module_type = 1 AND module.id NOT IN (${excludeIds})
-                    ORDER BY usage.cnt DESC
-                    LIMIT ${remaining}
-                `;
-                return ipcRenderer.invoke('get-local-db', mostUsedQuery).then((mostUsedModules: MenuItem[]) => {
-                    setFavoriteItems([...pinnedModules, ...mostUsedModules]);
-                });
+                setFavoriteItems(pinnedModules);
             })
             .catch((error) => {
                 log.error(`Error reading Favorites modules: ${error}`);
