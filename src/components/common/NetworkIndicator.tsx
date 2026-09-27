@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import SignalCellular4BarIcon from '@mui/icons-material/SignalCellular4Bar';
 import SignalCellularOffIcon from '@mui/icons-material/SignalCellularOff';
-import { Alert, Chip, CircularProgress, Snackbar, Tooltip } from '@mui/material';
+import { Alert, Box, CircularProgress, Snackbar, Tooltip, Typography } from '@mui/material';
 import { log } from '../../helpers/log';
 
 const BAHIS_SERVER_URL = import.meta.env.VITE_BAHIS_SERVER_URL as string | undefined;
@@ -83,27 +83,23 @@ export const NetworkIndicator = () => {
                 <Alert severity="error">You are offline - you will not be able to sync your data.</Alert>
             </Snackbar>
             <Tooltip title={`${statusText}${lastCheckedText} Click to check now.`}>
-                <Chip
-                    size="small"
-                    onClick={runCheck}
-                    color={online ? 'success' : 'error'}
-                    variant={online ? 'outlined' : 'filled'}
-                    label={online ? 'Good connection' : 'No connection'}
-                    icon={
-                        checking ? (
-                            <CircularProgress
-                                size={14}
-                                thickness={5}
-                                sx={{ marginLeft: '6px', color: online ? 'success.main' : 'error.main' }}
-                            />
-                        ) : online ? (
-                            <SignalCellular4BarIcon fontSize="small" />
-                        ) : (
-                            <SignalCellularOffIcon fontSize="small" />
-                        )
-                    }
-                    sx={{ fontWeight: online ? 400 : 600, cursor: 'pointer' }}
-                />
+                <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={runCheck}>
+                    {online ? <SignalCellular4BarIcon /> : <SignalCellularOffIcon color="error" />}
+                    {online ? (
+                        <Typography sx={{ paddingLeft: '.30rem' }}>Good connection</Typography>
+                    ) : (
+                        <Typography sx={{ paddingLeft: '.30rem', fontWeight: 'bold' }} color="error">
+                            Poor connection
+                        </Typography>
+                    )}
+                    {checking && (
+                        <CircularProgress
+                            size={14}
+                            thickness={5}
+                            sx={{ marginLeft: '6px', color: online ? 'success.main' : 'error.main' }}
+                        />
+                    )}
+                </Box>
             </Tooltip>
         </>
     );
