@@ -252,7 +252,15 @@ export const Menu = () => {
                  WHERE id IN (${pinnedIds.join(',')})`,
             )
             .then((pinnedModules: MenuItem[]) => {
-                setFavoriteItems(pinnedModules);
+                // `WHERE id IN (...)` doesn't preserve the given order - SQLite returns rows in its
+                // own (id) order - so re-sort to match pinnedIds, which is itself pin order (oldest
+                // pin first), so the first module pinned shows first.
+                const moduleById = new Map(pinnedModules.map((menuItem) => [menuItem.id, menuItem]));
+                setFavoriteItems(
+                    pinnedIds
+                        .map((id) => moduleById.get(id))
+                        .filter((menuItem): menuItem is MenuItem => menuItem !== undefined),
+                );
             })
             .catch((error) => {
                 log.error(`Error reading Favorites modules: ${error}`);
