@@ -87,8 +87,8 @@ export default function MenuButton(props: MenuButtonProps) {
                     alignItems: 'center',
                     textAlign: 'center',
                     boxShadow: '3px 3px 5px 3px rgba(0,0,0,0.2)',
+                    '&:hover': { backgroundColor: '#f3f4f6' },
                 }}
-                className="hover:bg-gray-100"
             >
                 {props.onTogglePin && (
                     <IconButton

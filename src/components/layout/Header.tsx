@@ -241,13 +241,13 @@ export const Header = () => {
             {isWaitingForDataSync && <LoadingSpinner loadingText={loadingMessage} zHeight={5000} showSyncProgress />}
             <Toolbar sx={{ justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Box className="cursor-pointer" sx={{ display: 'flex' }} onClick={onHomeHandler}>
+                    <Box sx={{ display: 'flex', cursor: 'pointer' }} onClick={onHomeHandler}>
                         <Box
                             component="img"
                             src={bahisWhite}
                             sx={{ display: { xs: 'none', md: 'flex' }, mr: 1, height: '2rem' }}
                         />
-                        <Typography className="pr-4" variant="h4">
+                        <Typography sx={{ pr: 2 }} variant="h4">
                             BAHIS
                         </Typography>
                     </Box>
@@ -277,7 +277,7 @@ export const Header = () => {
                             Review Drafts
                         </Button>
                     </Badge>
-                    <span className="mr-2"></span>
+                    <Box component="span" sx={{ mr: 1 }} />
                     <Button
                         variant="contained"
                         color={getButtonColor()}
