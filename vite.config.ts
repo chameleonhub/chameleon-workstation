@@ -28,6 +28,7 @@ export default function ViteConfig({ mode }) {
                     entry: 'electron/main.ts',
                     vite: {
                         build: {
+                            outDir: 'dist/electron',
                             minify: isProd,
                         },
                     },
@@ -39,6 +40,7 @@ export default function ViteConfig({ mode }) {
                     entry: 'electron/preload.ts',
                     vite: {
                         build: {
+                            outDir: 'dist/electron',
                             rollupOptions: {
                                 output: {
                                     entryFileNames: '[name].mjs',

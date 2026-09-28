@@ -14,7 +14,6 @@
     buildResources: 'public'
   },
   files: [
-    'dist-electron',
     'dist'
   ],
   extraFiles: [

@@ -27,7 +27,7 @@ import { endSyncProgress, startSyncProgress, Toast } from './utils.ts';
 // SETUP
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-process.env.DIST = path.join(__dirname, '../dist');
+process.env.DIST = path.join(__dirname, '..');
 process.env.PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, '../public');
 
 const APP_VERSION = app.getVersion();
