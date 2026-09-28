@@ -4,7 +4,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { useEffect, useState } from 'react';
 import { log } from '../../helpers/log';
 import { escapeSqlString } from '../../helpers/sql.ts';
-import { ipcRenderer } from 'electron';
+import { ipc } from '../../helpers/ipc';
 import { useNavigate } from 'react-router-dom';
 import { fetchDraftCount } from '../../stores/featues/draftCounterSlice.ts';
 import { useAppDispatch } from '../../stores/store.ts';
@@ -13,7 +13,7 @@ const readDraftTableData = async () => {
     log.info(`reading data from formlocaldraft table...`);
     const query = `SELECT *
                    FROM formlocaldraft`;
-    return ipcRenderer
+    return ipc
         .invoke('get-local-db', query)
         .then((response) => {
             log.info(`  read ${response.length} records`);
@@ -49,7 +49,7 @@ const parseSubmissionsAsRows = async (submissions) => {
                        WHERE uid = '${xmlDoc.documentElement.tagName}'`;
 
         try {
-            const response = await ipcRenderer.invoke('get-local-db', query);
+            const response = await ipc.invoke('get-local-db', query);
             if (uuid && instance_start && response[0].uid && response[0].name) {
                 const row: Row = {
                     id: uuid,
@@ -77,8 +77,7 @@ export const DraftList = () => {
         const query = `DELETE
                        FROM formlocaldraft
                        WHERE uuid = '${escapeSqlString(uuid)}';`;
-        ipcRenderer
-            .invoke('post-local-db', query)
+        ipc.invoke('post-local-db', query)
             .then((response) => {
                 if (response) {
                     log.info('Form draft deleted from local database successfully');

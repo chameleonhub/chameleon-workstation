@@ -34,7 +34,7 @@ import {
 import React, { Fragment, ReactElement, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { log } from '../../helpers/log';
-import { ipcRenderer } from 'electron';
+import { ipc } from '../../helpers/ipc';
 import { useSelector } from 'react-redux';
 import { fetchDraftCount, selectDraftCount } from '../../stores/featues/draftCounterSlice.ts';
 import { useAppDispatch } from '../../stores/store.ts';
@@ -160,8 +160,7 @@ export const Header = () => {
             GROUP BY form.uid, form.name
             ORDER BY form.name
         `;
-        ipcRenderer
-            .invoke('get-local-db', formReportCountsQuery)
+        ipc.invoke('get-local-db', formReportCountsQuery)
             .then((formReports) => {
                 setFormReportCounts(formReports);
             })
@@ -174,7 +173,7 @@ export const Header = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        ipcRenderer.invoke('get-user-data').then((res) => {
+        ipc.invoke('get-user-data').then((res) => {
             if (res) {
                 setUser(res);
             }
@@ -193,7 +192,7 @@ export const Header = () => {
         // The main process sends its own detailed "Sync complete: N forms, N records, ..." Toast
         // once counts are known (see getAppData/postGetUserData in electron/main.ts) - only the
         // invoke-level rejection (the whole IPC call failing) needs a toast dispatched from here.
-        await ipcRenderer
+        await ipc
             .invoke('request-user-data-sync')
             .then(() => {
                 log.info('Drafts successfully synced');
@@ -214,8 +213,7 @@ export const Header = () => {
     const handleUpdateAppData = () => {
         setLoadingMessage('Updating modules');
         setWaitingForDataSync(true);
-        ipcRenderer
-            .invoke('request-app-data-sync')
+        ipc.invoke('request-app-data-sync')
             .catch((error) => {
                 dispatch(OpenToast({ type: 'error', text: 'Unable to update data' + error.message }));
             })

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { log } from '../../helpers/log';
-import { ipcRenderer } from 'electron';
+import { ipc } from '../../helpers/ipc';
 import { EnketoForm } from './EnketoForm';
 import { Footer } from './EnketoFooter';
 import { LoadingSpinner } from '../common/LoadingSpinner.tsx';
@@ -14,7 +14,7 @@ const readFormData = async (tableName: string, form_uid: string, instance_id?: s
                  FROM ${tableName}
                  WHERE form_uid IS '${form_uid}'`;
     if (instance_id) query += ` AND uuid IS '${instance_id}'`;
-    return ipcRenderer
+    return ipc
         .invoke('get-local-db', query)
         .then((response) => {
             log.info(`  read ${response.length} records`);
@@ -77,8 +77,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
             const query = `SELECT xml
                            FROM form
                            WHERE uid = '${form_uid}'`;
-            ipcRenderer
-                .invoke('get-local-db', query)
+            ipc.invoke('get-local-db', query)
                 .then((response) => {
                     if (response[0]?.xml) {
                         setFormXML(response[0]?.xml);
@@ -120,8 +119,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
             const elements = doc.getElementsByTagName('*');
 
             let hasReplacements = false;
-            ipcRenderer
-                .invoke('read-user-administrative-region', 'asName')
+            ipc.invoke('read-user-administrative-region', 'asName')
                 .then((response) => {
                     log.info(`Administrative region: ${JSON.stringify(response)}`);
                     for (let i = 0; i < elements.length; i++) {
@@ -168,7 +166,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
             const parser = new DOMParser();
 
             if (taxonomySlug === 'administrative_region') {
-                return ipcRenderer
+                return ipc
                     .invoke('read-administrative-region-data')
                     .then((data: string) => {
                         return parser.parseFromString(data, 'application/xml');
@@ -179,7 +177,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
                         return null;
                     });
             } else {
-                return ipcRenderer
+                return ipc
                     .invoke('read-taxonomy-data', taxonomySlug)
                     .then((data: string) => {
                         return parser.parseFromString(data, 'application/xml');
@@ -198,7 +196,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
             log.info(`Reading form media data for ${filename}`);
             const parser = new DOMParser();
 
-            return ipcRenderer
+            return ipc
                 .invoke('read-form-media-data', form_uid, filename)
                 .then((data: string) => {
                     return parser.parseFromString(data, 'application/xml');

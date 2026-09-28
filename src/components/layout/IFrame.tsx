@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { log } from '../../helpers/log';
 import { LoadingSpinner } from '../common/LoadingSpinner.tsx';
-import { ipcRenderer } from 'electron';
+import { ipc } from '../../helpers/ipc';
 
 const encodeAdministrativeRegion = (administrativeRegionID) => {
     const encodedAdministrativeRegionID = administrativeRegionID * 42;
@@ -21,8 +21,7 @@ export const IFrame = () => {
     const searchParams = useSearchParams()[0];
 
     useEffect(() => {
-        ipcRenderer
-            .invoke('read-user-administrative-region')
+        ipc.invoke('read-user-administrative-region')
             .then((response) => {
                 log.info(`Administrative region: ${JSON.stringify(response)}`);
                 setEncodedAdministrativeRegion(encodeAdministrativeRegion(response['3'])); // FIXME this is hardcoded to the 3rd administrative region

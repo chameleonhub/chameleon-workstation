@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { ipc } from './ipc';
 
 type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 
@@ -22,7 +22,7 @@ const write =
     (level: LogLevel) =>
     (...args: unknown[]) => {
         if (CONSOLE_LEVELS.includes(level)) consoleMethod[level](...args);
-        ipcRenderer.send('renderer-log', level, args.map(stringify).join(' '));
+        ipc.send('renderer-log', level, args.map(stringify).join(' '));
     };
 
 export const log = {

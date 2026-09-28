@@ -10,7 +10,7 @@ import {
     Stack,
     Typography,
 } from '@mui/material';
-import { ipcRenderer } from 'electron';
+import { ipc } from '../../helpers/ipc';
 import { Form } from 'enketo-core';
 import { transform } from 'enketo-transformer/web';
 import React, { useEffect, useRef, useState } from 'react';
@@ -55,8 +55,7 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
                        VALUES ('${escapeSqlString(uuid ?? '')}', '${escapeSqlString(formUID)}', '${escapeSqlString(data)}')
                        ON CONFLICT (uuid) DO UPDATE SET xml = excluded.xml;`;
 
-        ipcRenderer
-            .invoke('post-local-db', query)
+        ipc.invoke('post-local-db', query)
             .then((response) => {
                 if (response) {
                     log.info('Form draft added to local database successfully');
@@ -75,8 +74,7 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
         const query = `DELETE
                        FROM formlocaldraft
                        WHERE uuid = '${escapeSqlString(uuid)}';`;
-        ipcRenderer
-            .invoke('post-local-db', query)
+        ipc.invoke('post-local-db', query)
             .then((response) => {
                 if (response) {
                     log.info('Form draft deleted from local database successfully');

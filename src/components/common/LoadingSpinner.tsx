@@ -1,5 +1,5 @@
 import { Box, CircularProgress, keyframes, LinearProgress, Typography } from '@mui/material';
-import { ipcRenderer } from 'electron';
+import { ipc } from '../../helpers/ipc';
 import React, { useEffect, useState } from 'react';
 import { SyncProgressState } from '../../../electron/bahis.model.ts';
 
@@ -23,13 +23,9 @@ export const LoadingSpinner: React.FC<LoadingProps> = ({
     useEffect(() => {
         if (!showSyncProgress) return;
 
-        const handleProgress = (_event, state: SyncProgressState) => {
+        return ipc.on('sendSyncProgress', (state: SyncProgressState) => {
             setProgress(state.active ? state : null);
-        };
-        ipcRenderer.on('sendSyncProgress', handleProgress);
-        return () => {
-            ipcRenderer.removeListener('sendSyncProgress', handleProgress);
-        };
+        });
     }, [showSyncProgress]);
 
     const current = progress?.current ? progress.categories[progress.current] : undefined;

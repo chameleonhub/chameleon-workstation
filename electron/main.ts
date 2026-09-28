@@ -1,6 +1,6 @@
 import axios from 'axios';
 import csv from 'csv-parser';
-import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
 import { installExtension, REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import firstRun from 'electron-first-run'; // could this eventually be removed too?
 import { autoUpdater, UpdateDownloadedEvent } from 'electron-updater';
@@ -120,9 +120,12 @@ const createWindow = () => {
         height: 680,
         icon: path.join(process.env.PUBLIC as string, 'icon.png'),
         webPreferences: {
-            preload: path.join(__dirname, 'preload.mjs'),
-            nodeIntegration: true,
-            contextIsolation: false,
+            // The renderer is isolated and sandboxed; it reaches the main process only through the
+            // allowlisted window.bahis API that this preload exposes (see ipcChannels.ts).
+            preload: path.join(__dirname, 'preload.cjs'),
+            nodeIntegration: false,
+            contextIsolation: true,
+            sandbox: true,
         },
     });
 
@@ -759,6 +762,21 @@ ipcMain.handle('read-user-administrative-region', readUserAdministrativeRegion);
 ipcMain.handle('read-app-version', readAppVersion);
 ipcMain.handle('get-user-data', getUserData);
 
+// Release notes are rendered as HTML in the update dialog, so links in them are opened in the user's
+// browser - but only real web links, never file:// paths or custom protocol handlers.
+ipcMain.on('open-external', (_event, url: unknown) => {
+    try {
+        const parsed = new URL(String(url));
+        if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+            shell.openExternal(parsed.toString());
+        } else {
+            log.warn(`Refusing to open external URL with protocol ${parsed.protocol}`);
+        }
+    } catch {
+        log.warn('Refusing to open an invalid external URL');
+    }
+});
+
 function createUpdateDialog(htmlContent: string) {
     const updateWindow = new BrowserWindow({
         width: 450,
@@ -771,8 +789,10 @@ function createUpdateDialog(htmlContent: string) {
         icon: path.join(process.env.PUBLIC as string, 'icon.png'),
         parent: mainWindow!,
         webPreferences: {
-            contextIsolation: false,
-            nodeIntegration: true,
+            preload: path.join(__dirname, 'updatePreload.cjs'),
+            nodeIntegration: false,
+            contextIsolation: true,
+            sandbox: true,
         },
     });
 

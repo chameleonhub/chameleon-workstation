@@ -1,9 +1,41 @@
-// import { contextBridge, ipcRenderer } from 'electron';
-//
-// contextBridge.exposeInMainWorld('electronAPI', {
-//     sendMessage: (message) => ipcRenderer.send('toMain', message),
-//     onMessage: (callback) => ipcRenderer.on('fromMain', (_event, message) => callback(message)),
-// });
+import { contextBridge, ipcRenderer } from 'electron';
+import {
+    INVOKE_CHANNELS,
+    RECEIVE_CHANNELS,
+    SEND_CHANNELS,
+    type InvokeChannel,
+    type ReceiveChannel,
+    type SendChannel,
+} from './ipcChannels';
+
+const assertAllowed = (allowed: readonly string[], channel: string) => {
+    if (!allowed.includes(channel)) {
+        throw new Error(`IPC channel "${channel}" is not allowed`);
+    }
+};
+
+// The renderer runs with contextIsolation and sandboxing and has no direct access to Electron or
+// Node - window.bahis is its only route to the main process, limited to the channels in ipcChannels.ts.
+contextBridge.exposeInMainWorld('bahis', {
+    invoke: (channel: InvokeChannel, ...args: unknown[]) => {
+        assertAllowed(INVOKE_CHANNELS, channel);
+        return ipcRenderer.invoke(channel, ...args);
+    },
+    send: (channel: SendChannel, ...args: unknown[]) => {
+        assertAllowed(SEND_CHANNELS, channel);
+        ipcRenderer.send(channel, ...args);
+    },
+    // Returns an unsubscribe function: a listener crosses the bridge as a proxy, so it can't later be
+    // handed back to removeListener by identity.
+    on: (channel: ReceiveChannel, listener: (...args: unknown[]) => void) => {
+        assertAllowed(RECEIVE_CHANNELS, channel);
+        const wrapped = (_event: Electron.IpcRendererEvent, ...args: unknown[]) => listener(...args);
+        ipcRenderer.on(channel, wrapped);
+        return () => {
+            ipcRenderer.removeListener(channel, wrapped);
+        };
+    },
+});
 
 function domReady(condition: DocumentReadyState[] = ['complete', 'interactive']) {
     return new Promise((resolve) => {
@@ -91,8 +123,10 @@ function useLoading() {
 const { appendLoading, removeLoading } = useLoading();
 domReady().then(appendLoading);
 
-window.onmessage = (ev) => {
-    ev.data.payload === 'removeLoading' && removeLoading();
-};
+// addEventListener (not window.onmessage): with contextIsolation the preload has its own JS world, and
+// only listeners registered this way receive the page's postMessage (see src/main.tsx).
+window.addEventListener('message', (ev) => {
+    ev.data?.payload === 'removeLoading' && removeLoading();
+});
 
 setTimeout(removeLoading, 4999);

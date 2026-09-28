@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ipcRenderer } from 'electron';
+import { ipc } from '../../helpers/ipc';
 import { useNavigate } from 'react-router-dom';
 import { Alert } from '@mui/material';
 import { log } from '../../helpers/log';
@@ -20,9 +20,8 @@ export const SystemAlerts = () => {
 
     // respond to the user selecting Reset Database from the menu
     useEffect(() => {
-        ipcRenderer.on('init-refresh-database', async () => {
-            ipcRenderer
-                .invoke('get-local-db', 'select count(*) from formlocaldraft')
+        return ipc.on('init-refresh-database', async () => {
+            ipc.invoke('get-local-db', 'select count(*) from formlocaldraft')
                 .then((response) => {
                     const unSyncData = response?.count || 0;
 
@@ -39,7 +38,7 @@ export const SystemAlerts = () => {
                             It might take a while for the first sync. please be patient while syncing`,
                         });
 
-                        ipcRenderer.invoke('refresh-database').then(() => {
+                        ipc.invoke('refresh-database').then(() => {
                             navigate('/');
                             setAlertContent(null);
                         });

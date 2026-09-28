@@ -68,8 +68,7 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.70.1",
     "vite": "^8.3.0",
-    "vite-plugin-electron": "^1.1.2",
-    "vite-plugin-electron-renderer": "^1.0.0"
+    "vite-plugin-electron": "^1.1.2"
   },
   "main": "dist/electron/main.js",
   "overrides": {

@@ -24,7 +24,7 @@ import {
 import { Close as CloseIcon, ExpandLess, ExpandMore, InfoOutlined, PushPin, PushPinOutlined } from '@mui/icons-material';
 import React, { useEffect, useState } from 'react';
 import { log } from '../../helpers/log';
-import { ipcRenderer } from 'electron';
+import { ipc } from '../../helpers/ipc';
 import { Link, useParams } from 'react-router-dom';
 import { clearPinnedModuleIds, getPinnedModuleIds, togglePinnedModuleId } from '../../helpers/pinnedModules.ts';
 
@@ -221,8 +221,7 @@ export const Menu = () => {
         } else {
             query += ' IS NULL';
         }
-        ipcRenderer
-            .invoke('get-local-db', query)
+        ipc.invoke('get-local-db', query)
             .then((response) => {
                 log.debug(`modules: ${JSON.stringify(response)}`);
                 setmenuModules(response);
@@ -244,13 +243,12 @@ export const Menu = () => {
             return;
         }
 
-        ipcRenderer
-            .invoke(
-                'get-local-db',
-                `SELECT *
+        ipc.invoke(
+            'get-local-db',
+            `SELECT *
                  FROM module
                  WHERE id IN (${pinnedIds.join(',')})`,
-            )
+        )
             .then((pinnedModules: MenuItem[]) => {
                 // `WHERE id IN (...)` doesn't preserve the given order - SQLite returns rows in its
                 // own (id) order - so re-sort to match pinnedIds, which is itself pin order (oldest
@@ -291,8 +289,7 @@ export const Menu = () => {
                 ), 0) as thisMonth
             FROM formcloudsubmission
         `;
-        ipcRenderer
-            .invoke('get-local-db', query)
+        ipc.invoke('get-local-db', query)
             .then((response: PersonalStats[]) => {
                 if (response[0]) setStats(response[0]);
             })
@@ -326,8 +323,7 @@ export const Menu = () => {
             GROUP BY form.uid, form.name
             ORDER BY form.name
         `;
-        ipcRenderer
-            .invoke('get-local-db', query)
+        ipc.invoke('get-local-db', query)
             .then((response: FormReportStats[]) => {
                 setFormStats(response);
                 setFormStatsDialogOpen(true);

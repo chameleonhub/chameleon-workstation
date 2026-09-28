@@ -1,7 +1,7 @@
 import { AppBar, Box, IconButton, Tooltip, Typography } from '@mui/material';
 import React, { useEffect, useRef, useState } from 'react';
 import { NetworkIndicator } from '../common/NetworkIndicator';
-import { ipcRenderer } from 'electron';
+import { ipc } from '../../helpers/ipc';
 import { ToastMessageType } from '../../../electron/bahis.model.ts';
 import { useSelector } from 'react-redux';
 import {
@@ -33,8 +33,7 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
 
     const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
     useEffect(() => {
-        ipcRenderer
-            .invoke('read-app-version')
+        ipc.invoke('read-app-version')
             .then((version) => {
                 setVersion(version);
             })
@@ -42,13 +41,13 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
                 console.error('Error reading app version:', error);
             });
 
-        const updateMessage = (_evt, msg: ToastMessageType) => {
+        const updateMessage = (msg: ToastMessageType) => {
             dispatch(setToastMessage(msg));
             dispatch(setToastOpen(true));
         };
-        ipcRenderer.on('sendMsg', updateMessage);
+        const unsubscribeMessage = ipc.on('sendMsg', updateMessage);
 
-        const updateStatus = (_event, msg: string) => {
+        const updateStatus = (msg: string) => {
             if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
             debounceTimeout.current = setTimeout(() => {
                 if (msg !== status) {
@@ -57,7 +56,7 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
             }, 1);
         };
 
-        ipcRenderer.on('sendStatus', updateStatus);
+        const unsubscribeStatus = ipc.on('sendStatus', updateStatus);
 
         setTooltipOpen(true);
         const tooltipTimer = setTimeout(() => {
@@ -65,8 +64,8 @@ export const Footer: React.FC<FooterProps> = ({ lastSyncTime }) => {
         }, 10000);
 
         return () => {
-            ipcRenderer.removeListener('sendStatus', updateStatus);
-            ipcRenderer.removeListener('sendMsg', updateMessage);
+            unsubscribeStatus();
+            unsubscribeMessage();
 
             if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
             clearTimeout(tooltipTimer);

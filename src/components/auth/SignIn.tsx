@@ -17,7 +17,7 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { log } from '../../helpers/log';
-import { ipcRenderer } from 'electron';
+import { ipc } from '../../helpers/ipc';
 import { AlertContent } from '../common/SystemAlerts';
 import { grey } from '@mui/material/colors';
 import bahisLogo from '../../assets/images/bahis_logo.png';
@@ -51,8 +51,7 @@ export const SignIn = () => {
             // The main process sends its own detailed "Sync complete: N forms, N records, ..."
             // Toast once counts are known (see getAppData in electron/main.ts) - only the
             // invoke-level rejection (the whole IPC call failing) needs a toast dispatched here.
-            ipcRenderer
-                .invoke('request-app-data-sync')
+            ipc.invoke('request-app-data-sync')
                 .then(() => {
                     navigate('/menu/0');
                 })
@@ -75,7 +74,7 @@ export const SignIn = () => {
     }, [navigate, isSignedIn]);
 
     useEffect(() => {
-        ipcRenderer.invoke('get-user-data').then((res) => {
+        ipc.invoke('get-user-data').then((res) => {
             if (res) {
                 setUserName(res.username);
 
@@ -91,7 +90,7 @@ export const SignIn = () => {
         if (answer === 'delete') {
             setIsSignedInValid(false);
             setUserName('No User');
-            ipcRenderer.invoke('refresh-database').then(() => {
+            ipc.invoke('refresh-database').then(() => {
                 setOpenChangeUserDialog(false);
                 if (userData) {
                     checkCredentials(userData.username, userData.password);
@@ -131,7 +130,7 @@ export const SignIn = () => {
     };
 
     const checkCredentials = (username: string, password: string) => {
-        ipcRenderer.invoke('sign-in', { username, password }).then((response) => {
+        ipc.invoke('sign-in', { username, password }).then((response) => {
             log.info('Sign in response received');
             setIsFreshSignedIn(false);
             switch (response) {

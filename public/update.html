@@ -125,22 +125,22 @@
 
 </style>
 <script>
-    const { ipcRenderer } = require('electron');
-    const { shell } = require('electron');
+    // window.updateDialog is provided by electron/updatePreload.ts - this page has no direct access to
+    // Node or Electron.
 
     // Load dynamic release notes content
     window.addEventListener('DOMContentLoaded', () => {
-        ipcRenderer.invoke('get-release-notes').then((htmlContent) => {
+        window.updateDialog.getReleaseNotes().then((htmlContent) => {
             document.getElementById('release-notes').innerHTML = htmlContent;
         });
     });
 
     document.getElementById('restart').onclick = () => {
-        ipcRenderer.send('restart-app');
+        window.updateDialog.restart();
     };
 
     document.getElementById('later').onclick = () => {
-        ipcRenderer.send('close-dialog');
+        window.updateDialog.close();
     };
 
     document.addEventListener('click', (event) => {
@@ -152,12 +152,12 @@
 
         if (target && target.tagName === 'A' && target.href) {
             event.preventDefault();
-            shell.openExternal(target.href);
+            window.updateDialog.openExternal(target.href);
         }
 
         if (target && target.tagName === 'BUTTON' && target.dataset.url) {
             event.preventDefault();
-            shell.openExternal(target.dataset.url);
+            window.updateDialog.openExternal(target.dataset.url);
         }
     });
 </script>

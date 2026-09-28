@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { ipc } from './ipc';
 import { log } from './log';
 
 export interface Workflow {
@@ -14,7 +14,7 @@ export const readFormDefinition = async (form_uid: string) => {
                    FROM form
                    WHERE uid IS '${form_uid}'`;
     const parser = new DOMParser();
-    return ipcRenderer
+    return ipc
         .invoke('get-local-db', query)
         .then((response) => {
             return parser.parseFromString(response[0]?.xml, 'application/xml');
@@ -32,7 +32,7 @@ export const readFormData = async (form_uid: string, instance_id?: string) => {
                  FROM formcloudsubmission
                  WHERE form_uid IS '${form_uid}'`;
     if (instance_id) query += ` AND uuid IS '${instance_id}'`;
-    return ipcRenderer
+    return ipc
         .invoke('get-local-db', query)
         .then((response) => {
             log.info(`Succesfully read ${response.length} records`);
@@ -49,7 +49,7 @@ export const readFormWorkflows = async (form_uid: string) => {
     const query = `SELECT *
                    FROM workflow
                    WHERE source_form IS '${form_uid}'`;
-    return ipcRenderer
+    return ipc
         .invoke('get-local-db', query)
         .then((response) => {
             log.info(`Succesfully read ${response.length} workflows for this form`);
@@ -219,8 +219,8 @@ export const buildChoiceLabelMaps = async (
         if (!taxonomyCache.has(slug)) {
             const invocation =
                 slug === 'administrative_region'
-                    ? ipcRenderer.invoke('read-administrative-region-data')
-                    : ipcRenderer.invoke('read-taxonomy-data', slug);
+                    ? ipc.invoke('read-administrative-region-data')
+                    : ipc.invoke('read-taxonomy-data', slug);
             taxonomyCache.set(
                 slug,
                 invocation
@@ -240,7 +240,7 @@ export const buildChoiceLabelMaps = async (
         if (!mediaCache.has(filename)) {
             mediaCache.set(
                 filename,
-                ipcRenderer
+                ipc
                     .invoke('read-form-media-data', form_uid, filename)
                     .then((xmlString: string) =>
                         parseItemsAsLabelMap(new DOMParser().parseFromString(xmlString, 'application/xml').documentElement),

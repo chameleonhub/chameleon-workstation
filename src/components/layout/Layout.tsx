@@ -5,7 +5,7 @@ import { log } from '../../helpers/log';
 import { Footer } from './Footer';
 import { Header } from './Header';
 import { SystemAlerts } from '../common/SystemAlerts';
-import { ipcRenderer } from 'electron';
+import { ipc } from '../../helpers/ipc';
 
 const getLastSyncTime = async (override?: string | undefined) => {
     log.info(' setLastSyncTime (client) ');
@@ -28,17 +28,15 @@ export const Layout: React.FC<LayoutProps> = ({ hasHeader = true }) => {
 
     useEffect(() => {
         getLastSyncTime().then((time) => setLastSyncTime(time));
-        ipcRenderer.invoke('get-user-data').then((res) => {
+        ipc.invoke('get-user-data').then((res) => {
             if (res) {
                 const diffInDays = (Date.now() - Date.parse(res.last_login)) / (1000 * 3600 * 24);
-                console.log(diffInDays);
                 if (diffInDays <= 7) {
                     navigate('/menu/0');
                 }
             }
         });
-        ipcRenderer.on('log', (evt, msg) => {
-            console.log(evt.ports);
+        return ipc.on('log', (msg) => {
             console.log(msg);
         });
     }, []);
