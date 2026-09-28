@@ -21,7 +21,14 @@ export const INVOKE_CHANNELS = [
 export const SEND_CHANNELS = ['renderer-log'] as const;
 
 /** main -> renderer (webContents.send / ipcRenderer.on) */
-export const RECEIVE_CHANNELS = ['init-refresh-database', 'sendSyncProgress', 'sendMsg', 'sendStatus', 'log'] as const;
+export const RECEIVE_CHANNELS = [
+    'init-refresh-database',
+    'sendSyncProgress',
+    'sendSyncResult',
+    'sendMsg',
+    'sendStatus',
+    'log',
+] as const;
 
 export type InvokeChannel = (typeof INVOKE_CHANNELS)[number];
 export type SendChannel = (typeof SEND_CHANNELS)[number];

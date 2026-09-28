@@ -1,5 +1,5 @@
 import { mainWindow } from './main.ts';
-import { SyncFormRecordProgress, SyncProgressState } from './bahis.model.ts';
+import { SyncFormRecordProgress, SyncProgressState, SyncResult } from './bahis.model.ts';
 
 // Backs a per-category "Syncing... N/M" indicator (see LoadingSpinner's showSyncProgress prop)
 // that replaces firing one Toast per synced item (per taxonomy, per form, per draft, ...) - a
@@ -91,6 +91,16 @@ export function addFormRecordsFailed(form: { uid: string; name: string }, direct
 
 export function finishFormRecords(form: { uid: string; name: string }, direction: RecordDirection) {
     updateFormRecords(form, direction, () => ({ done: true }));
+}
+
+/**
+ * Reports a finished sync: the one-line `summary` plus what happened to each form's records. Call it before
+ * endSyncProgress(), which clears the per-form counts it reads.
+ */
+export function sendSyncResult(summary: string) {
+    const forms = Object.values(syncProgress.formRecords);
+    const result: SyncResult = { summary, forms, hasFailures: forms.some((form) => form.failed > 0) };
+    mainWindow?.webContents.send('sendSyncResult', result);
 }
 
 export function Toast(

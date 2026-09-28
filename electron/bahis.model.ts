@@ -65,6 +65,15 @@ export interface SyncFormRecordProgress {
     done: boolean;
 }
 
+/** The outcome of a finished sync: what SyncCompletePopup shows for a few seconds afterwards. */
+export interface SyncResult {
+    /** One-line totals, e.g. "8 forms, 1,234 records". */
+    summary: string;
+    /** What happened to each form's records, from the same tracking as the sync window's "Records by form". */
+    forms: SyncFormRecordProgress[];
+    hasFailures: boolean;
+}
+
 export interface SyncProgressState {
     active: boolean;
     /** Name of the category (table) most recently touched - which one to show on a single-line

@@ -22,7 +22,7 @@ import {
 import { UserData } from './bahis.model.ts';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { endSyncProgress, startSyncProgress, Toast } from './utils.ts';
+import { endSyncProgress, sendSyncResult, startSyncProgress, Toast } from './utils.ts';
 
 // SETUP
 const __filename = fileURLToPath(import.meta.url);
@@ -568,7 +568,7 @@ const getAppData = async (event) => {
                 _plural(taxonomiesCount, 'taxonomy', 'taxonomies'),
                 _plural(adminRegionsCount, 'administrative region'),
             ].join(', ');
-            Toast(`Sync complete: ${summary}`, 'success', 8000);
+            sendSyncResult(summary);
             return true;
         })
         .catch((error) => {
@@ -591,7 +591,7 @@ const postGetUserData = async (event) => {
         const uploadedCount = await postFormCloudSubmissions(db);
         const recordsCount = await getFormCloudSubmissions(db);
         const summary = [_plural(uploadedCount, 'draft'), _plural(recordsCount, 'record')].join(', ');
-        Toast(`Sync complete: ${summary} synced`, 'success', 8000);
+        sendSyncResult(`${summary} synced`);
     } finally {
         endSyncProgress();
     }

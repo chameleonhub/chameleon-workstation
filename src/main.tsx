@@ -11,6 +11,7 @@ import { Provider } from 'react-redux';
 
 import './App.scss';
 import { SnackbarProvider } from 'notistack';
+import { SyncCompletePopup } from './components/common/SyncCompletePopup.tsx';
 
 const rootElement = document.getElementById('root') as HTMLElement;
 createRoot(rootElement).render(
@@ -19,6 +20,7 @@ createRoot(rootElement).render(
             <ThemeProvider theme={theme}>
                 <SnackbarProvider maxSnack={5}>
                     <App />
+                    <SyncCompletePopup />
                 </SnackbarProvider>
             </ThemeProvider>
         </Provider>
