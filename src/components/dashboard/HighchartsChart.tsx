@@ -47,6 +47,11 @@ export const HighchartsChart = ({ options }: { options: Highcharts.Options }) =>
                 createPortal(
                     <button
                         type="button"
+                        // This sits inside the element Highcharts renders into, and Highcharts' accessibility
+                        // module marks every sibling of the nodes it exposes as aria-hidden unless one is already
+                        // set - hiding a button that has focus, which the browser reports as "Blocked aria-hidden
+                        // on an element because its descendant retained focus".
+                        aria-hidden={false}
                         onClick={() => document.exitFullscreen()}
                         style={{
                             position: 'fixed',
