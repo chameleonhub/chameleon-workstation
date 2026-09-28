@@ -14,7 +14,10 @@ const isLinuxMusl = () =>
     process.platform === 'linux' &&
     !(process.report.getReport() as { header: { glibcVersionRuntime?: string } }).header.glibcVersionRuntime;
 const prebuildTarget = `${isLinuxMusl() ? 'linuxmusl' : process.platform}-${process.arch}`;
-const addon = requireMe(path.resolve(`./node_modules/better-sqlite3/prebuilds/${prebuildTarget}.node`));
+// Packaged builds keep native binaries next to the asar (electron-builder unpacks them), not under the
+// working directory; unpackaged runs use the project's own node_modules.
+const nativeModulesRoot = app.isPackaged ? path.join(process.resourcesPath, 'app.asar.unpacked') : app.getAppPath();
+const addon = requireMe(path.join(nativeModulesRoot, `node_modules/better-sqlite3/prebuilds/${prebuildTarget}.node`));
 
 const DB_PATH = (MODE) => {
     if (MODE === 'production') {
