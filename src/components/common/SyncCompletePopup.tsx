@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Box, Fade } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import { Alert, Box, Fade, IconButton, Paper, Typography } from '@mui/material';
 import { SyncFormRecordProgress, SyncResult } from '../../../electron/bahis.model.ts';
 import { ipc } from '../../helpers/ipc';
 
@@ -21,6 +22,10 @@ const describeFormRecords = ({ direction, completed, total, failed }: SyncFormRe
     }
     return failed > 0 ? `${text} (${failed.toLocaleString()} failed)` : text;
 };
+
+// Puts every number in bold so the counts stand out: "3 of 5 drafts uploaded" -> "**3** of **5** drafts uploaded"
+const boldNumbers = (text: string) =>
+    text.split(/(\d[\d,]*)/).map((part, index) => (index % 2 === 1 ? <strong key={index}>{part}</strong> : part));
 
 // "Sync complete: ..." plus what happened to each form, shown in the middle of the screen for a few seconds after a
 // sync finishes. It is mounted at the app root rather than on a page: the sign-in sync finishes and navigates away
@@ -60,22 +65,59 @@ export const SyncCompletePopup = () => {
                 }}
             >
                 {shown && (
-                    <Alert
-                        severity={shown.hasFailures ? 'warning' : 'success'}
-                        onClose={() => setResult(null)}
-                        sx={{ width: 'min(38rem, 92vw)', maxHeight: '60vh', overflowY: 'auto', boxShadow: 8 }}
+                    <Paper
+                        elevation={8}
+                        sx={{
+                            width: 'min(38rem, 92vw)',
+                            maxHeight: '60vh',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden',
+                        }}
                     >
-                        {shown.hasFailures ? 'Sync finished with problems' : 'Sync complete'}: {shown.summary}
-                        {shown.forms.length > 0 && (
-                            <Box component="ul" sx={{ mt: 1, mb: 0, pl: 2.5 }}>
-                                {shown.forms.map((form, index) => (
-                                    <li key={`${index}-${form.direction}-${form.name}`}>
-                                        {form.name} {form.direction === 'download' ? '↓' : '↑'} {describeFormRecords(form)}
-                                    </li>
-                                ))}
-                            </Box>
-                        )}
-                    </Alert>
+                        {/* the title, on a darker band of its own so it reads as the header of the dialog */}
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                px: 2,
+                                py: 1,
+                                color: '#fff',
+                                bgcolor: shown.hasFailures ? 'warning.dark' : 'success.dark',
+                            }}
+                        >
+                            <Typography
+                                component="h2"
+                                sx={{ flex: 1, color: 'inherit', fontWeight: 700, fontSize: '1.15rem' }}
+                            >
+                                {shown.hasFailures ? 'Sync finished with problems' : 'Sync complete'}
+                            </Typography>
+                            <IconButton
+                                size="small"
+                                aria-label="Close"
+                                onClick={() => setResult(null)}
+                                sx={{ color: 'inherit' }}
+                            >
+                                <CloseIcon fontSize="small" />
+                            </IconButton>
+                        </Box>
+                        <Alert
+                            severity={shown.hasFailures ? 'warning' : 'success'}
+                            sx={{ borderRadius: 0, overflowY: 'auto' }}
+                        >
+                            {boldNumbers(shown.summary)}
+                            {shown.forms.length > 0 && (
+                                <Box component="ul" sx={{ mt: 1, mb: 0, pl: 2.5 }}>
+                                    {shown.forms.map((form, index) => (
+                                        <li key={`${index}-${form.direction}-${form.name}`}>
+                                            {form.name} {form.direction === 'download' ? '↓' : '↑'}{' '}
+                                            {boldNumbers(describeFormRecords(form))}
+                                        </li>
+                                    ))}
+                                </Box>
+                            )}
+                        </Alert>
+                    </Paper>
                 )}
             </Box>
         </Fade>
