@@ -14,7 +14,8 @@
     buildResources: 'public'
   },
   files: [
-    'dist'
+    'dist',
+    '.vite/build/**/*'
   ],
   win: {
     target: [

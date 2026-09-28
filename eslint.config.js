@@ -7,7 +7,7 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import eslintPluginReactHooks from 'eslint-plugin-react-hooks';
 
 export default [
-    { ignores: ['build', 'coverage', 'dist'] },
+    { ignores: ['build', 'coverage', 'dist', '.vite'] },
     { files: ['**/*.{js,mjs,cjs,ts,jsx,tsx}'] },
     { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
     pluginJs.configs.recommended,

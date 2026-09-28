@@ -8,7 +8,7 @@ const preloadEntry = (entry: string) => ({
     entry,
     vite: {
         build: {
-            outDir: 'dist/electron',
+            outDir: '.vite/build',
             lib: false as const,
             rollupOptions: {
                 input: entry,
@@ -39,7 +39,7 @@ export default function ViteConfig({ mode }) {
                     entry: 'electron/main.ts',
                     vite: {
                         build: {
-                            outDir: 'dist/electron',
+                            outDir: '.vite/build',
                             minify: isProd,
                         },
                     },

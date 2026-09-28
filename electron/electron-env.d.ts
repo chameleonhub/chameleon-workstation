@@ -6,11 +6,13 @@ declare namespace NodeJS {
          * The built directory structure
          *
          * ```tree
-         * ├─┬ dist
-         * │ ├── index.html
-         * │ └─┬ electron
-         * │   ├── main.js
-         * │   └── preload.mjs
+         * ├─┬ dist            (renderer, production builds only)
+         * │ └── index.html
+         * │
+         * ├─┬ .vite/build     (main process + preloads, dev and production)
+         * │ ├── main.js
+         * │ ├── preload.cjs
+         * │ └── updatePreload.cjs
          * │
          * ```
          */
