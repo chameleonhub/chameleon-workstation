@@ -5,13 +5,6 @@
  */
 /* FONT PATH
  * -------------------------- */
-@font-face {
-    font-family: 'FontAwesome';
-    src: url('assets/fonts/fontawesome-webfont.woff?v=4.6.2') format('woff');
-    font-weight: normal;
-    font-style: normal;
-}
-
 .fa,
 .icon,
 .android-chrome,
@@ -2927,20 +2920,6 @@
     margin: 0;
     overflow: visible;
     clip: auto;
-}
-
-@font-face {
-    font-family: 'OpenSans';
-    src: url('assets/fonts/OpenSans-Regular-webfont.woff') format('woff');
-    font-weight: normal;
-    font-style: normal;
-}
-
-@font-face {
-    font-family: 'OpenSans';
-    src: url('assets/fonts/OpenSans-Bold-webfont.woff') format('woff');
-    font-weight: bold;
-    font-style: normal;
 }
 
 /** The next styles are meant to easily customize the background and border of radiobuttons and checkboxes, not their size! */
