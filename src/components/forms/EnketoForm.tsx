@@ -283,7 +283,7 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
     };
 
     return (
-        <Stack className="ek-form" sx={{ margin: '2rem 3rem' }}>
+        <Stack className="ek-form" sx={{ margin: '2rem 3rem', backgroundColor: 'background.paper' }}>
             {editable && sectionLabels.length > 0 && (
                 <Box
                     sx={{
