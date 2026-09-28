@@ -132,13 +132,18 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
         // checking whether or not the form should be editable
         // and converting the form to read-only if necessary
 
+        // transform()'s `theme` option overwrites whatever theme class the form itself declares, so a form that
+        // asks for the grid theme (<h:body class="theme-grid">) would silently be rendered as theme-kobo. Only
+        // default to kobo when the form isn't a grid form; the grid layout lives in assets/styles/theme-grid.scss.
+        const theme = /<(?:[a-z]+:)?body[^>]*class="[^"]*theme-grid/i.test(formODKXML) ? 'grid' : 'kobo';
+
         log.info('Transforming form ODK XML to enketo XML and HTML');
         transform({
             xform: formODKXML,
             media: {},
             openclinica: 0,
             markdown: true,
-            theme: 'kobo',
+            theme,
         })
             .then((result) => {
                 if (cancelled) return;

@@ -1,0 +1,62 @@
+@use 'sass:math';
+
+// Layout for forms that declare `style = theme-grid` in their XLSForm (<h:body class="theme-grid">, which
+// EnketoForm keeps instead of forcing theme-kobo). It is Enketo's grid mechanism - the same width maths as
+// enketo-core's src/sass/grid - layered on the app's existing Kobo look, and it only applies to those forms:
+//
+// - a container (group/repeat) with appearance wN is N units wide; without one it is 4 units, capped at a full row
+// - a question inside it with appearance wM takes M of the container's N units
+// - anything with no width takes a full row
+//
+// The Kobo flex layout in kobo-form.scss uses gaps and a fixed two-per-row width, which would defeat the grid
+// (cells plus a gap no longer add up to one row), so this resets it for grid forms only.
+
+$default-grid-width: 4;
+$max-columns: 13;
+
+@mixin grid-width($value, $total) {
+  $basis: 100%;
+  @if $total >= $value {
+    $basis: math.percentage(math.div($value, $total));
+  }
+
+  flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: $basis;
+}
+
+.ek-form form.or.theme-grid {
+  .or-group,
+  .or-group-data,
+  .or-repeat {
+    display: flex;
+    flex-flow: row wrap;
+    align-content: flex-start;
+    column-gap: 0;
+    row-gap: 0;
+    flex: 1 1 100%;
+  }
+
+  .question,
+  label.question,
+  fieldset.question {
+    flex: 1 1 100%;
+    margin: 0;
+    padding: 0 0.75rem 1rem 0;
+    box-sizing: border-box;
+  }
+
+  @media screen and (min-width: 600px) {
+    @for $total from 1 through $max-columns {
+      .or-appearance-w#{$total} {
+        @include grid-width($total, $default-grid-width);
+
+        @for $width from 1 through $total {
+          .or-appearance-w#{$width} {
+            @include grid-width($width, $total);
+          }
+        }
+      }
+    }
+  }
+}
