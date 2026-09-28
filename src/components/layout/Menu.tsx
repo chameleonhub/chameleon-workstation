@@ -152,6 +152,7 @@ interface PersonalStats {
 }
 
 interface FormReportStats {
+    form_uid: string;
     form_name: string;
     total: number;
     thisMonth: number;
@@ -387,6 +388,7 @@ export const Menu = () => {
     const handleOpenFormStats = () => {
         const query = `
             SELECT
+                form.uid as form_uid,
                 form.name as form_name,
                 COUNT(formcloudsubmission.uuid) as total,
                 COALESCE(SUM(
@@ -635,8 +637,8 @@ export const Menu = () => {
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {formStats.map(({ form_name, thisMonth, total }) => (
-                                    <TableRow key={form_name}>
+                                {formStats.map(({ form_uid, form_name, thisMonth, total }) => (
+                                    <TableRow key={form_uid}>
                                         <TableCell>{form_name}</TableCell>
                                         <TableCell align="right">{thisMonth.toLocaleString()}</TableCell>
                                         <TableCell align="right">{total.toLocaleString()}</TableCell>

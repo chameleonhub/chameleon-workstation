@@ -51,7 +51,9 @@ export const Header = () => {
     const [user, setUser] = useState<User>({});
     const [open, setOpen] = useState(false);
     const [dataSummaryOpen, setDataSummaryOpen] = useState(false);
-    const [formReportCounts, setFormReportCounts] = useState<{ form_name: string; report_count: number }[]>([]);
+    const [formReportCounts, setFormReportCounts] = useState<{ form_uid: string; form_name: string; report_count: number }[]>(
+        [],
+    );
     const dispatch = useAppDispatch();
     const draftCount = useSelector(selectDraftCount);
 
@@ -154,7 +156,7 @@ export const Header = () => {
         // LEFT JOIN so a form with zero synced submissions still shows up with a count of 0,
         // rather than being silently absent from the list.
         const formReportCountsQuery = `
-            SELECT form.name as form_name, COUNT(formcloudsubmission.uuid) as report_count
+            SELECT form.uid as form_uid, form.name as form_name, COUNT(formcloudsubmission.uuid) as report_count
             FROM form
             LEFT JOIN formcloudsubmission ON formcloudsubmission.form_uid = form.uid
             GROUP BY form.uid, form.name
@@ -344,8 +346,8 @@ export const Header = () => {
                     <TableContainer component={Paper}>
                         <Table sx={{ minWidth: 300 }}>
                             <TableBody>
-                                {formReportCounts.map(({ form_name, report_count }) => (
-                                    <TableRow key={form_name}>
+                                {formReportCounts.map(({ form_uid, form_name, report_count }) => (
+                                    <TableRow key={form_uid}>
                                         <TableCell>{form_name}</TableCell>
                                         <TableCell align="right">{report_count.toLocaleString()}</TableCell>
                                     </TableRow>
