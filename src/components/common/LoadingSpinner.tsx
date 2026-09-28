@@ -12,6 +12,8 @@ interface LoadingProps {
      * spinner. Only pass this where the loading state really is a sync (SignIn, Header) -
      * Form.tsx/IFrame.tsx use this same component for unrelated loading and shouldn't show it. */
     showSyncProgress?: boolean;
+    /** An extra line of explanation under the title, e.g. SignIn's "You are logging in for the first time...". */
+    message?: string;
 }
 
 // One line of the "Records by form" list: which form, which way (down from / up to the server), and how many
@@ -68,6 +70,7 @@ export const LoadingSpinner: React.FC<LoadingProps> = ({
     loadingText = 'Loading',
     zHeight = null,
     showSyncProgress = false,
+    message,
 }) => {
     const [progress, setProgress] = useState<SyncProgressState | null>(null);
 
@@ -157,6 +160,11 @@ export const LoadingSpinner: React.FC<LoadingProps> = ({
             >
                 {loadingText}
             </Typography>
+            {message && (
+                <Typography variant="body2" sx={{ mt: 1, maxWidth: '30rem', textAlign: 'center', color: 'text.secondary' }}>
+                    {message}
+                </Typography>
+            )}
             {formRecordRows.length > 0 && (
                 <Paper
                     variant="outlined"

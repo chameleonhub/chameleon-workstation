@@ -230,7 +230,14 @@ export const SignIn = () => {
 
     return (
         <>
-            {isSyncing && <LoadingSpinner loadingText="Syncing your data" zHeight={5000} showSyncProgress />}
+            {isSyncing && (
+                <LoadingSpinner
+                    loadingText="Syncing your data"
+                    message={alertContent?.message}
+                    zHeight={5000}
+                    showSyncProgress
+                />
+            )}
             <Box>
                 <Typography color="text.secondary" gutterBottom>
                     Last Logged in as:
@@ -314,8 +321,8 @@ export const SignIn = () => {
                             Sign In
                         </Button>
                     </Box>
-                    {alertContent && signInAlert(alertContent)}
-                    {alertContent && isSignedIn && isFreshSignedIn && <LoadingSpinner loadingText={alertContent.message} />}
+                    {/* while syncing, the sync window above already shows this message */}
+                    {alertContent && !isSyncing && signInAlert(alertContent)}
                 </Box>
             </Box>
             <ChangeUserDialog open={openChangeUserDialog} handleClick={(event) => handleChangeUserConfirmation(event)} />
