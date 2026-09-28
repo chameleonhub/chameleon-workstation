@@ -1,6 +1,5 @@
 import {
     Alert,
-    Avatar,
     Box,
     Button,
     Dialog,
@@ -10,17 +9,29 @@ import {
     DialogTitle,
     IconButton,
     InputAdornment,
+    Paper,
+    Stack,
     TextField,
     Typography,
 } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
+import {
+    AccountCircle,
+    ArrowForward,
+    CloudOff,
+    Lock,
+    Person,
+    Security,
+    Sync,
+    Visibility,
+    VisibilityOff,
+} from '@mui/icons-material';
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { alpha } from '@mui/material/styles';
 import { log } from '../../helpers/log';
 import { ipc } from '../../helpers/ipc';
 import { AlertContent } from '../common/SystemAlerts';
-import { grey } from '@mui/material/colors';
-import bahisLogo from '../../assets/images/bahis_logo.png';
+import bahisWhite from '../../assets/images/bahis_white.png';
 import { LoadingSpinner } from '../common/LoadingSpinner.tsx';
 import { OpenToast } from '../../stores/featues/NotificationSlice.ts';
 import { useAppDispatch } from '../../stores/store.ts';
@@ -222,7 +233,7 @@ export const SignIn = () => {
 
     const signInAlert = (content) => {
         return (
-            <Alert severity={content.severity} onClose={alertClose}>
+            <Alert severity={content.severity} onClose={alertClose} sx={{ whiteSpace: 'pre-line' }}>
                 {content.message}
             </Alert>
         );
@@ -238,91 +249,228 @@ export const SignIn = () => {
                     showSyncProgress
                 />
             )}
-            <Box>
-                <Typography color="text.secondary" gutterBottom>
-                    Last Logged in as:
-                    {isSignedInValid ? (
-                        <Button size="small" onClick={() => navigate('/menu/0')} variant="text">
-                            {userName}
-                        </Button>
-                    ) : userName ? (
-                        ` ${userName}`
-                    ) : (
-                        ' No User'
-                    )}
-                </Typography>
-            </Box>
+
+            {/* soft full-screen backdrop, so the page isn't a white void around the card */}
             <Box
+                aria-hidden
                 sx={{
-                    height: '80vh',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: -1,
+                    // background: (theme) =>
+                    //     `linear-gradient(135deg, ${theme.palette.primary.light} 0%, #ffffff 60%, ${theme.palette.primary.light} 100%)`,
                 }}
-            >
+            />
+
+            <Box sx={{ minHeight: '78vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {/* two offset layers peek out below the card, like stacked sheets, in the theme's primary colour */}
                 <Box
                     sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        backgroundColor: grey[200],
-                        px: '1.5rem',
-                        py: '2rem',
-                        borderRadius: '0.5rem',
+                        position: 'relative',
+                        width: 'min(58rem, 100%)',
+                        '&::before, &::after': {
+                            content: '""',
+                            position: 'absolute',
+                            inset: 0,
+                            borderRadius: 3,
+                            zIndex: 0,
+                        },
+                        '&::before': {
+                            transform: 'translateY(30px) scale(0.88)',
+                            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.12),
+                        },
+                        '&::after': {
+                            transform: 'translateY(15px) scale(0.94)',
+                            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.22),
+                        },
                     }}
                 >
-                    <Avatar variant="square" src={bahisLogo} sx={{ width: 'auto', height: 50, margin: 1 }} />
-                    <Box component="form" noValidate onSubmit={onSubmit} sx={{ marginTop: 1 }}>
-                        <TextField
+                    <Paper
+                        elevation={0}
+                        sx={{
+                            position: 'relative',
+                            zIndex: 1,
+                            width: '100%',
+                            display: 'grid',
+                            gridTemplateColumns: { xs: '1fr', md: '5fr 6fr' },
+                            borderRadius: 3,
+                            overflow: 'hidden',
+                            // layered shadows: a tight contact shadow, a mid-range one and a wide, soft ambient one
+                            boxShadow: (theme) =>
+                                `0 2px 4px ${alpha('#000000', 0.08)}, 0 12px 24px ${alpha('#000000', 0.12)}, 0 32px 64px ${alpha(theme.palette.primary.dark, 0.28)}`,
+                        }}
+                    >
+                        {/* brand panel */}
+                        <Box
                             sx={{
-                                backgroundColor: 'white',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'space-between',
+                                gap: 3,
+                                p: { xs: 3, md: 5 },
+                                color: '#fff',
+                                background: (theme) =>
+                                    `linear-gradient(160deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
                             }}
-                            variant="outlined"
-                            margin="normal"
-                            required
-                            fullWidth
-                            id="username"
-                            label="Username"
-                            name="username"
-                            autoComplete="username"
-                            autoFocus
-                        />
-                        <TextField
+                        >
+                            <Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+                                    <Box component="img" src={bahisWhite} alt="" sx={{ height: 48 }} />
+                                    <Typography
+                                        variant="h3"
+                                        component="span"
+                                        sx={{ color: 'inherit', fontWeight: 700, letterSpacing: 1 }}
+                                    >
+                                        BAHIS
+                                    </Typography>
+                                </Box>
+                                <Typography variant="h5" sx={{ color: 'inherit', fontWeight: 700, lineHeight: 1.25 }}>
+                                    Bangladesh Animal Health Intelligence System
+                                </Typography>
+                                <Typography sx={{ color: 'inherit', opacity: 0.85, mt: 1.5 }}>
+                                    Collect animal health data in the field, on or off the network.
+                                </Typography>
+                            </Box>
+                            <Stack spacing={2} sx={{ display: { xs: 'none', md: 'flex' } }}>
+                                {[
+                                    { icon: <CloudOff />, text: 'Works offline - fill in forms anywhere' },
+                                    { icon: <Sync />, text: 'Syncs your reports when you are back online' },
+                                    { icon: <Security />, text: 'Your data stays safe on this device until synced' },
+                                ].map(({ icon, text }) => (
+                                    <Box key={text} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                        <Box
+                                            sx={{
+                                                display: 'flex',
+                                                p: 1,
+                                                borderRadius: '50%',
+                                                backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                                            }}
+                                        >
+                                            {icon}
+                                        </Box>
+                                        <Typography variant="body2" sx={{ color: 'inherit' }}>
+                                            {text}
+                                        </Typography>
+                                    </Box>
+                                ))}
+                            </Stack>
+                        </Box>
+
+                        {/* sign-in panel */}
+                        <Box
                             sx={{
-                                backgroundColor: 'white',
-                            }}
-                            variant="outlined"
-                            margin="normal"
-                            required
-                            fullWidth
-                            name="password"
-                            label="Password"
-                            type={showPassword ? 'text' : 'password'}
-                            id="password"
-                            autoComplete="current-password"
-                            slotProps={{
-                                input: {
-                                    endAdornment: (
-                                        <InputAdornment position="end">
-                                            <IconButton
-                                                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                                                onClick={() => setShowPassword((show) => !show)}
-                                                onMouseDown={(event) => event.preventDefault()}
-                                                edge="end"
-                                            >
-                                                {showPassword ? <VisibilityOff /> : <Visibility />}
-                                            </IconButton>
-                                        </InputAdornment>
-                                    ),
+                                p: { xs: 3, md: 5 },
+                                backgroundColor: '#fff',
+                                // fine line grid in the theme's primary colour (blue in development, green in production)
+                                backgroundImage: (theme) => {
+                                    const line = alpha(theme.palette.primary.main, 0.09);
+                                    return `linear-gradient(${line} 1px, transparent 1px), linear-gradient(90deg, ${line} 1px, transparent 1px)`;
                                 },
+                                backgroundSize: '40px 40px',
                             }}
-                        />
-                        <Button type="submit" fullWidth variant="contained" sx={{ marginTop: 3, marginBottom: 2 }}>
-                            Sign In
-                        </Button>
-                    </Box>
-                    {/* while syncing, the sync window above already shows this message */}
-                    {alertContent && !isSyncing && signInAlert(alertContent)}
+                        >
+                            <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                                Welcome back
+                            </Typography>
+                            <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+                                Sign in to continue
+                            </Typography>
+
+                            <Box sx={{ mt: 2, minHeight: '2.5rem', display: 'flex', alignItems: 'center' }}>
+                                {isSignedInValid ? (
+                                    <Button
+                                        size="small"
+                                        variant="outlined"
+                                        startIcon={<AccountCircle />}
+                                        endIcon={<ArrowForward />}
+                                        onClick={() => navigate('/menu/0')}
+                                    >
+                                        Continue as {userName}
+                                    </Button>
+                                ) : (
+                                    <Typography variant="body2" color="text.secondary">
+                                        {userName
+                                            ? `Last signed in as ${userName}`
+                                            : 'No user has signed in on this device yet'}
+                                    </Typography>
+                                )}
+                            </Box>
+
+                            <Box component="form" noValidate onSubmit={onSubmit} sx={{ mt: 1 }}>
+                                <TextField
+                                    variant="outlined"
+                                    margin="normal"
+                                    sx={{ backgroundColor: '#fff' }}
+                                    required
+                                    fullWidth
+                                    id="username"
+                                    label="Username"
+                                    name="username"
+                                    autoComplete="username"
+                                    autoFocus
+                                    slotProps={{
+                                        input: {
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <Person color="action" />
+                                                </InputAdornment>
+                                            ),
+                                        },
+                                    }}
+                                />
+                                <TextField
+                                    variant="outlined"
+                                    margin="normal"
+                                    sx={{ backgroundColor: '#fff' }}
+                                    required
+                                    fullWidth
+                                    name="password"
+                                    label="Password"
+                                    type={showPassword ? 'text' : 'password'}
+                                    id="password"
+                                    autoComplete="current-password"
+                                    slotProps={{
+                                        input: {
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <Lock color="action" />
+                                                </InputAdornment>
+                                            ),
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <IconButton
+                                                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                                        onClick={() => setShowPassword((show) => !show)}
+                                                        onMouseDown={(event) => event.preventDefault()}
+                                                        edge="end"
+                                                    >
+                                                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                                                    </IconButton>
+                                                </InputAdornment>
+                                            ),
+                                        },
+                                    }}
+                                />
+                                <Button
+                                    type="submit"
+                                    fullWidth
+                                    size="large"
+                                    variant="contained"
+                                    sx={{ mt: 3, py: 1.25, fontWeight: 700 }}
+                                >
+                                    Sign In
+                                </Button>
+                            </Box>
+
+                            {/* while syncing, the sync window above already shows this message */}
+                            {alertContent && !isSyncing && <Box sx={{ mt: 2 }}>{signInAlert(alertContent)}</Box>}
+
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 3 }}>
+                                First time on this device? Sign in with your BAHIS account while online to download your forms
+                                and data for offline use.
+                            </Typography>
+                        </Box>
+                    </Paper>
                 </Box>
             </Box>
             <ChangeUserDialog open={openChangeUserDialog} handleClick={(event) => handleChangeUserConfirmation(event)} />
