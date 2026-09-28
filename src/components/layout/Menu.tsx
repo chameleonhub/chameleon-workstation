@@ -25,6 +25,7 @@ import { Close as CloseIcon, ExpandLess, ExpandMore, InfoOutlined, PushPin, Push
 import React, { useEffect, useState } from 'react';
 import { log } from '../../helpers/log';
 import { ipc } from '../../helpers/ipc';
+import { alpha } from '@mui/material/styles';
 import { Link, useParams } from 'react-router-dom';
 import { clearPinnedModuleIds, getPinnedModuleIds, togglePinnedModuleId } from '../../helpers/pinnedModules.ts';
 
@@ -49,6 +50,14 @@ interface MenuItem {
     external_url: string | null;
 }
 
+const menuItemColors: Partial<Record<MenuItemTypes, string>> = {
+    [MenuItemTypes.form]: '#00897B', // teal
+    [MenuItemTypes.list]: '#4C51BF', // indigo
+    [MenuItemTypes.dashboard]: '#6e1706', // purple
+    [MenuItemTypes.iframe]: '#546E7A', // slate
+    [MenuItemTypes.submitted]: '#00838F', // deep cyan
+};
+
 interface MenuButtonProps {
     menuItem: MenuItem;
     isPinned?: boolean;
@@ -58,6 +67,7 @@ interface MenuButtonProps {
 
 export default function MenuButton(props: MenuButtonProps) {
     const { compact = false } = props;
+    const accent = menuItemColors[props.menuItem.module_type];
     let url = '';
     if (props.menuItem.module_type === MenuItemTypes.module) {
         url = `/menu/${props.menuItem.id}/`;
@@ -87,7 +97,10 @@ export default function MenuButton(props: MenuButtonProps) {
                     alignItems: 'center',
                     textAlign: 'center',
                     boxShadow: '3px 3px 5px 3px rgba(0,0,0,0.2)',
-                    '&:hover': { backgroundColor: '#f3f4f6' },
+                    borderTop: '4px solid',
+                    borderColor: accent ?? 'primary.main',
+                    backgroundColor: (theme) => alpha(accent ?? theme.palette.primary.main, 0.05),
+                    '&:hover': { backgroundColor: (theme) => alpha(accent ?? theme.palette.primary.main, 0.12) },
                 }}
             >
                 {props.onTogglePin && (
@@ -109,10 +122,13 @@ export default function MenuButton(props: MenuButtonProps) {
                     </IconButton>
                 )}
                 <CardContent sx={compact ? { padding: 1, '&:last-child': { paddingBottom: 1 } } : undefined}>
-                    <Typography variant={compact ? 'body2' : 'h6'} color={'primary'}>
+                    <Typography variant={compact ? 'body2' : 'h6'} sx={{ color: accent ?? 'primary.main' }}>
                         {props.menuItem.title}
                     </Typography>
-                    <Icon fontSize={compact ? 'medium' : 'large'} color={'primary'} sx={{ margin: compact ? 0.5 : 1 }}>
+                    <Icon
+                        fontSize={compact ? 'medium' : 'large'}
+                        sx={{ color: accent ?? 'primary.main', margin: compact ? 0.5 : 1 }}
+                    >
                         {props.menuItem.icon}
                     </Icon>
                     {!compact && <Typography>{props.menuItem.description ?? ''}</Typography>}
