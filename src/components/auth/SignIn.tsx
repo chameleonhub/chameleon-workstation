@@ -41,6 +41,9 @@ interface UserData {
     password: string;
 }
 
+const vetTextureSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="420" height="560" viewBox="0 0 420 560"><defs><filter id="lift" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#000" flood-opacity="0.066"/></filter></defs><g transform="translate(300 96) rotate(8)" filter="url(#lift)"><rect x="-34.0" y="-34.0" width="68" height="68" rx="17.68" fill="#fff" fill-opacity="0.038" stroke="#fff" stroke-opacity="0.066"/><g fill="#fff" fill-opacity="0.099" stroke="none"><polyline points="-15,0 -7,0 -3,-11 3,11 8,0 15,0" fill="none" stroke="#fff" stroke-opacity="0.124" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></g></g><g transform="translate(112 300) rotate(-8)" filter="url(#lift)"><rect x="-50.0" y="-50.0" width="100" height="100" rx="26.0" fill="#fff" fill-opacity="0.038" stroke="#fff" stroke-opacity="0.066"/><g fill="#fff" fill-opacity="0.099" stroke="none"><g transform="rotate(45)"><rect x="-26" y="-9" width="52" height="18" rx="9"/><rect x="-8" y="-9" width="16" height="18" fill-opacity="0.206"/></g></g></g><g transform="translate(322 440) rotate(-10)" filter="url(#lift)"><rect x="-42.0" y="-42.0" width="84" height="84" rx="21.84" fill="#fff" fill-opacity="0.038" stroke="#fff" stroke-opacity="0.066"/><g fill="#fff" fill-opacity="0.099" stroke="none"><rect x="-6" y="-19" width="12" height="38" rx="3"/><rect x="-19" y="-6" width="38" height="12" rx="3"/></g></g><g transform="translate(70 70) rotate(-12)" filter="url(#lift)"><rect x="-23.0" y="-23.0" width="46" height="46" rx="11.96" fill="#fff" fill-opacity="0.038" stroke="#fff" stroke-opacity="0.066"/><g fill="#fff" fill-opacity="0.099" stroke="none"><rect x="-14" y="-9" width="28" height="22" rx="5"/><path d="M-6 -9v-4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v4" fill="none" stroke="#fff" stroke-opacity="0.099" stroke-width="3"/><rect x="-2.5" y="-4" width="5" height="12" rx="1" fill="#000" fill-opacity="0.066"/><rect x="-6" y="-0.5" width="12" height="5" rx="1" fill="#000" fill-opacity="0.066"/></g></g><g transform="translate(205 168) rotate(8)" fill="#fff" fill-opacity="0.083"><rect x="-3.08" y="-11.0" width="6.16" height="22" rx="3.08"/><rect x="-11.0" y="-3.08" width="22" height="6.16" rx="3.08"/></g><g transform="translate(70 452) rotate(14)" fill="#fff" fill-opacity="0.066"><rect x="-5.88" y="-21.0" width="11.76" height="42" rx="5.88"/><rect x="-21.0" y="-5.88" width="42" height="11.76" rx="5.88"/></g><rect x="-24" y="-9" width="48" height="18" rx="9" transform="translate(190 520) rotate(16)" fill="#fff" fill-opacity="0.05"/><g transform="translate(232 402) rotate(22)" fill="#fff" fill-opacity="0.071"><ellipse cx="-8" cy="0" rx="6.5" ry="14" transform="rotate(12 -8 0)"/><ellipse cx="8" cy="0" rx="6.5" ry="14" transform="rotate(-12 8 0)"/></g><g transform="translate(360 292) rotate(18) scale(1.15)" fill="#fff" fill-opacity="0.071"><ellipse cx="0" cy="7" rx="9" ry="7"/><circle cx="-11" cy="-4" r="4.2"/><circle cx="-4" cy="-11" r="4.2"/><circle cx="4" cy="-11" r="4.2"/><circle cx="11" cy="-4" r="4.2"/></g><g transform="translate(62 192) rotate(-20) scale(1.5)" fill="#fff" fill-opacity="0.071"><ellipse cx="0" cy="9" rx="12" ry="9.5"/><ellipse cx="-13" cy="-4" rx="4.5" ry="6.5" transform="rotate(-25 -13 -4)"/><ellipse cx="-4.5" cy="-11" rx="4.5" ry="6.5"/><ellipse cx="4.5" cy="-11" rx="4.5" ry="6.5"/><ellipse cx="13" cy="-4" rx="4.5" ry="6.5" transform="rotate(25 13 -4)"/></g><circle cx="256" cy="262" r="14" fill="none" stroke="#fff" stroke-opacity="0.074" stroke-width="4"/></svg>`;
+const vetTexture = `url("data:image/svg+xml,${encodeURIComponent(vetTextureSvg)}")`;
+
 export const SignIn = () => {
     const [alertContent, setAlertContent] = React.useState<AlertContent | null>(null);
     const [openChangeUserDialog, setOpenChangeUserDialog] = React.useState<boolean>(false);
@@ -309,8 +312,15 @@ export const SignIn = () => {
                                 gap: 3,
                                 p: { xs: 3, md: 5 },
                                 color: '#fff',
-                                background: (theme) =>
-                                    `linear-gradient(160deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                                // vet texture over a soft light glow (as on the BAHIS Dashboard) over the theme-coloured gradient
+                                backgroundImage: (theme) =>
+                                    [
+                                        vetTexture,
+                                        'radial-gradient(circle at 88% 18%, rgba(255, 255, 255, 0.2), transparent 18rem)',
+                                        `linear-gradient(160deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                                    ].join(', '),
+                                backgroundSize: '420px 560px, auto, auto',
+                                backgroundRepeat: 'repeat, no-repeat, no-repeat',
                             }}
                         >
                             <Box>
