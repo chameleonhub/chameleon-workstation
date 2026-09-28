@@ -25,6 +25,22 @@ export const togglePinnedModuleId = (id: number): number[] => {
     return next;
 };
 
+// Drag-to-reorder: put `id` just before or just after `targetId`. The stored order is the order Favorites shows.
+export const movePinnedModuleId = (id: number, targetId: number, side: 'before' | 'after'): number[] => {
+    const current = getPinnedModuleIds();
+    if (id === targetId || !current.includes(id) || !current.includes(targetId)) return current;
+
+    const next = current.filter((existing) => existing !== id);
+    const targetIndex = next.indexOf(targetId);
+    next.splice(side === 'before' ? targetIndex : targetIndex + 1, 0, id);
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch {
+        // see togglePinnedModuleId - non-fatal if this fails.
+    }
+    return next;
+};
+
 export const clearPinnedModuleIds = (): number[] => {
     try {
         localStorage.removeItem(STORAGE_KEY);

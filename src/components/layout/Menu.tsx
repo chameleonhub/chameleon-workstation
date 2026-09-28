@@ -27,7 +27,12 @@ import { log } from '../../helpers/log';
 import { ipc } from '../../helpers/ipc';
 import { alpha } from '@mui/material/styles';
 import { Link, useParams } from 'react-router-dom';
-import { clearPinnedModuleIds, getPinnedModuleIds, togglePinnedModuleId } from '../../helpers/pinnedModules.ts';
+import {
+    clearPinnedModuleIds,
+    getPinnedModuleIds,
+    movePinnedModuleId,
+    togglePinnedModuleId,
+} from '../../helpers/pinnedModules.ts';
 
 enum MenuItemTypes {
     form = 1,
@@ -63,6 +68,9 @@ interface MenuButtonProps {
     isPinned?: boolean;
     onTogglePin?: (id: number) => void;
     compact?: boolean;
+    // Links are draggable by default, and dragging one drags the URL rather than the tile - set this when a
+    // wrapper around the tile is the drag source.
+    noLinkDrag?: boolean;
 }
 
 export default function MenuButton(props: MenuButtonProps) {
@@ -84,7 +92,7 @@ export default function MenuButton(props: MenuButtonProps) {
     }
 
     return (
-        <Link to={url} style={{ textDecoration: 'none' }}>
+        <Link to={url} style={{ textDecoration: 'none' }} draggable={props.noLinkDrag ? false : undefined}>
             <Card
                 sx={{
                     position: 'relative',
@@ -221,6 +229,8 @@ export const Menu = () => {
     const [menuModules, setmenuModules] = useState<MenuItem[]>([]);
     const [pinnedIds, setPinnedIds] = useState<number[]>(() => getPinnedModuleIds());
     const [favoriteItems, setFavoriteItems] = useState<MenuItem[]>([]);
+    const [draggedFavoriteId, setDraggedFavoriteId] = useState<number | null>(null);
+    const [dropPosition, setDropPosition] = useState<{ id: number; side: 'before' | 'after' } | null>(null);
     const [stats, setStats] = useState<PersonalStats | null>(null);
     const [formStats, setFormStats] = useState<FormReportStats[]>([]);
     const [formStatsDialogOpen, setFormStatsDialogOpen] = useState(false);
@@ -320,6 +330,55 @@ export const Menu = () => {
 
     const handleClearAllPinned = () => {
         setPinnedIds(clearPinnedModuleIds());
+    };
+
+    const endFavoriteDrag = () => {
+        setDraggedFavoriteId(null);
+        setDropPosition(null);
+    };
+
+    // Where a dragged Favorite would land: next to whichever tile is nearest the pointer, on the side of it the
+    // pointer is on. Going by the nearest tile (rather than the tile under the pointer) means dropping in the gap
+    // between tiles, in the empty space after the last one, or before the first one all work.
+    const findDropPosition = (event: React.DragEvent<HTMLElement>): { id: number; side: 'before' | 'after' } | null => {
+        let nearest: { id: number; side: 'before' | 'after'; distance: number } | null = null;
+        for (const tile of Array.from(event.currentTarget.querySelectorAll<HTMLElement>('[data-favorite-id]'))) {
+            const rect = tile.getBoundingClientRect();
+            const dx = Math.max(rect.left - event.clientX, 0, event.clientX - rect.right);
+            const dy = Math.max(rect.top - event.clientY, 0, event.clientY - rect.bottom);
+            const distance = Math.hypot(dx, dy);
+            if (nearest === null || distance < nearest.distance) {
+                const isBefore =
+                    event.clientY < rect.top || (event.clientY <= rect.bottom && event.clientX < rect.left + rect.width / 2);
+                nearest = { id: Number(tile.dataset.favoriteId), side: isBefore ? 'before' : 'after', distance };
+            }
+        }
+        return nearest && { id: nearest.id, side: nearest.side };
+    };
+
+    const handleFavoriteDragOver = (event: React.DragEvent<HTMLElement>) => {
+        if (draggedFavoriteId === null) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+        const position = findDropPosition(event);
+        // dropping next to itself changes nothing, so don't show a marker for it
+        const next = position && position.id !== draggedFavoriteId ? position : null;
+        setDropPosition((current) => (current?.id === next?.id && current?.side === next?.side ? current : next));
+    };
+
+    const handleFavoriteDrop = (event: React.DragEvent<HTMLElement>) => {
+        event.preventDefault();
+        const position = findDropPosition(event);
+        if (draggedFavoriteId !== null && position !== null && position.id !== draggedFavoriteId) {
+            const nextIds = movePinnedModuleId(draggedFavoriteId, position.id, position.side);
+            setPinnedIds(nextIds);
+            // Reorder what's on screen right away rather than waiting for the Favorites query to re-run.
+            setFavoriteItems((items) => {
+                const byId = new Map(items.map((item) => [item.id, item]));
+                return nextIds.map((id) => byId.get(id)).filter((item): item is MenuItem => item !== undefined);
+            });
+        }
+        endFavoriteDrag();
     };
 
     // Per-form breakdown for the stats tile - same "this month" logic (by the submission's own
@@ -430,16 +489,61 @@ export const Menu = () => {
                                 )
                             }
                         >
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 2 }}>
-                                {favoriteItems.map((menuItem) => (
-                                    <MenuButton
-                                        key={'favorite-' + menuItem.id}
-                                        menuItem={menuItem}
-                                        isPinned={pinnedIds.includes(menuItem.id)}
-                                        onTogglePin={handleTogglePin}
-                                        compact
-                                    />
-                                ))}
+                            <Box
+                                sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 2 }}
+                                onDragOver={handleFavoriteDragOver}
+                                onDrop={handleFavoriteDrop}
+                                onDragLeave={(event) => {
+                                    // only when the pointer leaves the whole Favorites area, not when it moves between tiles
+                                    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                                        setDropPosition(null);
+                                    }
+                                }}
+                            >
+                                {favoriteItems.map((menuItem) => {
+                                    const markerSide = dropPosition?.id === menuItem.id ? dropPosition.side : null;
+                                    return (
+                                        <Box
+                                            key={'favorite-' + menuItem.id}
+                                            data-favorite-id={menuItem.id}
+                                            draggable
+                                            title="Drag to reorder"
+                                            onDragStart={(event) => {
+                                                event.dataTransfer.effectAllowed = 'move';
+                                                event.dataTransfer.setData('text/plain', String(menuItem.id));
+                                                setDraggedFavoriteId(menuItem.id);
+                                            }}
+                                            onDragEnd={endFavoriteDrag}
+                                            sx={{
+                                                position: 'relative',
+                                                display: 'flex',
+                                                cursor: 'grab',
+                                                opacity: draggedFavoriteId === menuItem.id ? 0.4 : 1,
+                                                // insertion marker, drawn in the gap on the side the tile would land
+                                                '&::after': {
+                                                    content: '""',
+                                                    display: markerSide ? 'block' : 'none',
+                                                    position: 'absolute',
+                                                    top: 0,
+                                                    bottom: 0,
+                                                    width: '4px',
+                                                    borderRadius: '2px',
+                                                    backgroundColor: 'primary.main',
+                                                    left: markerSide === 'before' ? '-14px' : 'auto',
+                                                    right: markerSide === 'after' ? '-14px' : 'auto',
+                                                },
+                                            }}
+                                        >
+                                            <MenuButton
+                                                menuItem={menuItem}
+                                                isPinned={pinnedIds.includes(menuItem.id)}
+                                                onTogglePin={handleTogglePin}
+                                                compact
+                                                noLinkDrag
+                                            />
+                                        </Box>
+                                    );
+                                })}
                             </Box>
                         </CollapsibleSection>
                     )}
