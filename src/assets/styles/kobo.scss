@@ -1,0 +1,4 @@
+// The Kobo form theme (the default) plus the app's own tweaks to it. Loaded on demand while a Kobo-themed form
+// is open - see helpers/formTheme.ts - rather than bundled into the global stylesheet.
+@use 'theme-kobo' as *;
+@use 'kobo-form' as *;

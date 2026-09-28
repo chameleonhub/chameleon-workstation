@@ -13,8 +13,9 @@ import {
 import { ipc } from '../../helpers/ipc';
 import { Form } from 'enketo-core';
 import { transform } from 'enketo-transformer/web';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { detectFormTheme, useFormTheme } from '../../helpers/formTheme';
 import { log } from '../../helpers/log';
 import { escapeSqlString } from '../../helpers/sql.ts';
 import { fetchDraftCount } from '../../stores/featues/draftCounterSlice.ts';
@@ -41,6 +42,10 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
     // do), so every group renders on one continuous scroll with nothing indicating progress.
     const [sectionLabels, setSectionLabels] = useState<string[]>([]);
     const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+    // A form can ask for the grid theme (XLSForm `style = theme-grid`). Only the theme of the form on screen is
+    // loaded, and the form isn't rendered until its stylesheet is in the page.
+    const theme = useMemo(() => detectFormTheme(formODKXML), [formODKXML]);
+    const themeReady = useFormTheme(theme);
     const dispatch = useAppDispatch();
 
     const navigate = useNavigate();
@@ -117,7 +122,7 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
     };
 
     useEffect(() => {
-        if (!formODKXML) return;
+        if (!formODKXML || !themeReady) return;
 
         // Form.tsx feeds formODKXML in through a multi-pass convergence (deskUser/taxonomy/prefill
         // tag resolution, each pass re-triggering itself until nothing's left to replace) - it can
@@ -132,11 +137,8 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
         // checking whether or not the form should be editable
         // and converting the form to read-only if necessary
 
-        // transform()'s `theme` option overwrites whatever theme class the form itself declares, so a form that
-        // asks for the grid theme (<h:body class="theme-grid">) would silently be rendered as theme-kobo. Only
-        // default to kobo when the form isn't a grid form; the grid layout lives in assets/styles/theme-grid.scss.
-        const theme = /<(?:[a-z]+:)?body[^>]*class="[^"]*theme-grid/i.test(formODKXML) ? 'grid' : 'kobo';
-
+        // transform()'s `theme` option overwrites whatever theme class the form itself declares, so it has to be
+        // given the theme detected from the form (a hard-coded 'kobo' turned every theme-grid form into a kobo one).
         log.info('Transforming form ODK XML to enketo XML and HTML');
         transform({
             xform: formODKXML,
@@ -205,7 +207,7 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
         return () => {
             cancelled = true;
         };
-    }, [formODKXML]);
+    }, [formODKXML, themeReady]);
 
     // Tracks which top-level section currently has focus, for the "N of M: <label>" indicator.
     // Keyed off focus rather than scroll position - it's exact (no rootMargin/threshold tuning)

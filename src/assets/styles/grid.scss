@@ -1,0 +1,12 @@
+// Enketo's own grid theme (forms that set `style = theme-grid` in the XLSForm, i.e. <h:body class="theme-grid">),
+// compiled straight from enketo-core's sources. Loaded on demand while such a form is open - see
+// helpers/formTheme.ts. The importer that resolves enketo-core's monorepo-style absolute imports is in
+// vite.config.ts.
+@import 'enketo-core/src/sass/grid/grid';
+
+// The theme sets `html { font-size: 62.5% }` (a 10px root, for rem-based sizing), which would shrink every
+// rem-sized thing in the rest of the app - the MUI header, buttons and footer - for as long as a form is open.
+// Nothing in the compiled theme is sized in rem, so put the root size back.
+html {
+  font-size: 100%;
+}
