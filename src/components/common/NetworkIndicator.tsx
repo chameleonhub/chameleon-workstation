@@ -2,28 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import SignalCellular4BarIcon from '@mui/icons-material/SignalCellular4Bar';
 import SignalCellularOffIcon from '@mui/icons-material/SignalCellularOff';
 import { Alert, Box, CircularProgress, Snackbar, Tooltip, Typography } from '@mui/material';
-import { log } from '../../helpers/log';
 
 const BAHIS_SERVER_URL = import.meta.env.VITE_BAHIS_SERVER_URL as string | undefined;
 const CHECK_INTERVAL_MS = 60000;
 const CHECK_TIMEOUT_MS = 5000;
-// A successful response slower than this doesn't fail the check, but is slow enough that a field
-// agent syncing forms/media would notice - surface it as "poor" rather than lumping it in with
-// "good" alongside a check that came back in 50ms.
-const SLOW_RESPONSE_MS = 2000;
+
+const SLOW_RESPONSE_MS = 3000;
 
 type ConnectionStatus = 'good' | 'poor' | 'none';
 
-// navigator.onLine only reflects whether the OS reports some network interface as up - it stays
-// true on a WiFi network with no real internet, or when the BAHIS server itself is down, both of
-// which matter a lot more to a field agent than "is any network adapter active". A no-cors fetch
-// against the server actually exercises the connection this app cares about; 'no-cors' mode avoids
-// needing the server to cooperate with CORS just to answer "are you reachable" - an opaque
-// response (or none at all, on failure/timeout) is all that's needed here.
-//
-// Hits Nexus's /healthz/ - a trivial, unauthenticated, DB-free view added specifically for this
-// (see chameleon-nexus's nexus/portal/views.py), rather than the root page (login_required, and
-// even once authenticated a full template render) or any other real API route.
 const checkServerReachable = async (): Promise<ConnectionStatus> => {
     if (!navigator.onLine) return 'none';
     if (!BAHIS_SERVER_URL) return 'good';
@@ -53,7 +40,7 @@ export const NetworkIndicator = () => {
         setChecking(true);
         checkServerReachable().then((result) => {
             if (!mountedRef.current) return;
-            log.info(`Network status check: ${result}`);
+            // log.info(`Network status check: ${result}`);
             setStatus(result);
             setChecking(false);
             setLastChecked(new Date());

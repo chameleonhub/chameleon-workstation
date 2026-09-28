@@ -8,9 +8,9 @@ import { LoadingSpinner } from '../common/LoadingSpinner.tsx';
 import { VetBackground } from '../common/VetBackground';
 
 const readFormData = async (tableName: string, form_uid: string, instance_id?: string) => {
-    log.info(`reading data from ${tableName} table...`);
-    log.info(`  for form_uid: ${form_uid}...`);
-    if (instance_id) log.info(`  for instance_id: ${instance_id}...`);
+    // log.info(`reading data from ${tableName} table...`);
+    // log.info(`  for form_uid: ${form_uid}...`);
+    // if (instance_id) log.info(`  for instance_id: ${instance_id}...`);
     let query = `SELECT *
                  FROM ${tableName}
                  WHERE form_uid IS '${form_uid}'`;
@@ -18,7 +18,7 @@ const readFormData = async (tableName: string, form_uid: string, instance_id?: s
     return ipc
         .invoke('get-local-db', query)
         .then((response) => {
-            log.info(`  read ${response.length} records`);
+            // log.info(`  read ${response.length} records`);
             return response;
         })
         .catch((error) => {
@@ -48,14 +48,14 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
     // catch changing location state for injected data via workflow
     useEffect(() => {
         if (state?.injectedData) {
-            log.info('Injecting data via workflow');
+            // log.info('Injecting data via workflow');
             setInjectedData(state.injectedData);
         }
     }, [state]);
 
     // decide which data table to read from, e.g. submitted or cloud
     useEffect(() => {
-        log.info('Deciding which data table to read from');
+        // log.info('Deciding which data table to read from');
         if (draft) {
             setTableName('formlocaldraft');
         } else {
@@ -66,7 +66,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
     // if the form has been filled out previously, do we want to allow editing?
     useEffect(() => {
         if (!draft && instance_id) {
-            log.info('This is a cloud form, blocking editing.');
+            // log.info('This is a cloud form, blocking editing.');
             setEditable(false);
         }
     }, [draft, instance_id]);
@@ -74,7 +74,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
     // read form defintion
     useEffect(() => {
         const readForm = (form_uid: string) => {
-            log.info(`reading XML definition from forms for form: ${form_uid}`);
+            // log.info(`reading XML definition from forms for form: ${form_uid}`);
             const query = `SELECT xml
                            FROM form
                            WHERE uid = '${form_uid}'`;
@@ -82,7 +82,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
                 .then((response) => {
                     if (response[0]?.xml) {
                         setFormXML(response[0]?.xml);
-                        log.info('Form XML definition read successfully');
+                        // log.info('Form XML definition read successfully');
                     }
                 })
                 .catch((error) => {
@@ -98,7 +98,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
 
     // replace deskUser and deskChoice tags in form definition
     useEffect(() => {
-        log.info('Form definition changed');
+        // log.info('Form definition changed');
 
         // Guards the async work below against a superseded run of this same effect - React 18
         // StrictMode double-invokes effects in dev (mount, cleanup, mount again), and a real
@@ -111,7 +111,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
         let cancelled = false;
 
         const replaceUserValues = (formXML: string) => {
-            log.info('Replacing deskUser tags in form definition');
+            // // log.info('Replacing deskUser tags in form definition');
             const parser = new DOMParser();
             const serializer = new XMLSerializer();
 
@@ -122,7 +122,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
             let hasReplacements = false;
             ipc.invoke('read-user-administrative-region', 'asName')
                 .then((response) => {
-                    log.info(`Administrative region: ${JSON.stringify(response)}`);
+                    // // log.info(`Administrative region: ${JSON.stringify(response)}`);
                     for (let i = 0; i < elements.length; i++) {
                         if (elements[i].textContent?.startsWith('deskUser')) {
                             switch (elements[i].textContent) {
@@ -150,9 +150,9 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
                     if (cancelled) return;
                     if (hasReplacements) {
                         setFormXML(serializer.serializeToString(doc));
-                        log.info('deskUser tags replaced successfully');
+                        // log.info('deskUser tags replaced successfully');
                     } else {
-                        log.info('No deskUser tags found');
+                        // log.info('No deskUser tags found');
                         setIsDeskUserReplaced(true);
                         return;
                     }
@@ -163,7 +163,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
         };
 
         const readTaxonomyChoices = (taxonomySlug: string) => {
-            log.info(`Reading taxonomy data for ${taxonomySlug}`);
+            // // log.info(`Reading taxonomy data for ${taxonomySlug}`);
             const parser = new DOMParser();
 
             if (taxonomySlug === 'administrative_region') {
@@ -194,7 +194,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
         // Kobo's native external-CSV mechanism for pulldata(): <instance id="X" src="jr://file-csv/X.csv"/>,
         // distinct from the deskTaxonomy.* instances above.
         const readFormMediaChoices = (filename: string) => {
-            log.info(`Reading form media data for ${filename}`);
+            // // log.info(`Reading form media data for ${filename}`);
             const parser = new DOMParser();
 
             return ipc
@@ -210,7 +210,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
         };
 
         const insertTaxonomyChoices = async (formXML: string) => {
-            log.info('Inserting deskTaxonomy choices in form definition');
+            // log.info('Inserting deskTaxonomy choices in form definition');
             const parser = new DOMParser();
             const serializer = new XMLSerializer();
 
@@ -220,7 +220,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
             let hasReplacements = false;
             for (let i = 0; i < elements.length; i++) {
                 if (elements[i].tagName === 'instance' && elements[i].getAttribute('id')?.startsWith('deskTaxonomy')) {
-                    log.info(`Found deskTaxonomy tag ${elements[i].getAttribute('id')}`);
+                    // // log.info(`Found deskTaxonomy tag ${elements[i].getAttribute('id')}`);
                     let choiceOptions: Document | null = null;
                     let taxonomySlug;
 
@@ -258,7 +258,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
                 ) {
                     const src = elements[i].getAttribute('src');
                     const filename = src?.slice('jr://file-csv/'.length);
-                    log.info(`Found external CSV instance ${elements[i].getAttribute('id')} (${filename})`);
+                    // // log.info(`Found external CSV instance ${elements[i].getAttribute('id')} (${filename})`);
 
                     const choiceOptions = filename ? await readFormMediaChoices(filename) : null;
 
@@ -273,16 +273,16 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
             if (cancelled) return;
             if (hasReplacements) {
                 setFormXML(serializer.serializeToString(doc));
-                log.info('deskTaxonomy choices replaced successfully');
+                // log.info('deskTaxonomy choices replaced successfully');
             } else {
-                log.info('No deskTaxonomy tags found');
+                // log.info('No deskTaxonomy tags found');
                 setIsDeskTaxonomyInserted(true);
             }
         };
 
         if (formXML) {
             if (!instance_id && !injectedData) {
-                log.info('This appears to be a fresh form, replacing deskUser and deskTaxonomy tags.');
+                // log.info('This appears to be a fresh form, replacing deskUser and deskTaxonomy tags.');
                 replaceUserValues(formXML);
                 insertTaxonomyChoices(formXML);
             } else {
@@ -291,7 +291,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
                 // deskTaxonomy.* or file-csv instance has no <option>s to match its saved value
                 // against until this runs, so it rendered "none selected" for a read-only report even
                 // though the model's value was correctly loaded (see replacePrefilledValues below).
-                log.info('This appears to be a filled-in form, only replacing deskTaxonomy tags.');
+                // log.info('This appears to be a filled-in form, only replacing deskTaxonomy tags.');
                 setIsDeskUserReplaced(true);
                 insertTaxonomyChoices(formXML);
             }
@@ -308,7 +308,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
     // but we also use this for injecting data via a workflow
     useEffect(() => {
         const replacePrefilledValues = (formXML: string, formData: string) => {
-            log.info('Replacing prefilled values in form definition');
+            // log.info('Replacing prefilled values in form definition');
             const parser = new DOMParser();
             const serializer = new XMLSerializer();
 
@@ -331,15 +331,15 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
 
             if (hasReplacements) {
                 setPrefilledFormXML(serializer.serializeToString(doc));
-                log.info('Prefilled values replaced successfully');
+                // log.info('Prefilled values replaced successfully');
             } else {
-                log.info('No prefilled values found');
+                // log.info('No prefilled values found');
                 setIsPrefilled(true);
             }
         };
 
         if (form_uid && tableName && instance_id) {
-            log.info(`Reading data for form: ${form_uid} (${tableName}) and instance: ${instance_id}`);
+            // // log.info(`Reading data for form: ${form_uid} (${tableName}) and instance: ${instance_id}`);
             readFormData(tableName, form_uid, instance_id)
                 .then((response) => {
                     const formData = response[0]['xml'] as string;
@@ -350,7 +350,7 @@ export const Form: React.FC<FormProps> = ({ draft = false }: FormProps) => {
                     log.error(error);
                 });
         } else if (injectedData) {
-            log.info('Prefilling form with injected data (probably a workflow)');
+            // log.info('Prefilling form with injected data (probably a workflow)');
             replacePrefilledValues(formXML, injectedData);
         } else {
             setPrefilledFormXML(formXML);

@@ -253,7 +253,7 @@ export const Menu = () => {
     const isHome = !menu_id || menu_id === '0';
 
     const readModulesWithParent = (parent_module) => {
-        log.info(`reading modules with parent_module: ${parent_module}`);
+        // log.info(`reading modules with parent_module: ${parent_module}`);
         let query = 'SELECT DISTINCT * FROM module WHERE parent_module';
         if (parent_module > 0) {
             query += ` = ${parent_module}`;
