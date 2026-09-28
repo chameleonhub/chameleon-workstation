@@ -1,10 +1,11 @@
-import { Tooltip, Typography } from '@mui/material';
+import { Box, Tooltip, Typography } from '@mui/material';
 import { DataGrid, GridActionsCellItem, GridColDef } from '@mui/x-data-grid';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useEffect, useState } from 'react';
 import { log } from '../../helpers/log';
 import { escapeSqlString } from '../../helpers/sql.ts';
 import { ipc } from '../../helpers/ipc';
+import { VetBackground } from '../common/VetBackground';
 import { useNavigate } from 'react-router-dom';
 import { fetchDraftCount } from '../../stores/featues/draftCounterSlice.ts';
 import { useAppDispatch } from '../../stores/store.ts';
@@ -155,10 +156,15 @@ export const DraftList = () => {
 
     return (
         <>
+            <VetBackground />
             <Typography variant="h3" id="form-title" sx={{ marginBottom: '2rem' }}>
                 Draft Submissions
             </Typography>
-            {columns && rows && <DataGrid columns={columns} rows={rows} logger={log} onRowClick={onRowClick} autoHeight />}
+            {columns && rows && (
+                <Box sx={{ backgroundColor: 'background.paper' }}>
+                    <DataGrid columns={columns} rows={rows} logger={log} onRowClick={onRowClick} autoHeight />
+                </Box>
+            )}
         </>
     );
 };

@@ -3,6 +3,7 @@ import { DataGrid, GridActionsCellItem, GridColDef, GridColumnVisibilityModel, G
 import PostAddIcon from '@mui/icons-material/PostAdd';
 import { useEffect, useMemo, useState } from 'react';
 import { log } from '../../helpers/log';
+import { VetBackground } from '../common/VetBackground';
 import {
     ChoiceLabelMaps,
     Workflow,
@@ -199,11 +200,12 @@ export const List = () => {
 
     return (
         <>
+            <VetBackground />
             <Typography color="primary.dark" variant="h3" id="form-title" sx={{ marginBottom: '2rem' }}>
                 {form?.title}
             </Typography>
             {columns && rows && (
-                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', backgroundColor: 'background.paper' }}>
                     <DataGrid
                         columns={columns}
                         columnVisibilityModel={columnVisibility}
