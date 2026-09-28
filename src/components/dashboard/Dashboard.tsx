@@ -64,6 +64,30 @@ const monthLabel = (date: Date): string => {
 // regardless of the order submissions were read from the DB (readFormData has no ORDER BY).
 const monthSortKey = (date: Date): string => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
+// The numeric answers in a column. A blank answer is "no data", not 0 (Number('') is 0).
+const numericValues = (rows: Record<string, unknown>[], fieldKey: string): number[] =>
+    rows
+        .map((row) => row[fieldKey])
+        .filter((value) => value !== undefined && value !== null && String(value).trim() !== '')
+        .map(Number)
+        .filter((value) => Number.isFinite(value));
+
+// Whether anyone has actually answered this field. Fields with no data at all get no widget, rather than an
+// empty card ("No responses yet") or a chart of nothing.
+const hasWidgetData = (widget: FieldWidgetSpec, rows: Record<string, unknown>[]): boolean => {
+    switch (widget.kind) {
+        case 'categorical':
+            return rows.some((row) => String(row[widget.fieldKey] ?? '').trim() !== '');
+        case 'numeric':
+            return numericValues(rows, widget.fieldKey).length > 0;
+        case 'date':
+            return rows.some((row) => {
+                const date = row[widget.fieldKey] as Date;
+                return Boolean(date) && !Number.isNaN(new Date(date).getTime());
+            });
+    }
+};
+
 const StatTile = ({ label, value }: { label: string; value: string }) => (
     <Card sx={{ height: '100%' }}>
         <CardContent>
@@ -158,7 +182,7 @@ const CategoricalWidget = ({
 
 const NumericWidget = ({ title, fieldKey, rows }: { title: string; fieldKey: string; rows: Record<string, unknown>[] }) => {
     const stats = useMemo(() => {
-        const values = rows.map((row) => Number(row[fieldKey])).filter((value) => Number.isFinite(value));
+        const values = numericValues(rows, fieldKey);
         if (values.length === 0) return undefined;
 
         const min = Math.min(...values);
@@ -329,6 +353,8 @@ export const Dashboard = () => {
             .filter((widget): widget is FieldWidgetSpec => Boolean(widget));
     }, [form]);
 
+    const visibleWidgets = useMemo(() => widgets.filter((widget) => hasWidgetData(widget, rows)), [widgets, rows]);
+
     return (
         <>
             <Typography color="primary.dark" variant="h3" id="dashboard-title" sx={{ marginBottom: '2rem' }}>
@@ -347,7 +373,7 @@ export const Dashboard = () => {
                             <TimeSeriesWidget title="Submissions over time" fieldKey="submission_date" rows={rows} />
                         </Grid>
 
-                        {widgets.map((widget) => (
+                        {visibleWidgets.map((widget) => (
                             <Grid key={widget.fieldKey} size={{ lg: 4, md: 6, sm: 12, xs: 12 }}>
                                 {widget.kind === 'categorical' && (
                                     <CategoricalWidget title={widget.title} fieldKey={widget.fieldKey} rows={rows} />
