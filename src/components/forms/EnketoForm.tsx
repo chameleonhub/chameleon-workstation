@@ -101,9 +101,12 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
 
         const doc = parser.parseFromString(formHTML, 'text/html');
 
-        // convert all elements to read-only
+        // convert all elements to read-only. Not the <fieldset>s around radio/checkbox groups: readonly isn't a valid
+        // attribute on them (each option's own input is marked below), and Enketo's readonly module asks every
+        // [readonly] element for its name, which a fieldset doesn't have - one "input node has no name" console
+        // error per group.
         const elements = doc.querySelectorAll(
-            '.question input:not([readonly]), .question textarea:not([readonly]), .question select:not([readonly]), .question fieldset:not([readonly])',
+            '.question input:not([readonly]), .question textarea:not([readonly]), .question select:not([readonly])',
         );
         for (let i = 0; i < elements.length; i++) {
             elements[i].setAttribute('readonly', 'readonly');
