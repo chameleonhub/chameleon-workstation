@@ -1,5 +1,0 @@
-provider: 'github'
-owner: 'road86'
-repo: 'bahis-desk'
-releaseType: prerelease
-electronVersion: 6.1.12

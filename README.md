@@ -4,12 +4,12 @@
 
 ### Linux
 
-We need node v18 - the latest LTS. On linux a convenient way is to use Node Version
+We need node 22 (Vite 8 requires 20.19+ or 22.12+). On linux a convenient way is to use Node Version
 Manager (https://github.com/nvm-sh/nvm)
 
 ```bash
-nvm install lts/hydrogen
-nvm use lts/hydrogen
+nvm install 22
+nvm use 22
 ```
 
 Next, in your shell, change directory to the bahis-desk project and run:
@@ -22,7 +22,7 @@ npm run dev
 ### Windows
 
 On Windows install node direct from their website, or by
-clicking [here](https://nodejs.org/dist/v18.17.1/node-v18.17.1-x64.msi).
+downloading the Node 22 LTS installer from https://nodejs.org.
 
 Please tick to install all additional tools with "chocolatey" that should cover all of the other requirements (visual
 studio, python etc.)
