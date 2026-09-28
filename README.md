@@ -99,6 +99,23 @@ echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo s
 npm run build
 ```
 
+### Releases and auto-update channels
+
+Installed apps update themselves from GitHub Releases. Which releases an install follows depends on its own version:
+
+| Installed version                 | Auto-updates to                          |
+| --------------------------------- | ---------------------------------------- |
+| `3.1.0` (no suffix)               | the latest stable release                |
+| `3.1.0-dev.4` (a `-dev.N` suffix) | the latest release tagged `v*-dev.*`     |
+
+- **Stable release:** `npm run build`, then publish the GitHub release (tag `vX.Y.Z`).
+- **Dev release:** set the version to `X.Y.Z-dev.N` (increase `N` each time) and run `npm run build:dev`. It writes
+  `dev.yml` (instead of `latest.yml`) and marks the build as a prerelease. Publish it to GitHub as a **prerelease** with
+  tag `vX.Y.Z-dev.N`, uploading the installer, its `.blockmap` and `dev.yml`.
+- A stable install refuses to install a prerelease even if one is accidentally published as a normal release (it logs
+  `Ignoring update ...`), so a mistake with a dev build can't upgrade the production fleet.
+- Update checks only run in packaged builds, not in `npm run dev`.
+
 ## Configuration
 
 We have three `.env` files:

@@ -159,19 +159,39 @@ const createWindow = () => {
     });
 };
 
-const autoUpdateBahis = () => {
+// The update channel follows the installed version: "3.1.0" follows stable releases only, while a
+// prerelease build such as "3.1.0-dev.4" follows only releases tagged "-dev.*". electron-updater
+// already resolves this from the version (a stable client asks GitHub for its latest non-prerelease
+// release; a "-dev" client picks the newest "-dev" tag), so dev releases must be published as GitHub
+// prereleases with a semver tag like v3.1.0-dev.5 (see the README).
+const prereleaseChannelOf = (version: string) => /^\d+\.\d+\.\d+-([0-9A-Za-z-]+)/.exec(version)?.[1] ?? null;
+const UPDATE_CHANNEL = prereleaseChannelOf(APP_VERSION) ?? 'latest';
+
+const configureAutoUpdater = () => {
     autoUpdater.setFeedURL({
         provider: 'github',
         owner: 'chameleonhub',
         repo: 'chameleon-workstation',
     });
+    autoUpdater.allowPrerelease = UPDATE_CHANNEL !== 'latest';
 
-    log.info('Checking for the app software updates call');
-    if (MODE !== 'development') {
-        autoUpdater.checkForUpdatesAndNotify();
-    } else {
-        log.info('Not checking for updates in dev mode');
+    // Downloads are started explicitly (see the 'update-available' handler) rather than by
+    // electron-updater as soon as it finds a newer version, so a release from the wrong channel can be
+    // refused first. This matters most for the stable fleet: if a dev build were ever published as a
+    // normal (non-prerelease) release, GitHub's "latest release" would point at it and every stable
+    // install would otherwise upgrade to it.
+    autoUpdater.autoDownload = false;
+
+    log.info(`Update channel: ${UPDATE_CHANNEL} (version ${APP_VERSION})`);
+};
+
+const checkForAppUpdates = () => {
+    if (!app.isPackaged) {
+        log.info('Not checking for updates in an unpackaged (npm run dev) app');
+        return;
     }
+    log.info('Checking for the app software updates call');
+    autoUpdater.checkForUpdates().catch((error) => log.error('Update check FAILED with:', error));
 };
 
 export async function getToken() {
@@ -186,9 +206,10 @@ export async function getToken() {
 /** adds window on app if window null */
 app.whenReady().then(() => {
     const isFirstRun = firstRun();
+    configureAutoUpdater();
     if (!isFirstRun) {
         //we don't check for auto update on the first run, apparently that can cause problems
-        autoUpdateBahis();
+        checkForAppUpdates();
     }
 
     if (MODE === 'development') {
@@ -252,7 +273,7 @@ const template: Electron.MenuItemConstructorOptions[] = [
                 label: 'Manually update app',
                 click: () => {
                     try {
-                        autoUpdater.checkForUpdatesAndNotify();
+                        checkForAppUpdates();
                     } catch (error) {
                         log.error('Manual update app FAILED with:');
                         log.error(error);
@@ -755,13 +776,9 @@ function createUpdateDialog(htmlContent: string) {
         },
     });
 
-    let updateHtmlPath: string;
-
-    if (MODE === 'production') {
-        updateHtmlPath = path.resolve('./public/update.html');
-    } else {
-        updateHtmlPath = path.join(__dirname, '../public/update.html');
-    }
+    // vite copies public/ into dist/, so this resolves the same way in an unpackaged run (repo's
+    // public/) and in a packaged build of either mode (inside the asar's dist/).
+    const updateHtmlPath = path.join(process.env.PUBLIC as string, 'update.html');
 
     updateWindow.loadFile(updateHtmlPath).catch((err) => {
         console.error('Failed to load update.html:', err);
@@ -795,6 +812,16 @@ autoUpdater.on('update-downloaded', (event: UpdateDownloadedEvent) => {
 
 autoUpdater.on('update-available', (info) => {
     log.info('Update available:', info);
+
+    const offeredChannel = prereleaseChannelOf(info.version) ?? 'latest';
+    if (offeredChannel !== UPDATE_CHANNEL) {
+        log.warn(
+            `Ignoring update ${info.version}: it is on the "${offeredChannel}" channel, this app follows "${UPDATE_CHANNEL}"`,
+        );
+        return;
+    }
+    autoUpdater.downloadUpdate().catch((error) => log.error('Update download FAILED with:', error));
+
     Toast(
         'A new update is available. When prompted with the Update dialog, click "Update" and confirm by selecting "Yes" to apply the update.',
         'info',

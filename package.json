@@ -10,7 +10,7 @@
     "dev": "vite --mode development",
     "prod": "vite --mode production",
     "build": "tsc && vite build && electron-builder",
-    "build:dev": "tsc && vite build --mode development && electron-builder",
+    "build:dev": "tsc && vite build --mode development && electron-builder -c.publish.channel=dev -c.publish.releaseType=prerelease",
     "lint": "npm run lint-electron && npm run lint-react",
     "lint-electron": "eslint electron --report-unused-disable-directives",
     "lint-react": "eslint src --report-unused-disable-directives",
