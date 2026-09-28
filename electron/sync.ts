@@ -7,7 +7,16 @@ import { log } from './log';
 import { auth } from '../conf/axios.ts';
 import Xml2Js from 'xml2js';
 import { CloudFormData, Form, FormListObj, ManifestObj } from './bahis.model.ts';
-import { addSyncProgressTotal, setStatus, tickSyncProgress, Toast } from './utils.ts';
+import {
+    addFormRecordsCompleted,
+    addFormRecordsFailed,
+    addSyncProgressTotal,
+    finishFormRecords,
+    setFormRecordsTotal,
+    setStatus,
+    tickSyncProgress,
+    Toast,
+} from './utils.ts';
 
 const parser = new Xml2Js.Parser();
 
@@ -339,7 +348,7 @@ const getFormMedia = async (db, formUid: string, manifestUrl: string) => {
     );
 };
 
-const insertCloudSubmission = async (db, url: string, form = { name: '' }, count = 0): Promise<number> => {
+const insertCloudSubmission = async (db, url: string, form: { uid: string; name: string }, count = 0): Promise<number> => {
     const upsertQuery = db.prepare(
         'INSERT INTO formcloudsubmission (uuid, form_uid, xml) VALUES (?, ?, ?) ON CONFLICT(uuid) DO UPDATE SET xml = excluded.xml;',
     );
@@ -352,6 +361,13 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }, count
             const doc = new DOMParser().parseFromString(response.data, 'text/xml');
 
             const results = xpath.select('/root/results', doc, true) as Node;
+
+            // The API also reports how many records match the query in total (not just on this page). Read it on
+            // the first page so the sync window can show "500 / 1,234" for this form.
+            if (count === 0) {
+                const total = Number(xpath.select('string(/root/count)', doc));
+                setFormRecordsTotal(form, 'download', Number.isFinite(total) ? total : 0);
+            }
 
             if (results) {
                 const insertTransaction = db.transaction((data: CloudFormData[]) => {
@@ -385,6 +401,7 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }, count
                 }
                 if (data.length) {
                     insertTransaction(data);
+                    addFormRecordsCompleted(form, 'download', data.length);
                     setStatus(`Inserted: ${count + data.length} (count)`);
                     Toast(`${form?.name} ${data.length} data inserted total (${count})`, 'info', 2000);
                 }
@@ -398,6 +415,7 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }, count
                 console.log(count);
             } else {
                 finalCount = count + data.length;
+                finishFormRecords(form, 'download');
                 tickSyncProgress('Records', form?.name || '');
             }
         })
@@ -405,6 +423,8 @@ const insertCloudSubmission = async (db, url: string, form = { name: '' }, count
             Toast(`${form?.name} form sync FAILED`, 'error');
             log.error('GET KoboToolbox Form Submissions FAILED with:');
             log.error(error);
+            addFormRecordsFailed(form, 'download');
+            finishFormRecords(form, 'download');
             tickSyncProgress('Records', form?.name || '');
         })
         .finally(() => {
@@ -436,6 +456,7 @@ export const getFormCloudSubmissions = async (db): Promise<number> => {
 
     let totalRecords = 0;
     addSyncProgressTotal('Records', formList.length);
+    for (const form of formList) setFormRecordsTotal(form, 'download', 0);
     for (const form of formList) {
         log.info(`GET form ${form.uid} submissions from KoboToolbox`);
         const initialUrl = BAHIS_KOBOTOOLBOX_KF_API_URL + 'assets/' + form.uid + '/data/?format=xml' + syncUrlQuery;
@@ -461,6 +482,23 @@ export const postFormCloudSubmissions = async (db): Promise<number> => {
 
     const deleteQuery = db.prepare('DELETE FROM formlocaldraft WHERE uuid = ?');
 
+    // group the drafts by form so the sync window can show how many records of each form are going up
+    const formNames = new Map<string, string>(
+        db
+            .prepare('SELECT uid, name FROM form')
+            .all()
+            .map((f: { uid: string; name: string }) => [f.uid, f.name]),
+    );
+    const formOf = (draft: { form_uid: string }) => ({
+        uid: draft.form_uid,
+        name: formNames.get(draft.form_uid) ?? draft.form_uid,
+    });
+    const draftsPerForm = new Map<string, number>();
+    for (const draft of formcloudsubmissionList) {
+        draftsPerForm.set(draft.form_uid, (draftsPerForm.get(draft.form_uid) ?? 0) + 1);
+    }
+    for (const [formUid, total] of draftsPerForm) setFormRecordsTotal(formOf({ form_uid: formUid }), 'upload', total);
+
     let uploadedCount = 0;
     addSyncProgressTotal('Uploading drafts', formcloudsubmissionList.length);
     for (const form of formcloudsubmissionList) {
@@ -478,9 +516,11 @@ export const postFormCloudSubmissions = async (db): Promise<number> => {
                     deleteQuery.run([form.uuid]);
                     log.info(`POST form ${form.uid} submissions SUCCESS`);
                     uploadedCount++;
+                    addFormRecordsCompleted(formOf(form), 'upload');
                 } else {
                     log.error(`POST form ${form.uid} submissions FAILED with status ${response.status}`);
                     log.error(response);
+                    addFormRecordsFailed(formOf(form), 'upload');
                 }
                 tickSyncProgress('Uploading drafts', form.uuid);
             })
@@ -488,9 +528,11 @@ export const postFormCloudSubmissions = async (db): Promise<number> => {
                 Toast('Data submitted FAILED!!', 'error');
                 log.error('POST KoboToolbox Form Submissions FAILED with:');
                 log.error(error);
+                addFormRecordsFailed(formOf(form), 'upload');
                 tickSyncProgress('Uploading drafts', form.uuid);
             });
     }
+    for (const formUid of draftsPerForm.keys()) finishFormRecords(formOf({ form_uid: formUid }), 'upload');
     log.info(`POST KoboToolbox Form Submissions SUCCESS`);
     return uploadedCount;
 };

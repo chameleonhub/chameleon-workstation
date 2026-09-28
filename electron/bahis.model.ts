@@ -54,10 +54,24 @@ export interface SyncCategoryProgress {
     currentItem: string;
 }
 
+/** How many records of one form have been synced so far, in one direction (see SyncProgressState.formRecords). */
+export interface SyncFormRecordProgress {
+    name: string;
+    direction: 'download' | 'upload';
+    completed: number;
+    /** Records to sync for this form; 0 until known (or when there is nothing new). */
+    total: number;
+    failed: number;
+    done: boolean;
+}
+
 export interface SyncProgressState {
     active: boolean;
     /** Name of the category (table) most recently touched - which one to show on a single-line
      * "which table, how many records" indicator, since several sync concurrently. */
     current: string;
     categories: Record<string, SyncCategoryProgress>;
+    /** Per-form record counts, keyed by direction + form uid - what the sync window lists under
+     * "Records by form". */
+    formRecords: Record<string, SyncFormRecordProgress>;
 }

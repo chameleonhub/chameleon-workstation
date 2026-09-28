@@ -1,7 +1,8 @@
-import { Box, CircularProgress, keyframes, LinearProgress, Typography } from '@mui/material';
+import { ArrowDownward, ArrowUpward } from '@mui/icons-material';
+import { Box, CircularProgress, keyframes, LinearProgress, Paper, Typography } from '@mui/material';
 import { ipc } from '../../helpers/ipc';
 import React, { useEffect, useState } from 'react';
-import { SyncProgressState } from '../../../electron/bahis.model.ts';
+import { SyncFormRecordProgress, SyncProgressState } from '../../../electron/bahis.model.ts';
 
 interface LoadingProps {
     loadingText?: string;
@@ -12,6 +13,56 @@ interface LoadingProps {
      * Form.tsx/IFrame.tsx use this same component for unrelated loading and shouldn't show it. */
     showSyncProgress?: boolean;
 }
+
+// One line of the "Records by form" list: which form, which way (down from / up to the server), and how many
+// of its records are done.
+const FormRecordsRow: React.FC<{ record: SyncFormRecordProgress }> = ({ record }) => {
+    const { name, direction, completed, total, failed, done } = record;
+    let status: string;
+    if (total > 0) {
+        status = `${completed.toLocaleString()} / ${total.toLocaleString()}`;
+    } else if (completed > 0) {
+        status = `${completed.toLocaleString()} records`;
+    } else if (done) {
+        status = failed > 0 ? 'failed' : 'No new records';
+    } else {
+        status = 'Waiting...';
+    }
+    if (total > 0 && failed > 0) status += ` (${failed} failed)`;
+
+    const Arrow = direction === 'download' ? ArrowDownward : ArrowUpward;
+    return (
+        <Box sx={{ mb: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Arrow
+                    sx={{ fontSize: '1rem', color: 'text.secondary' }}
+                    titleAccess={direction === 'download' ? 'Downloading' : 'Uploading'}
+                />
+                <Typography variant="caption" noWrap sx={{ flex: 1, color: 'text.primary' }}>
+                    {name}
+                </Typography>
+                <Typography
+                    variant="caption"
+                    sx={{
+                        whiteSpace: 'nowrap',
+                        color: failed > 0 ? 'error.main' : 'text.secondary',
+                        fontWeight: done ? 600 : 400,
+                    }}
+                >
+                    {status}
+                </Typography>
+            </Box>
+            {total > 0 && (
+                <LinearProgress
+                    variant="determinate"
+                    color={failed > 0 ? 'error' : 'primary'}
+                    value={Math.min(100, (completed / total) * 100)}
+                    sx={{ height: 4, borderRadius: 2 }}
+                />
+            )}
+        </Box>
+    );
+};
 
 export const LoadingSpinner: React.FC<LoadingProps> = ({
     loadingText = 'Loading',
@@ -30,6 +81,7 @@ export const LoadingSpinner: React.FC<LoadingProps> = ({
 
     const current = progress?.current ? progress.categories[progress.current] : undefined;
     const hasDeterminateProgress = Boolean(current && current.total > 0);
+    const formRecordRows = Object.entries(progress?.formRecords ?? {});
 
     const dotAnimation = keyframes`
         0% {
@@ -105,6 +157,19 @@ export const LoadingSpinner: React.FC<LoadingProps> = ({
             >
                 {loadingText}
             </Typography>
+            {formRecordRows.length > 0 && (
+                <Paper
+                    variant="outlined"
+                    sx={{ mt: 3, p: 1.5, width: '30rem', maxWidth: '85vw', maxHeight: '35vh', overflowY: 'auto' }}
+                >
+                    <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.primary' }}>
+                        Records by form
+                    </Typography>
+                    {formRecordRows.map(([key, record]) => (
+                        <FormRecordsRow key={key} record={record} />
+                    ))}
+                </Paper>
+            )}
         </Box>
     );
 };
