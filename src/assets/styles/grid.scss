@@ -50,6 +50,8 @@ body,
   color: #333333;
   background: color-mix(in srgb, var(--bahis-primary) 6%, white);
   border-bottom-color: var(--bahis-primary);
+  font-size: 1.4rem;
+  font-weight: 700;
 }
 
 // the collapse triangle on a group heading
@@ -87,9 +89,15 @@ body,
 .question-label {
   color: #4a4a4a;
   letter-spacing: 0.02em;
+  font-size: 14px;
 }
 
-.required,
+// the mandatory-field marker stays a plain, unambiguous red - distinct from the brand colour used
+// everywhere else, so it doesn't get lost among the rest of the recoloured UI
+.required {
+  color: #f44336;
+}
+
 .or-form-guidance.active,
 .repeat-number {
   color: var(--bahis-primary);
