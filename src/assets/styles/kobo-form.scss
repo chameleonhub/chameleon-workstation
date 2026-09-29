@@ -12,7 +12,7 @@
   .question button.btn-default.dropdown-toggle {
     padding: .8rem;
     font-size: 1rem;
-    width: 94%;
+    width: 86%;
   }
 
   // The widget wrapper itself also carries a vendor margin-top (15px) that a plain text input doesn't
@@ -27,7 +27,7 @@
   }
 
   span.question-label {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.2rem;
     font-size: 1rem;
     font-weight: 500;
   }
@@ -49,7 +49,7 @@
     display: flex;
     flex-wrap: wrap;
     column-gap: 1.25rem;
-    row-gap: 0.4rem;
+    row-gap: 0.9rem;
 
     h4:first-child, fieldset.question {
       flex: 1 1 100%;
@@ -100,9 +100,9 @@
   .print-input-text,
   select,
   textarea {
-    // Slightly narrower than its column, not a full 100% - leaves a small visible gap before the
-    // next column's gutter, on top of the column-gap itself.
-    width: 94%;
+    // Narrower than its column, not a full 100% - leaves a visible gap before the next column's
+    // gutter, on top of the column-gap itself.
+    width: 86%;
   }
 
   .or-repeat {
