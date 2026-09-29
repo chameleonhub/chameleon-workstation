@@ -64,6 +64,16 @@ const menuItemColors: Partial<Record<MenuItemTypes, string>> = {
     [MenuItemTypes.submitted]: '#00838F', // deep cyan
 };
 
+// Shown bottom-right on every tile except a folder (module_type === module), which shows its item
+// count there instead - so a tile always says at a glance what kind of thing it is.
+const menuItemTypeLabels: Partial<Record<MenuItemTypes, string>> = {
+    [MenuItemTypes.form]: 'Form',
+    [MenuItemTypes.list]: 'List',
+    [MenuItemTypes.dashboard]: 'Dashboard',
+    [MenuItemTypes.iframe]: 'Link',
+    [MenuItemTypes.submitted]: 'Submitted',
+};
+
 interface MenuButtonProps {
     menuItem: MenuItem;
     isPinned?: boolean;
@@ -72,6 +82,9 @@ interface MenuButtonProps {
     // Links are draggable by default, and dragging one drags the URL rather than the tile - set this when a
     // wrapper around the tile is the drag source.
     noLinkDrag?: boolean;
+    // How many modules/forms/etc. sit directly inside this one - only meaningful (and only passed) for a
+    // folder tile (module_type === module), shown as a small badge on its icon.
+    childCount?: number;
 }
 
 export default function MenuButton(props: MenuButtonProps) {
@@ -153,6 +166,29 @@ export default function MenuButton(props: MenuButtonProps) {
                     </Icon>
                     {!compact && <Typography>{props.menuItem.description ?? ''}</Typography>}
                 </CardContent>
+                {!!props.childCount && (
+                    <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ position: 'absolute', bottom: 4, left: 0, right: 0, textAlign: 'center' }}
+                    >
+                        {props.childCount} {props.childCount === 1 ? 'item' : 'items'} inside
+                    </Typography>
+                )}
+                {menuItemTypeLabels[props.menuItem.module_type] && (
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            position: 'absolute',
+                            bottom: 4,
+                            right: 8,
+                            fontSize: '0.65rem',
+                            color: accent ?? 'primary.main',
+                        }}
+                    >
+                        {menuItemTypeLabels[props.menuItem.module_type]}
+                    </Typography>
+                )}
             </Card>
         </Link>
     );
@@ -244,6 +280,7 @@ export const Menu = () => {
     const [favoriteItems, setFavoriteItems] = useState<MenuItem[]>([]);
     const [draggedFavoriteId, setDraggedFavoriteId] = useState<number | null>(null);
     const [dropPosition, setDropPosition] = useState<{ id: number; side: 'before' | 'after' } | null>(null);
+    const [childCounts, setChildCounts] = useState<Record<number, number>>({});
     const [stats, setStats] = useState<PersonalStats | null>(null);
     const [formStats, setFormStats] = useState<FormReportStats[]>([]);
     const [formStatsDialogOpen, setFormStatsDialogOpen] = useState(false);
@@ -303,6 +340,32 @@ export const Menu = () => {
                 log.error(`Error reading Favorites modules: ${error}`);
             });
     }, [isHome, pinnedIds]);
+
+    // How many modules/forms/etc. sit directly inside each folder (module_type === module) tile
+    // currently on screen - covers both the "All Modules" grid and any pinned folders in Favorites.
+    useEffect(() => {
+        const folderIds = [...menuModules, ...favoriteItems]
+            .filter((menuItem) => menuItem.module_type === MenuItemTypes.module)
+            .map((menuItem) => menuItem.id);
+        const uniqueFolderIds = [...new Set(folderIds)];
+        if (uniqueFolderIds.length === 0) {
+            setChildCounts({});
+            return;
+        }
+        ipc.invoke(
+            'get-local-db',
+            `SELECT parent_module, COUNT(*) as count
+                 FROM module
+                 WHERE parent_module IN (${uniqueFolderIds.join(',')})
+                 GROUP BY parent_module`,
+        )
+            .then((rows: { parent_module: number; count: number }[]) => {
+                setChildCounts(Object.fromEntries(rows.map((row) => [row.parent_module, row.count])));
+            })
+            .catch((error) => {
+                log.error(`Error reading child module counts: ${error}`);
+            });
+    }, [menuModules, favoriteItems]);
 
     // Personal stats: reports completed this calendar month vs. all-time, from this device's own
     // formcloudsubmission table - there's no visibility into other agents' data from this client.
@@ -489,6 +552,11 @@ export const Menu = () => {
                                                 menuItem={menuItem}
                                                 isPinned={pinnedIds.includes(menuItem.id)}
                                                 onTogglePin={handleTogglePin}
+                                                childCount={
+                                                    menuItem.module_type === MenuItemTypes.module
+                                                        ? childCounts[menuItem.id]
+                                                        : undefined
+                                                }
                                                 compact
                                                 noLinkDrag
                                             />
@@ -514,6 +582,9 @@ export const Menu = () => {
                                     menuItem={menuItem}
                                     isPinned={pinnedIds.includes(menuItem.id)}
                                     onTogglePin={handleTogglePin}
+                                    childCount={
+                                        menuItem.module_type === MenuItemTypes.module ? childCounts[menuItem.id] : undefined
+                                    }
                                 />
                             </Grid>
                         ))
