@@ -800,7 +800,11 @@ function createUpdateDialog(htmlContent: string) {
     // public/) and in a packaged build of either mode (inside the asar's dist/).
     const updateHtmlPath = path.join(process.env.PUBLIC as string, 'update.html');
 
-    updateWindow.loadFile(updateHtmlPath).catch((err) => {
+    // update.html is a static file outside the Vite/React bundle, so it can't read theme.ts's
+    // import.meta.env.MODE-based colours the way the rest of the app does - pass MODE along as a
+    // query param instead, so it can pick the same blue (development) / green (production) brand
+    // colour, rather than being stuck with a hard-coded colour regardless of build mode.
+    updateWindow.loadFile(updateHtmlPath, { query: { mode: MODE } }).catch((err) => {
         console.error('Failed to load update.html:', err);
         updateWindow.close();
     });

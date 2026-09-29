@@ -4,10 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Application Update</title>
+    <script>
+        // Static HTML outside the Vite/React bundle, so it can't read theme.ts's import.meta.env.MODE
+        // directly - main.ts passes it along as a ?mode= query param instead (see createUpdateDialog),
+        // so this dialog can use the same blue (development) / green (production) brand colour as the
+        // rest of the app, instead of being stuck with one hard-coded colour regardless of build mode.
+        // Set as early as possible (before the <style> below is parsed) to avoid a flash of the
+        // fallback colour.
+        (function () {
+            const isProduction = new URLSearchParams(location.search).get('mode') === 'production';
+            const root = document.documentElement.style;
+            root.setProperty('--brand-primary', isProduction ? '#01b54c' : '#036DBA');
+            root.setProperty('--brand-primary-dark', isProduction ? '#008037' : '#034777');
+        })();
+    </script>
 </head>
 <body>
 <div class="update-dialog">
     <div class="dialog-header">
+        <div class="brand">
+            <img src="bahis_white.png" alt="" class="brand-logo">
+            <span class="brand-name">BAHIS</span>
+        </div>
         <h1>New Update Available</h1>
     </div>
     <div class="dialog-content">
@@ -18,21 +36,27 @@
             <h3>What's New</h3>
             <div id="release-notes"></div>
         </div>
-        <div style="font-size: .75rem; color: #818181;">Clicking <strong>Update</strong> will automatically restart the
+        <div class="update-note">Clicking <strong>Update</strong> will automatically restart the
             application and
             apply the update.
         </div>
     </div>
     <div class="dialog-actions">
         <button id="restart" class="btn btn-primary">Update
-            <span style="font-size: .75rem">(Restart)</span>
+            <span class="btn-subtext">(Restart)</span>
         </button>
         <button id="later" class="btn btn-secondary">Later</button>
     </div>
 </div>
 <style>
+    :root {
+        /* Fallback only - the inline script above always sets these before this stylesheet is used. */
+        --brand-primary: #036DBA;
+        --brand-primary-dark: #034777;
+    }
+
     body {
-        font-family: "OpenSans", Arial, sans-serif;
+        font-family: Roboto, "OpenSans", Arial, sans-serif;
         margin: 0;
         display: flex;
         align-items: center;
@@ -45,16 +69,41 @@
         width: 400px;
         max-height: 450px;
         background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        border-radius: 12px;
+        box-shadow:
+            0 1px 3px rgba(0, 0, 0, 0.08),
+            0 8px 24px rgba(0, 0, 0, 0.16);
         overflow: auto;
     }
 
     .dialog-header {
         text-align: center;
-        background: #007bff;
+        background: linear-gradient(160deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
         color: #fff;
         padding: 20px;
+    }
+
+    .brand {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .brand-logo {
+        height: 24px;
+    }
+
+    .brand-name {
+        font-weight: 700;
+        font-size: 1.1rem;
+        letter-spacing: 1px;
+    }
+
+    .dialog-header h1 {
+        margin: 0;
+        font-size: 1.25rem;
     }
 
     .dialog-content {
@@ -67,6 +116,11 @@
 
     .release-notes h3 {
         margin-bottom: 10px;
+    }
+
+    .update-note {
+        font-size: .75rem;
+        color: #818181;
     }
 
     .dialog-actions {
@@ -85,13 +139,17 @@
         font-size: 1.1rem;
     }
 
+    .btn-subtext {
+        font-size: .75rem;
+    }
+
     .btn-primary {
-        background: #007bff;
+        background: var(--brand-primary);
         color: #fff;
     }
 
     .btn-primary:hover {
-        background: #0056b3;
+        background: var(--brand-primary-dark);
     }
 
     .btn-secondary {
