@@ -132,6 +132,19 @@ body,
   background-image: radial-gradient(4px, var(--bahis-primary) 0%, var(--bahis-primary) 99%, transparent 100%);
 }
 
+// The "select" dropdown fields aren't a plain <select> - enketo-core's select-desktop widget (shared
+// by every theme) replaces it with this button (a Bootstrap "bootstrap-select"), which the widget's
+// own CSS hard-codes to a fixed width unrelated to its cell, and gives a margin-top a plain input
+// doesn't have - so a dropdown field sat a visibly different width and ~15px lower than the text/date
+// cell next to it in the same grid row, breaking the theme's whole point of aligned cell borders.
+.bootstrap-select {
+  margin-top: 0;
+
+  .dropdown-toggle {
+    width: 100%;
+  }
+}
+
 // checkboxes: a filled, brand-coloured box with a white check, instead of a black check on white
 .question input[type='checkbox']:checked {
   border-color: var(--bahis-primary);
