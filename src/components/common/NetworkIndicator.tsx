@@ -2,6 +2,22 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import SignalCellular4BarIcon from '@mui/icons-material/SignalCellular4Bar';
 import SignalCellularOffIcon from '@mui/icons-material/SignalCellularOff';
 import { Alert, Box, CircularProgress, Snackbar, Tooltip, Typography } from '@mui/material';
+import { keyframes } from '@mui/material/styles';
+
+const ICON_SIZE = 24;
+
+// A hard on/off toggle, not a fade: each keyframe holds its opacity for its whole segment (no
+// interpolation to the next value) via its own `steps(1, jump-end)` timing function, then jumps.
+const blink = keyframes`
+    0%, 49.999% {
+        opacity: 1;
+        animation-timing-function: steps(1, jump-end);
+    }
+    50%, 100% {
+        opacity: 0;
+        animation-timing-function: steps(1, jump-end);
+    }
+`;
 
 const BAHIS_SERVER_URL = import.meta.env.VITE_BAHIS_SERVER_URL as string | undefined;
 const CHECK_INTERVAL_MS = 60000;
@@ -29,20 +45,18 @@ const checkServerReachable = async (): Promise<ConnectionStatus> => {
 };
 
 export const NetworkIndicator = () => {
-    // Optimistic initial value - the real check below runs immediately on mount and corrects it
-    // within CHECK_TIMEOUT_MS, so this only matters for the very first render.
     const [status, setStatus] = useState<ConnectionStatus>('good');
     const [checking, setChecking] = useState(false);
     const [lastChecked, setLastChecked] = useState<Date | null>(null);
     const mountedRef = useRef(true);
 
-    const runCheck = useCallback(() => {
-        setChecking(true);
+    const runCheck = useCallback((manual = false) => {
+        if (manual) setChecking(true);
         checkServerReachable().then((result) => {
             if (!mountedRef.current) return;
             // log.info(`Network status check: ${result}`);
             setStatus(result);
-            setChecking(false);
+            if (manual) setChecking(false);
             setLastChecked(new Date());
         });
     }, []);
@@ -50,19 +64,20 @@ export const NetworkIndicator = () => {
     useEffect(() => {
         mountedRef.current = true;
         runCheck();
-        const interval = setInterval(runCheck, CHECK_INTERVAL_MS);
+        const interval = setInterval(() => runCheck(), CHECK_INTERVAL_MS);
 
         // Also re-check immediately on the OS-level online/offline events, rather than waiting for
         // the next interval tick - these fire faster than a 1-minute poll when connectivity
         // actually changes (e.g. plugging in an ethernet cable, or losing WiFi).
-        window.addEventListener('online', runCheck);
-        window.addEventListener('offline', runCheck);
+        const handleConnectivityChange = () => runCheck();
+        window.addEventListener('online', handleConnectivityChange);
+        window.addEventListener('offline', handleConnectivityChange);
 
         return () => {
             mountedRef.current = false;
             clearInterval(interval);
-            window.removeEventListener('online', runCheck);
-            window.removeEventListener('offline', runCheck);
+            window.removeEventListener('online', handleConnectivityChange);
+            window.removeEventListener('offline', handleConnectivityChange);
         };
     }, [runCheck]);
 
@@ -81,12 +96,28 @@ export const NetworkIndicator = () => {
                 <Alert severity="error">You are offline - you will not be able to sync your data.</Alert>
             </Snackbar>
             <Tooltip title={`${statusText}${lastCheckedText} Click to check now.`}>
-                <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={runCheck}>
-                    {status === 'none' ? <SignalCellularOffIcon color="error" /> : <SignalCellular4BarIcon sx={{ color }} />}
+                <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => runCheck(true)}>
+                    <Box
+                        sx={{
+                            width: ICON_SIZE,
+                            height: ICON_SIZE,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                        }}
+                    >
+                        {checking ? (
+                            <CircularProgress size={ICON_SIZE} thickness={4} sx={{ color }} />
+                        ) : status === 'none' ? (
+                            <SignalCellularOffIcon color="error" sx={{ animation: `${blink} 1s infinite` }} />
+                        ) : (
+                            <SignalCellular4BarIcon sx={{ color }} />
+                        )}
+                    </Box>
                     <Typography sx={{ paddingLeft: '.30rem', fontWeight: status === 'good' ? 400 : 'bold', color }}>
                         {label}
                     </Typography>
-                    {checking && <CircularProgress size={14} thickness={5} sx={{ marginLeft: '6px', color }} />}
                 </Box>
             </Tooltip>
         </>
