@@ -112,20 +112,20 @@ const buildSvg = (color: string) => {
             const cy = row * CELL_SIZE + CELL_SIZE / 2 + range(-0.3, 0.3) * CELL_SIZE;
             // Weighted so icon tiles (the largest, most eye-catching shapes) are rarer than the small
             // loose shapes and footprints - keeps the scatter feeling sparse rather than crowded.
-            const kind = pick(['tile', 'tile', 'loose', 'loose', 'loose', 'paw']);
+            const kind = pick(['tile', 'tile', 'tile', 'loose', 'loose', 'loose', 'paw']);
 
             if (kind === 'tile') {
-                shapes.push(tile(cx, cy, range(44, 100), range(-18, 18), pick(icons)));
+                shapes.push(tile(cx, cy, range(50, 150), range(-18, 18), pick(icons)));
             } else if (kind === 'paw') {
-                shapes.push(pick(paws)(cx, cy, range(0, 360), range(0.6, 1.5)));
+                shapes.push(pick(paws)(cx, cy, range(0, 360), range(0.6, 1.9)));
             } else {
                 const loose = pick(['bone', 'capsule', 'heart', 'drop', 'ring', 'plus']);
-                if (loose === 'bone') shapes.push(bone(cx, cy, range(0, 360), range(0.7, 1.3)));
-                else if (loose === 'capsule') shapes.push(capsule(cx, cy, range(0, 360), range(0.7, 1.3)));
-                else if (loose === 'heart') shapes.push(heart(cx, cy, range(0, 360), range(0.6, 1.2)));
-                else if (loose === 'drop') shapes.push(drop(cx, cy, range(0, 360), range(0.6, 1.2)));
-                else if (loose === 'ring') shapes.push(ring(cx, cy, range(0.7, 1.6)));
-                else shapes.push(plus(cx, cy, range(14, 32), range(0, 90)));
+                if (loose === 'bone') shapes.push(bone(cx, cy, range(0, 360), range(0.7, 1.7)));
+                else if (loose === 'capsule') shapes.push(capsule(cx, cy, range(0, 360), range(0.7, 1.7)));
+                else if (loose === 'heart') shapes.push(heart(cx, cy, range(0, 360), range(0.6, 1.6)));
+                else if (loose === 'drop') shapes.push(drop(cx, cy, range(0, 360), range(0.6, 1.6)));
+                else if (loose === 'ring') shapes.push(ring(cx, cy, range(0.7, 2)));
+                else shapes.push(plus(cx, cy, range(14, 40), range(0, 90)));
             }
         }
     }

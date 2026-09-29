@@ -15,7 +15,7 @@ export const VetBackground = () => (
             pointerEvents: 'none',
             backgroundImage: (theme) => vetTexture(theme.palette.primary.main),
             backgroundSize: VET_TEXTURE_TILE_SIZE,
-            opacity: 0.75,
+            opacity: 1,
         }}
     />
 );
