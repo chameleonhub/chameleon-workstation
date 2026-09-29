@@ -10,3 +10,138 @@
 html {
   font-size: 100%;
 }
+
+// --- BAHIS polish, layered on top of the vendor theme ---
+//
+// The vendor theme is hard-coded to Enketo's own demo colour ($brand-primary-color: #ce4f07, an orange),
+// and to some starker defaults (pure black grid lines, a mustard-yellow hover/focus tint). This section
+// recolours it to this app's brand colour and softens those defaults, without touching the vendor's Sass
+// - grid/_variables.scss assigns $brand-primary-color directly (not with `!default`), so predefining it
+// before the @import above would just get overwritten when that partial itself runs. Plain CSS after the
+// import, using the --bahis-primary custom properties theme.ts sets on <html>, works in both the blue
+// (development) and green (production) builds without needing this file to know which one is active.
+
+// base type: the app's own font instead of the vendor's Arial fallback
+body,
+.question-label,
+.option-label,
+.btn {
+  font-family: Roboto, Arial, sans-serif;
+}
+
+// the card the whole form sits in - a softer, layered shadow instead of the vendor's flat grey glow
+.paper {
+  border: none;
+  border-radius: 6px;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+// form title and headings
+#form-title,
+.or > h3,
+.or-group > h3 {
+  color: var(--bahis-primary);
+}
+
+.or-group > h4,
+.or-repeat > h4 {
+  color: #333333;
+  background: color-mix(in srgb, var(--bahis-primary) 6%, white);
+  border-bottom-color: var(--bahis-primary);
+}
+
+// the collapse triangle on a group heading
+.or-group:not(.or-appearance-no-collapse) > h4::before {
+  border-top-color: var(--bahis-primary);
+}
+
+.or-group:not(.or-appearance-no-collapse).or-appearance-compact > h4::before {
+  border-left-color: var(--bahis-primary);
+}
+
+// question cells: softer grid lines, theme-tinted hover/focus instead of the vendor's yellow
+.question {
+  border-color: #d7dbe0;
+  transition: background-color 0.12s ease;
+
+  &:not(.readonly):not(.focus):hover {
+    background: color-mix(in srgb, var(--bahis-primary) 6%, white);
+  }
+
+  &.focus {
+    background: color-mix(in srgb, var(--bahis-primary) 10%, white);
+  }
+}
+
+.or > .question,
+.or > .or-group,
+.or > .or-group-data,
+.or [role='page'],
+.or-repeat:not(:empty),
+.or-repeat-info:not(:empty) {
+  border-color: #d7dbe0;
+}
+
+.question-label {
+  color: #4a4a4a;
+  letter-spacing: 0.02em;
+}
+
+.required,
+.or-form-guidance.active,
+.repeat-number {
+  color: var(--bahis-primary);
+}
+
+.or-repeat,
+.or-repeat-info:not(:empty) {
+  background-color: color-mix(in srgb, var(--bahis-primary) 8%, white);
+}
+
+// a subtle theme-coloured underline on focus, echoing a Material text field
+.question
+  input:is(
+    [type='text'],
+    [type='tel'],
+    [type='password'],
+    [type='url'],
+    [type='email'],
+    [type='date'],
+    [type='time'],
+    [type='datetime-local'],
+    [type='number']
+  ):focus,
+.question textarea:focus,
+.question select:focus {
+  box-shadow: inset 0 -2px 0 var(--bahis-primary);
+}
+
+// radio buttons: the checked dot in the brand colour instead of black
+.question input[type='radio']:checked {
+  border-color: var(--bahis-primary);
+  background-image: radial-gradient(4px, var(--bahis-primary) 0%, var(--bahis-primary) 99%, transparent 100%);
+}
+
+// checkboxes: a filled, brand-coloured box with a white check, instead of a black check on white
+.question input[type='checkbox']:checked {
+  border-color: var(--bahis-primary);
+  background-color: var(--bahis-primary);
+  background-image: url('data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2032%2032%27%3E%3Cpath%20fill%3D%27white%27%20d%3D%27M25.1%2012.5l-3.4-3.3-8%208-2.9-3-3.4%203.4%206.3%206.3z%27%2F%3E%3C%2Fsvg%3E');
+  background-size: 20px 20px;
+  background-position: -1px;
+}
+
+.btn-primary {
+  background-color: var(--bahis-primary);
+  border-color: var(--bahis-primary-dark);
+
+  &:hover,
+  &:focus,
+  &:active,
+  &.active {
+    background-color: var(--bahis-primary-dark);
+    border-color: var(--bahis-primary-dark);
+  }
+}

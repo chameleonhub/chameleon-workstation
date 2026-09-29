@@ -25,6 +25,16 @@ if (import.meta.env.MODE === 'production') {
     accent_dark = '#00822b';
 }
 
+// Exposed as CSS custom properties too, for the non-MUI parts of the app that can't read the MUI theme
+// object directly - namely the Enketo form themes (assets/styles/*.scss), which style markup transformed
+// straight from XForm XML rather than JSX. See assets/styles/grid.scss for where this is consumed.
+if (typeof document !== 'undefined') {
+    const root = document.documentElement.style;
+    root.setProperty('--bahis-primary', primary_main);
+    root.setProperty('--bahis-primary-light', primary_light);
+    root.setProperty('--bahis-primary-dark', primary_dark);
+}
+
 export const theme = createTheme({
     palette: {
         primary: {
