@@ -30,7 +30,7 @@ import { useNavigate } from 'react-router-dom';
 import { alpha } from '@mui/material/styles';
 import { log } from '../../helpers/log';
 import { ipc } from '../../helpers/ipc';
-import { VET_TEXTURE_TILE_SIZE, vetTexture } from '../../helpers/vetTexture';
+import { vetTexture } from '../../helpers/vetTexture';
 import { AlertContent } from '../common/SystemAlerts';
 import bahisWhite from '../../assets/images/bahis_white.png';
 import { LoadingSpinner } from '../common/LoadingSpinner.tsx';
@@ -317,7 +317,12 @@ export const SignIn = () => {
                                         'radial-gradient(circle at 88% 18%, rgba(255, 255, 255, 0.2), transparent 18rem)',
                                         `linear-gradient(160deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
                                     ].join(', '),
-                                backgroundSize: `${VET_TEXTURE_TILE_SIZE}, auto, auto`,
+                                // The page watermark (VetBackground) uses the texture's full, large canvas
+                                // so a repeat is never obvious on a tall scrolled page - but this panel is
+                                // small, fixed-size and never scrolls, so showing that same canvas at full
+                                // size just crops a small, often near-empty corner of it. Scale it down
+                                // instead, so the panel shows a couple of full, nicely sprinkled repeats.
+                                backgroundSize: '420px 560px, auto, auto',
                                 backgroundRepeat: 'repeat, no-repeat, no-repeat',
                             }}
                         >
