@@ -146,6 +146,12 @@ body,
   margin-top: 0;
 }
 
+// Unlike every other input type, the vendor theme never gives input[type=range] a width at all -
+// without one it renders at the browser's own small intrinsic default instead of filling its cell.
+.question input[type='range'] {
+  width: 100%;
+}
+
 // The "select" dropdown fields aren't a plain <select> - enketo-core's select-desktop widget replaces
 // it with this button (a Bootstrap "bootstrap-select"), which the widget's own CSS also hard-codes to
 // a fixed width unrelated to its cell - so on top of the generic .widget offset above, a dropdown field

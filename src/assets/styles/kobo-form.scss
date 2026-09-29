@@ -87,7 +87,8 @@
 
   // Every simple input/select/textarea fills its (now equal-width, see min-width above) question
   // column, instead of the vendor's own inconsistent per-type widths (80% for text/email/tel/etc.,
-  // a flat 240px for date/number/time, no rule at all for others) - which is the other half of why
+  // a flat 240px for date/number/time, no rule at all for others, including range - which without a
+  // width just renders at the browser's own small intrinsic default) - which is the other half of why
   // fields didn't line up.
   input[type='text'],
   input[type='tel'],
@@ -100,6 +101,7 @@
   input[type='time'],
   input[type='datetime-local'],
   input[type='number'],
+  input[type='range'],
   input.number-input,
   .print-input-text,
   select,
