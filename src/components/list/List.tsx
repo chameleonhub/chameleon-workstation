@@ -102,7 +102,7 @@ export const List = () => {
     // parse form definition into columns
     useEffect(() => {
         const parseFormDefinitionAsColumns = (xmlDoc: Document) => {
-            log.info('Parsing form definition as datagrid columns');
+            // log.info('Parsing form definition as datagrid columns');
 
             const form = xmlDoc.body.children;
 

@@ -9,7 +9,7 @@ export interface Workflow {
 }
 
 export const readFormDefinition = async (form_uid: string) => {
-    log.info(`reading XML definition from form for form: ${form_uid}`);
+    // log.info(`reading XML definition from form for form: ${form_uid}`);
     const query = `SELECT xml
                    FROM form
                    WHERE uid IS '${form_uid}'`;
@@ -26,8 +26,8 @@ export const readFormDefinition = async (form_uid: string) => {
 };
 
 export const readFormData = async (form_uid: string, instance_id?: string) => {
-    log.info(`reading data from formcloudsubmission table for form_uid: ${form_uid}`);
-    if (instance_id) log.info(`  for instance_id: ${instance_id}...`);
+    // log.info(`reading data from formcloudsubmission table for form_uid: ${form_uid}`);
+    // if (instance_id) log.info(`  for instance_id: ${instance_id}...`);
     let query = `SELECT *
                  FROM formcloudsubmission
                  WHERE form_uid IS '${form_uid}'`;
@@ -35,7 +35,7 @@ export const readFormData = async (form_uid: string, instance_id?: string) => {
     return ipc
         .invoke('get-local-db', query)
         .then((response) => {
-            log.info(`Succesfully read ${response.length} records`);
+            // log.info(`Succesfully read ${response.length} records`);
             return response;
         })
         .catch((error) => {
@@ -45,14 +45,14 @@ export const readFormData = async (form_uid: string, instance_id?: string) => {
 };
 
 export const readFormWorkflows = async (form_uid: string) => {
-    log.info(`reading workflows from workflow table for form_uid: ${form_uid}`);
+    // log.info(`reading workflows from workflow table for form_uid: ${form_uid}`);
     const query = `SELECT *
                    FROM workflow
                    WHERE source_form IS '${form_uid}'`;
     return ipc
         .invoke('get-local-db', query)
         .then((response) => {
-            log.info(`Succesfully read ${response.length} workflows for this form`);
+            // log.info(`Succesfully read ${response.length} workflows for this form`);
             return response as Workflow[];
         })
         .catch((error) => {

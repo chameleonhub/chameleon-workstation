@@ -335,7 +335,7 @@ export const Dashboard = () => {
 
     const widgets = useMemo<FieldWidgetSpec[]>(() => {
         if (!form) return [];
-        log.info('Deriving dashboard widgets from form definition');
+        // log.info('Deriving dashboard widgets from form definition');
         const bindTypeMap = getBindTypeMap(form);
         const fields = recurseFormBodyFields(form.body.children);
 
