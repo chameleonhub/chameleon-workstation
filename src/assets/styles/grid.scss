@@ -132,11 +132,25 @@ body,
   background-image: radial-gradient(4px, var(--bahis-primary) 0%, var(--bahis-primary) 99%, transparent 100%);
 }
 
-// The "select" dropdown fields aren't a plain <select> - enketo-core's select-desktop widget (shared
-// by every theme) replaces it with this button (a Bootstrap "bootstrap-select"), which the widget's
-// own CSS hard-codes to a fixed width unrelated to its cell, and gives a margin-top a plain input
-// doesn't have - so a dropdown field sat a visibly different width and ~15px lower than the text/date
-// cell next to it in the same grid row, breaking the theme's whole point of aligned cell borders.
+// Every enketo-core widget (date/time pickers, geopoint, range, rating, comment, file, url, thousands-
+// separated number, and more - not just the select dropdown below) is wrapped in a `.widget` element,
+// and the vendor theme gives that wrapper a top margin (8px) a plain input/textarea/select doesn't
+// have - so a widget-based field always sat a bit lower than a plain field next to it in the same grid
+// row. Zero just the top margin (the bottom margin isn't a row-alignment issue) so any of these lines
+// up with a plain field beside it, whichever kind of question the form actually uses.
+// The geopoint and URL-type widgets carry their own, even bigger top margins (25px and 20px) on top
+// of - not instead of - the generic .widget one above, so they need the same fix explicitly.
+.widget,
+.geopicker,
+.url-widget {
+  margin-top: 0;
+}
+
+// The "select" dropdown fields aren't a plain <select> - enketo-core's select-desktop widget replaces
+// it with this button (a Bootstrap "bootstrap-select"), which the widget's own CSS also hard-codes to
+// a fixed width unrelated to its cell - so on top of the generic .widget offset above, a dropdown field
+// sat a visibly different width than the text/date cell next to it, breaking the theme's whole point of
+// aligned cell borders.
 .bootstrap-select {
   margin-top: 0;
 

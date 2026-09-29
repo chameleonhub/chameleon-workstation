@@ -17,7 +17,11 @@
 
   // The widget wrapper itself also carries a vendor margin-top (15px) that a plain text input doesn't
   // have, so a dropdown field always sat noticeably lower than an input next to it in the same row.
-  .bootstrap-select {
+  // The geopoint and URL-type widgets have the exact same problem (25px and 20px respectively) - any
+  // form using one of those next to a plain field would show the same kind of misalignment.
+  .bootstrap-select,
+  .geopicker,
+  .url-widget {
     margin-top: 0;
   }
 
