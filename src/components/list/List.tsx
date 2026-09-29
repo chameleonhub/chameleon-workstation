@@ -52,7 +52,7 @@ const mapWorkflow = (workflow: Workflow, row) => {
             // replace element with identical element with new tag name
             const newElement = xmlDoc.createElement(mapping[field_name].split('/').at(-1));
             newElement.textContent = element.textContent;
-            element.replaceWith(newElement, element);
+            element.replaceWith(newElement);
         } else {
             element.remove();
         }
@@ -159,7 +159,7 @@ export const List = () => {
                                     icon={<Tooltip title={workflow.title}>{<PostAddIcon />}</Tooltip>}
                                     onClick={() => {
                                         const formData = mapWorkflow(workflow, params.row);
-                                        navigate(`/form/${form_uid}`, { state: { injectedData: formData } });
+                                        navigate(`/form/${workflow.destination_form}`, { state: { injectedData: formData } });
                                     }}
                                 />
                             );
