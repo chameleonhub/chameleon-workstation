@@ -15,6 +15,11 @@ export default [
     pluginReact.configs.flat.recommended,
     eslintPluginPrettierRecommended,
     {
+        // Without this, eslint-plugin-react can't tell which React version it's linting against (it
+        // affects version-dependent rules, e.g. whether the new JSX runtime needs React in scope) and
+        // prints "React version not specified" on every run. 'detect' reads it from the installed
+        // react package instead of needing to hardcode/update a version string here.
+        settings: { react: { version: 'detect' } },
         plugins: {
             'react-refresh': reactRefresh,
             'react-hooks': eslintPluginReactHooks,
