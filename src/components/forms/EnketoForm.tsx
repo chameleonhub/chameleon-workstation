@@ -10,6 +10,7 @@ import {
     Stack,
     Typography,
 } from '@mui/material';
+import { attachAutocompleteLists } from '../../helpers/autocompleteList';
 import { ipc } from '../../helpers/ipc';
 import { Form } from 'enketo-core';
 import { transform } from 'enketo-transformer/web';
@@ -211,6 +212,12 @@ export const EnketoForm: React.FC<EnketoFormProps> = ({ formUID, formODKXML, ins
             cancelled = true;
         };
     }, [formODKXML, themeReady]);
+
+    // Electron's popup for the autocomplete widget's <datalist> can't scroll - swap in our own list.
+    useEffect(() => {
+        if (!formEl.current) return;
+        return attachAutocompleteLists(formEl.current);
+    }, []);
 
     // Tracks which top-level section currently has focus, for the "N of M: <label>" indicator.
     // Keyed off focus rather than scroll position - it's exact (no rootMargin/threshold tuning)

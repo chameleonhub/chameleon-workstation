@@ -159,3 +159,30 @@ body {
 .highcharts-data-table tr:hover {
   background: #f0f5fb;
 }
+
+// The scrollable suggestion list for autocomplete form fields (helpers/autocompleteList.ts). Appended to
+// <body>, outside the form, so it lives here rather than in a form theme; --bahis-primary is set by theme.ts.
+.bahis-autocomplete-list {
+  position: fixed;
+  z-index: 1300;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #d7dbe0;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-family: Roboto, Arial, sans-serif;
+  font-size: 14px;
+
+  li {
+    padding: 6px 12px;
+    cursor: pointer;
+    color: #333;
+  }
+
+  li.active {
+    background: color-mix(in srgb, var(--bahis-primary) 12%, white);
+  }
+}
